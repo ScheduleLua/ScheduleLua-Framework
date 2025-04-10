@@ -61,7 +61,7 @@ A Lua modding framework for Schedule I that aims to expose the game's functional
       - [Basic Utilities](#basic-utilities)
       - [Advanced Utilities](#advanced-utilities)
   - [Events](#events)
-  - [Examples](#examples)
+  - [Example Script](#example-script)
   - [Contributing](#contributing)
     - [Roadmap \& Planned Features](#roadmap--planned-features)
   - [License](#license)
@@ -533,11 +533,7 @@ Your scripts can define these functions to handle game events:
 | `OnNPCInteraction(npcName)`            | npcName: string                  | Called when the player interacts with an NPC       |
 | `Update()`                             | None                             | Called every frame for continuous script execution |
 
-## Examples
-
-```
-
-### Example Script
+## Example Script
 
 ```lua
 -- ScheduleLua Example Script
