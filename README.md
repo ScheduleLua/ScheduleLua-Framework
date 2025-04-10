@@ -63,7 +63,6 @@ A Lua modding framework for Schedule I that aims to expose the game's functional
   - [Events](#events)
   - [Example Script](#example-script)
   - [Contributing](#contributing)
-    - [Roadmap \& Planned Features](#roadmap--planned-features)
   - [License](#license)
   - [Acknowledgments](#acknowledgments)
 
@@ -83,11 +82,11 @@ ScheduleLua is a MelonLoader mod that integrates the MoonSharp Lua interpreter w
 ## Installation
 
 1. Install [MelonLoader](https://melonwiki.xyz/#/?id=automated-installation) for Schedule I
-2. Download the latest `ScheduleLua.dll` release from [GitHub Releases](https://github.com/yourusername/ScheduleLua/releases)
+2. Download the latest `ScheduleLua.dll` release from [GitHub Releases](https://github.com/ifBars/ScheduleLua/releases)
 3. Place the DLL in your `Mods` folder (typically `Schedule I/Mods/`)
 4. Launch the game
 
-On first launch, a `UserData/ScheduleLua/Scripts` folder will be created with an example script.
+On first launch, a `UserData/ScheduleLua/Scripts` folder will be created with an example script, inside your Schedule 1 game directory.
 
 ## Getting Started
 
@@ -181,7 +180,6 @@ end
 2. **Initialization**: The `Initialize()` function is called if it exists
 3. **Update**: The `Update()` function is called every frame if it exists
 4. **Events**: Event handlers are called when the corresponding game events occur
-5. **Command Handling**: Scripts can process commands via `HandleCommand()`
 
 ## Configuration
 
@@ -704,18 +702,8 @@ return true
 Contributions to ScheduleLua are welcome! To contribute:
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-### Roadmap & Planned Features
-
-- UI creation API for custom interfaces
-- Quest system integration
-- Economy and trade functions
-- Building and construction functions
-- World manipulation and generation
-- Multiplayer support (when available)
+2. Make your changes
+3. Submit a pull request
 
 ## License
 
@@ -723,7 +711,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- MelonLoader team for the mod loader
-- MoonSharp project for the Lua interpreter
-- Schedule I development team
+- MelonLoader for the mod loader
+- MoonSharp for the Lua interpreter
+- TVGS for making Schedule 1
 - All contributors and the modding community
