@@ -333,10 +333,10 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 ### Inventory System
 
 #### Basic Inventory
-- [x] Get inventory slot count
-- [x] Get item at slot
-- [x] Add item to inventory
-- [x] Remove item from inventory
+- [ ] Get inventory slot count
+- [ ] Get item at slot
+- [ ] Add item to inventory
+- [ ] Remove item from inventory
 - [ ] Get item properties
 - [ ] Use item
 - [ ] Drop item
@@ -363,9 +363,9 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 - [ ] Speed up time
 
 #### Time Events
-- [x] Day change events
-- [x] Time change events
-- [x] Sleep start/end events
+- [ ] Day change events
+- [ ] Time change events
+- [ ] Sleep start/end events
 - [ ] Weather change events
 - [ ] Season change events
 
@@ -427,8 +427,8 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 ### Economy System
 
 #### Basic Economy
-- [x] Get player money
-- [x] Add/remove player money
+- [ ] Get player money
+- [ ] Add/remove player money
 - [ ] Get shop inventory
 - [ ] Buy/sell items
 - [ ] Get item prices
@@ -484,7 +484,7 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 - [x] Player events
 - [x] Time events
 - [x] Scene events
-- [x] Command events
+- [ ] Command events
 - [ ] UI events
 - [ ] Inventory events
 
