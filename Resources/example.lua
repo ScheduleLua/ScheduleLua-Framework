@@ -12,14 +12,12 @@ local npcPositions = {}
 -- Initialize function called when script is first loaded
 function Initialize()
     Log("Example script initialized!")
-    
     return true
 end
 
 -- Update function called every frame
 function Update()
-    -- This function is called frequently, so we'll only do occasional checks
-    -- In a real mod, you would want to limit how often you perform actions here
+    -- This function is called frequently, you would want to limit how often you perform actions here
     
     -- Check if player has moved significantly (more than 5 units)
     local currentPos = GetPlayerPosition()
@@ -30,8 +28,6 @@ function Update()
             Log("Player moved significantly!")
             Log("Distance moved: " .. distance)
             playerLastPosition = currentPos
-            
-            -- Create a custom event for movement
             OnPlayerMovedSignificantly()
         end
     end
@@ -39,8 +35,6 @@ end
 
 -- Called when the console is fully loaded and ready
 function OnConsoleReady()
-
-    -- Register console commands
     RegisterCommand(
         "help",
         "Shows available commands",
@@ -120,12 +114,12 @@ function OnPlayerReady()
     playerLastRegion = GetPlayerRegion()
     playerLastMoney = GetPlayerMoney()
     
-    -- Log player information with nil checks
+    -- Log player information
     Log("Player starting in region: " .. (playerLastRegion))
     Log("Player energy: " .. (GetPlayerEnergy()))
     Log("Player health: " .. (GetPlayerHealth()))
     
-    -- Log player position (using Vector3Proxy)
+    -- Log player position
     local pos = GetPlayerPosition()
     if pos then
         Log("Player position: " .. pos.x .. ", " .. pos.y .. ", " .. pos.z)
@@ -152,7 +146,6 @@ function OnPlayerReady()
         local npcsInRegion = GetNPCsInRegion(playerLastRegion) or {}
         for i, npc in pairs(npcsInRegion) do
             Log("  - " .. npc.fullName)
-            -- Store initial NPC positions for tracking
             local npcObj = FindNPC(npc.fullName)
             if npcObj then
                 npcPositions[npc.id] = GetNPCPosition(npcObj)
@@ -180,16 +173,13 @@ end
 -- Called when the game day changes
 function OnDayChanged(day)
     Log("Day changed to: " .. day)
-    -- You could reset daily tracking variables here
 end
 
 -- Called when the game time changes
 function OnTimeChanged(time)
-    -- Only log time changes occasionally to avoid spam
     if time % 3 == 0 then
         Log("Time is now: " .. FormatGameTime(time))
         
-        -- Check if it's night time
         if IsNightTime() then
             Log("It's night time!")
         end
@@ -218,7 +208,6 @@ end
 function OnPlayerMovedSignificantly()
     local currentRegion = GetPlayerRegion()
     
-    -- Add nil checks for both regions
     if currentRegion and playerLastRegion and currentRegion ~= playerLastRegion then
         Log("Player changed region from " .. playerLastRegion .. " to " .. currentRegion)
         playerLastRegion = currentRegion
