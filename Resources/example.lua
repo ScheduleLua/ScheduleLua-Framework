@@ -1,5 +1,4 @@
 -- ScheduleLua Example Script
--- This script demonstrates the API available for modding ScheduleOne
 
 -- Print a header for our script
 Log("Example script loaded!")
@@ -197,18 +196,6 @@ function OnTimeChanged(time)
     end
 end
 
--- Called when the player goes to sleep
-function OnSleepStart()
-    Log("Player going to sleep...")
-    -- Save any data that should persist through sleep
-end
-
--- Called when the player wakes up
-function OnSleepEnd()
-    Log("Player woke up!")
-    -- Restore any data or perform morning activities
-end
-
 -- Called when player health changes
 function OnPlayerHealthChanged(newHealth)
     Log("Player health changed to: " .. newHealth)
@@ -245,27 +232,6 @@ function OnPlayerMovedSignificantly()
     elseif currentRegion and not playerLastRegion then
         Log("Player entered region: " .. currentRegion)
         playerLastRegion = currentRegion
-    end
-end
-
--- Called when the player's money changes
-function OnPlayerMoneyChanged(newMoney)
-    local difference = newMoney - playerLastMoney
-    if difference > 0 then
-        Log("Player gained " .. difference .. " money!")
-    else
-        Log("Player spent " .. math.abs(difference) .. " money!")
-    end
-    playerLastMoney = newMoney
-end
-
--- Called when the player interacts with an NPC
-function OnNPCInteraction(npcId)
-    Log("Player interacted with NPC: " .. npcId)
-    local npc = GetNPC(npcId)
-    if npc then
-        Log("  Name: " .. npc.fullName)
-        Log("  Region: " .. npc.region)
     end
 end
 
