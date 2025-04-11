@@ -8,9 +8,11 @@ using ScheduleOne.GameTime;
 using ScheduleOne.ItemFramework;
 using ScheduleOne.Management;
 using ScheduleOne.NPCs;
-using ScheduleLua.API.Player;
 using ScheduleLua.API.Core;
 using ScheduleLua.API.NPC;
+using ScheduleLua.API.Registry;
+using ScheduleLua.API.Law;
+using ScheduleLua.API;
 
 namespace ScheduleLua
 {
@@ -36,14 +38,14 @@ namespace ScheduleLua
             
             // Game object functions
             luaEngine.Globals["FindGameObject"] = (Func<string, GameObject>)FindGameObject;
-            luaEngine.Globals["GetPosition"] = (Func<GameObject, API.Core.Vector3Proxy>)GetPosition;
+            luaEngine.Globals["GetPosition"] = (Func<GameObject, Vector3Proxy>)GetPosition;
             luaEngine.Globals["SetPosition"] = (Action<GameObject, float, float, float>)SetPosition;
             
             // Player functions
             luaEngine.Globals["GetPlayer"] = (Func<Player>)PlayerAPI.GetPlayer;
-            luaEngine.Globals["GetPlayerState"] = (Func<Table>)API.Player.PlayerAPI.GetPlayerState;
-            luaEngine.Globals["GetPlayerPosition"] = (Func<API.Core.Vector3Proxy>)API.Player.PlayerAPI.GetPlayerPositionProxy;
-            luaEngine.Globals["GetPlayerRegion"] = (Func<string>)API.Player.PlayerAPI.GetPlayerRegion;
+            luaEngine.Globals["GetPlayerState"] = (Func<Table>)PlayerAPI.GetPlayerState;
+            luaEngine.Globals["GetPlayerPosition"] = (Func<Vector3Proxy>)PlayerAPI.GetPlayerPositionProxy;
+            luaEngine.Globals["GetPlayerRegion"] = (Func<string>)PlayerAPI.GetPlayerRegion;
             luaEngine.Globals["SetPlayerPosition"] = (Action<float, float, float>)PlayerAPI.SetPlayerPosition;
             luaEngine.Globals["GetPlayerMoney"] = (Func<float>)PlayerAPI.GetPlayerMoney;
             luaEngine.Globals["AddPlayerMoney"] = (Action<float>)PlayerAPI.AddPlayerMoney;
@@ -67,7 +69,7 @@ namespace ScheduleLua
             
             // NPC functions
             luaEngine.Globals["FindNPC"] = (Func<string, NPC>)NPCAPI.FindNPC;
-            luaEngine.Globals["GetNPCPosition"] = (Func<NPC, API.Core.Vector3Proxy>)NPCAPI.GetNPCPositionProxy;
+            luaEngine.Globals["GetNPCPosition"] = (Func<NPC, Vector3Proxy>)NPCAPI.GetNPCPositionProxy;
             luaEngine.Globals["SetNPCPosition"] = (Action<NPC, float, float, float>)NPCAPI.SetNPCPosition;
             luaEngine.Globals["GetNPC"] = (Func<string, Table>)NPCAPI.GetNPC;
             luaEngine.Globals["GetNPCRegion"] = (Func<string, string>)NPCAPI.GetNPCRegion;
@@ -80,8 +82,14 @@ namespace ScheduleLua
             luaEngine.Globals["GetAllMapRegions"] = (Func<Table>)GetAllMapRegions;
             
             // Helper functions
-            luaEngine.Globals["Vector3"] = (Func<float, float, float, API.Core.Vector3Proxy>)CreateVector3;
-            luaEngine.Globals["Vector3Distance"] = (Func<API.Core.Vector3Proxy, API.Core.Vector3Proxy, float>)API.Core.Vector3Proxy.Distance;
+            luaEngine.Globals["Vector3"] = (Func<float, float, float, Vector3Proxy>)CreateVector3;
+            luaEngine.Globals["Vector3Distance"] = (Func<Vector3Proxy, Vector3Proxy, float>)Vector3Proxy.Distance;
+            
+            // Register console command registry
+            CommandRegistry.RegisterCommandAPI(luaEngine);
+            
+            // Register Law/Curfew API
+            CurfewManagerAPI.RegisterAPI(luaEngine);
             
             // Use proxy objects instead of direct Unity type registration
             // This improves compatibility across platforms, especially on IL2CPP/AOT
@@ -89,7 +97,7 @@ namespace ScheduleLua
             
             // Register necessary types that can't be proxied easily
             // Make sure to test these thoroughly on target platforms
-            UserData.RegisterType<API.Core.Vector3Proxy>();
+            UserData.RegisterType<Vector3Proxy>();
             
             // IMPORTANT: Don't directly register these types, use proxy methods instead
             // These registrations are commented out as they should be handled via proxies
@@ -130,12 +138,12 @@ namespace ScheduleLua
             return GameObject.Find(name);
         }
         
-        public static API.Core.Vector3Proxy GetPosition(GameObject gameObject)
+        public static Vector3Proxy GetPosition(GameObject gameObject)
         {
             if (gameObject == null)
-                return API.Core.Vector3Proxy.zero;
+                return Vector3Proxy.zero;
                 
-            return new API.Core.Vector3Proxy(gameObject.transform.position);
+            return new Vector3Proxy(gameObject.transform.position);
         }
         
         public static void SetPosition(GameObject gameObject, float x, float y, float z)
@@ -242,17 +250,17 @@ namespace ScheduleLua
         
         public static Table GetAllMapRegions()
         {
-            string[] regions = API.Core.LuaUtility.GetAllMapRegions();
-            return API.Core.LuaUtility.StringArrayToTable(regions);
+            string[] regions = LuaUtility.GetAllMapRegions();
+            return LuaUtility.StringArrayToTable(regions);
         }
         
         #endregion
         
         #region Helper Functions
         
-        public static API.Core.Vector3Proxy CreateVector3(float x, float y, float z)
+        public static Vector3Proxy CreateVector3(float x, float y, float z)
         {
-            return new API.Core.Vector3Proxy(x, y, z);
+            return new Vector3Proxy(x, y, z);
         }
         
         #endregion
@@ -275,16 +283,16 @@ namespace ScheduleLua
             luaEngine.Globals["GetTransform"] = (Func<GameObject, Transform>)(go => go?.transform);
             
             // Fix: Return Vector3Proxy instead of Vector3
-            luaEngine.Globals["GetTransformPosition"] = (Func<Transform, API.Core.Vector3Proxy>)(t => 
-                t != null ? new API.Core.Vector3Proxy(t.position) : API.Core.Vector3Proxy.zero);
+            luaEngine.Globals["GetTransformPosition"] = (Func<Transform, Vector3Proxy>)(t => 
+                t != null ? new Vector3Proxy(t.position) : Vector3Proxy.zero);
                 
-            luaEngine.Globals["SetTransformPosition"] = (Action<Transform, API.Core.Vector3Proxy>)((t, pos) => 
+            luaEngine.Globals["SetTransformPosition"] = (Action<Transform, Vector3Proxy>)((t, pos) => 
                 { if (t != null) t.position = pos; });
                 
-            luaEngine.Globals["GetTransformRotation"] = (Func<Transform, API.Core.Vector3Proxy>)(t => 
-                t != null ? new API.Core.Vector3Proxy(t.eulerAngles) : API.Core.Vector3Proxy.zero);
+            luaEngine.Globals["GetTransformRotation"] = (Func<Transform, Vector3Proxy>)(t => 
+                t != null ? new Vector3Proxy(t.eulerAngles) : Vector3Proxy.zero);
                 
-            luaEngine.Globals["SetTransformRotation"] = (Action<Transform, API.Core.Vector3Proxy>)((t, rot) => 
+            luaEngine.Globals["SetTransformRotation"] = (Action<Transform, Vector3Proxy>)((t, rot) => 
                 { if (t != null) t.eulerAngles = rot; });
                 
             // Add additional proxy methods for any Unity types you need to expose

@@ -147,7 +147,7 @@ namespace ScheduleLua.API.Core
         {
             try
             {
-                var regionValues = System.Enum.GetValues(typeof(ScheduleOne.Map.EMapRegion));
+                var regionValues = Enum.GetValues(typeof(ScheduleOne.Map.EMapRegion));
                 string[] regions = new string[regionValues.Length];
                 
                 for (int i = 0; i < regionValues.Length; i++)

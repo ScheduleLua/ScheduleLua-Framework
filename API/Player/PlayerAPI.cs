@@ -8,7 +8,7 @@ using ScheduleOne.PlayerScripts.Health;
 using System.Linq;
 using System.Collections.Generic;
 
-namespace ScheduleLua.API.Player
+namespace ScheduleLua.API
 {
     /// <summary>
     /// Provides Lua API access to player-related functionality in Schedule I
@@ -18,8 +18,8 @@ namespace ScheduleLua.API.Player
         private static GameObject _player;
         private static GameObject Player => _player ??= (ScheduleOne.PlayerScripts.Player.Local != null ? ScheduleOne.PlayerScripts.Player.Local.gameObject : GameObject.FindGameObjectWithTag("Player"));
 
-        private static ScheduleOne.PlayerScripts.Player _playerInstance;
-        private static ScheduleOne.PlayerScripts.Player PlayerInstance => _playerInstance ??= ScheduleOne.PlayerScripts.Player.Local ?? Player?.GetComponent<ScheduleOne.PlayerScripts.Player>();
+        private static Player _playerInstance;
+        private static Player PlayerInstance => _playerInstance ??= ScheduleOne.PlayerScripts.Player.Local ?? Player?.GetComponent<Player>();
 
         private static PlayerHealth _playerHealth;
         private static PlayerHealth PlayerHealth => _playerHealth ??= Player?.GetComponent<PlayerHealth>();
@@ -174,7 +174,7 @@ namespace ScheduleLua.API.Player
                 if (player == null)
                 {
                     LuaUtility.LogWarning("Player not found");
-                    return null;
+                    return "Unknown";
                 }
 
                 // Try to get player position and use Map to determine the region
@@ -301,7 +301,7 @@ namespace ScheduleLua.API.Player
             catch (Exception ex)
             {
                 LuaUtility.LogError("Error getting player region", ex);
-                return null;
+                return "Unknown";
             }
         }
 
@@ -309,7 +309,7 @@ namespace ScheduleLua.API.Player
         /// Gets the player instance
         /// </summary>
         /// <returns>The player instance</returns>
-        public static ScheduleOne.PlayerScripts.Player GetPlayer()
+        public static Player GetPlayer()
         {
             return PlayerInstance;
         }
@@ -342,7 +342,7 @@ namespace ScheduleLua.API.Player
         /// Gets the player's position as a Vector3Proxy for Lua compatibility
         /// </summary>
         /// <returns>Vector3Proxy position of the player</returns>
-        public static API.Core.Vector3Proxy GetPlayerPositionProxy()
+        public static Vector3Proxy GetPlayerPositionProxy()
         {
             try
             {
@@ -350,15 +350,15 @@ namespace ScheduleLua.API.Player
                 if (player == null)
                 {
                     LuaUtility.LogWarning("Player not found");
-                    return API.Core.Vector3Proxy.zero;
+                    return Vector3Proxy.zero;
                 }
                 
-                return new API.Core.Vector3Proxy(player.transform.position);
+                return new Vector3Proxy(player.transform.position);
             }
             catch (Exception ex)
             {
                 LuaUtility.LogError("Error getting player position", ex);
-                return API.Core.Vector3Proxy.zero;
+                return Vector3Proxy.zero;
             }
         }
 

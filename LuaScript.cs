@@ -289,6 +289,7 @@ namespace ScheduleLua
             CheckAndRegisterEvent("OnNPCInteraction");
             CheckAndRegisterEvent("OnSceneLoaded");
             CheckAndRegisterEvent("OnPlayerReady");
+            CheckAndRegisterEvent("OnConsoleReady");
         }
         
         /// <summary>

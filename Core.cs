@@ -9,6 +9,7 @@ using ScheduleOne.GameTime;
 using ScheduleOne.PlayerScripts;
 using UnityEngine.Events;
 using MelonLoader.Utils;
+using ScheduleLua.API.Registry;
 
 [assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", "1.0.0", "ghost", null)]
 [assembly: MelonGame("TVGS", "Schedule I")]
@@ -21,13 +22,13 @@ public class Core : MelonMod
 
     // Lua script engine
     public Script _luaEngine;
-    
+
     // File watcher for hot reloading
     private FileSystemWatcher _fileWatcher;
-    
+
     // Scripts directory
     private string _scriptsDirectory;
-    
+
     // Loaded scripts collection
     private Dictionary<string, LuaScript> _loadedScripts = new Dictionary<string, LuaScript>();
 
@@ -39,26 +40,27 @@ public class Core : MelonMod
 
     private bool _playerEventsBound = false;
     private bool _playerReadyTriggered = false;
+    public bool _consoleReadyTriggered = false;
 
     public override void OnInitializeMelon()
     {
         _instance = this;
         LoggerInstance.Msg("Initializing ScheduleLua...");
-        
+
         SetupPreferences();
         InitializeLuaEngine();
         SetupScriptsDirectory();
         LoadScripts();
-        
+
         // Only setup file watcher if hot reload is enabled
         if (_prefEnableHotReload.Value)
         {
             SetupFileWatcher();
         }
-        
+
         // Hook into game events
         HookGameEvents();
-        
+
         LoggerInstance.Msg("ScheduleLua initialized successfully.");
     }
 
@@ -73,28 +75,28 @@ public class Core : MelonMod
     private void InitializeLuaEngine()
     {
         LoggerInstance.Msg("Initializing Lua engine...");
-        
+
         // Register Unity types with MoonSharp
         UserData.RegisterAssembly();
-        
+
         // Set up script loader for better compatibility with IL2CPP/AOT platforms
         SetupScriptLoader();
-        
+
         // Create Lua script environment
         _luaEngine = new Script(CoreModules.Preset_Complete);
-        
+
         // Enable the debugger for better error reporting
         _luaEngine.DebuggerEnabled = true;
-        
+
         // Use the configured script loader
         _luaEngine.Options.ScriptLoader = Script.DefaultOptions.ScriptLoader;
-        
+
         // Initialize Unity type proxies for better IL2CPP/AOT compatibility
         API.Core.UnityTypeProxies.Initialize();
-        
+
         // Register game-specific API
         LuaAPI.RegisterAPI(_luaEngine);
-        
+
         // Add extra debug info to Script
         _luaEngine.Globals["_SCRIPT_VERSION"] = "1.0.0";
         _luaEngine.Globals["_ENGINE_VERSION"] = System.Environment.Version.ToString();
@@ -108,18 +110,18 @@ public class Core : MelonMod
     {
         // Load all Lua scripts from Resources folder
         Dictionary<string, string> scripts = new Dictionary<string, string>();
-        
+
         try
         {
             // Load scripts from Resources/Lua folder
             object[] result = Resources.LoadAll("Lua", typeof(TextAsset));
-            
-            foreach(TextAsset ta in result)
+
+            foreach (TextAsset ta in result)
             {
                 scripts.Add(ta.name, ta.text);
                 LoggerInstance.Msg($"Registered script from resources: {ta.name}");
             }
-            
+
             // Also register scripts from file system if they exist
             if (Directory.Exists(_scriptsDirectory))
             {
@@ -127,7 +129,7 @@ public class Core : MelonMod
                 {
                     string scriptName = Path.GetFileNameWithoutExtension(filePath);
                     string scriptText = File.ReadAllText(filePath);
-                    
+
                     // Don't overwrite resources scripts with same name
                     if (!scripts.ContainsKey(scriptName))
                     {
@@ -136,14 +138,14 @@ public class Core : MelonMod
                     }
                 }
             }
-            
+
             // Set the script loader
             Script.DefaultOptions.ScriptLoader = new MoonSharp.Interpreter.Loaders.UnityAssetsScriptLoader(scripts);
         }
         catch (Exception ex)
         {
             LoggerInstance.Error($"Error setting up script loader: {ex.Message}");
-            
+
             // Fall back to standard script loader
             Script.DefaultOptions.ScriptLoader = new MoonSharp.Interpreter.Loaders.FileSystemScriptLoader();
         }
@@ -153,14 +155,14 @@ public class Core : MelonMod
     {
         // Create scripts directory if it doesn't exist
         _scriptsDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "ScheduleLua", "Scripts");
-        
+
         if (!Directory.Exists(_scriptsDirectory))
         {
             Directory.CreateDirectory(_scriptsDirectory);
-            
+
             // Create example script from embedded resource
             string examplePath = Path.Combine(_scriptsDirectory, "example.lua");
-            
+
             // Check if we have embedded resource
             var assembly = Assembly.GetExecutingAssembly();
             using (var stream = assembly.GetManifestResourceStream("ScheduleLua.Resources.example.lua"))
@@ -180,7 +182,7 @@ public class Core : MelonMod
                 }
             }
         }
-        
+
         LoggerInstance.Msg($"Scripts directory: {_scriptsDirectory}");
     }
 
@@ -188,16 +190,16 @@ public class Core : MelonMod
     {
         if (!Directory.Exists(_scriptsDirectory))
             return;
-            
+
         LoggerInstance.Msg("Loading Lua scripts...");
-        
+
         foreach (string file in Directory.GetFiles(_scriptsDirectory, "*.lua", SearchOption.AllDirectories))
         {
             LoadScript(file);
         }
-        
+
         LoggerInstance.Msg($"Loaded {_loadedScripts.Count} Lua scripts.");
-        
+
         // Initialize all loaded scripts
         InitializeScripts();
     }
@@ -208,7 +210,7 @@ public class Core : MelonMod
         {
             string relativePath = filePath.Replace(_scriptsDirectory, "").TrimStart('\\', '/');
             LoggerInstance.Msg($"Loading script: {relativePath}");
-            
+
             var script = new LuaScript(filePath, _luaEngine, LoggerInstance);
             if (script.Load())
             {
@@ -238,21 +240,24 @@ public class Core : MelonMod
     {
         if (!_prefLogScriptErrors.Value)
             return;
-            
+
         try
         {
             string scriptName = Path.GetFileName(filePath);
             string scriptContent = null;
-            
-            try {
+
+            try
+            {
                 scriptContent = File.ReadAllText(filePath);
-            } catch {
+            }
+            catch
+            {
                 // Ignore errors reading the file
             }
-            
+
             string errorMessage = luaEx.DecoratedMessage;
             LoggerInstance.Error($"{context}: {errorMessage}");
-            
+
             // Extract line number if possible
             int lineNumber = -1;
             foreach (var part in errorMessage.Split(':'))
@@ -263,7 +268,7 @@ public class Core : MelonMod
                     break;
                 }
             }
-            
+
             // Output code snippet
             if (lineNumber > 0 && scriptContent != null)
             {
@@ -271,10 +276,10 @@ public class Core : MelonMod
                 if (lineNumber <= lines.Length)
                 {
                     LoggerInstance.Error($"Error on line {lineNumber}:");
-                    
+
                     int startLine = Math.Max(0, lineNumber - 3);
                     int endLine = Math.Min(lines.Length - 1, lineNumber + 2);
-                    
+
                     for (int i = startLine; i <= endLine; i++)
                     {
                         string prefix = (i + 1 == lineNumber) ? ">>>" : "   ";
@@ -282,7 +287,7 @@ public class Core : MelonMod
                     }
                 }
             }
-            
+
             // Output stack trace
             LoggerInstance.Error("Stack trace:");
             if (luaEx.CallStack != null && luaEx.CallStack.Count > 0)
@@ -297,7 +302,7 @@ public class Core : MelonMod
             {
                 LoggerInstance.Error($"  at {scriptName}:{lineNumber}");
             }
-            
+
             // Special handling for nil value errors
             if (errorMessage.Contains("attempt to call a nil value"))
             {
@@ -306,7 +311,7 @@ public class Core : MelonMod
                 LoggerInstance.Error("1. Misspelled function names");
                 LoggerInstance.Error("2. Functions defined in the wrong scope");
                 LoggerInstance.Error("3. Missing API functions or libraries");
-                
+
                 // Try to extract variable name
                 if (errorMessage.Contains("global '"))
                 {
@@ -316,25 +321,25 @@ public class Core : MelonMod
                     {
                         string varName = errorMessage.Substring(start, end - start);
                         LoggerInstance.Error($"The undefined function appears to be: '{varName}'");
-                        
+
                         // List available API functions that might be similar
                         LoggerInstance.Error("Available global functions with similar names:");
                         int matchesFound = 0;
                         foreach (var key in _luaEngine.Globals.Keys)
                         {
                             string keyStr = key.ToString();
-                            if (keyStr.Contains(varName) || (varName.Length > 3 && 
+                            if (keyStr.Contains(varName) || (varName.Length > 3 &&
                                 LevenshteinDistance(keyStr, varName) <= 3))
                             {
                                 DynValue val = _luaEngine.Globals.Get(keyStr);
                                 LoggerInstance.Error($"  {keyStr} (type: {val.Type})");
                                 matchesFound++;
-                                
-                                if (matchesFound >= 5) 
+
+                                if (matchesFound >= 5)
                                     break;
                             }
                         }
-                        
+
                         if (matchesFound == 0)
                         {
                             LoggerInstance.Error("  No similar function names found.");
@@ -350,7 +355,7 @@ public class Core : MelonMod
             LoggerInstance.Error($"Error while generating detailed error report: {ex.Message}");
         }
     }
-    
+
     /// <summary>
     /// Calculate Levenshtein distance between two strings (for finding similar names)
     /// </summary>
@@ -414,9 +419,9 @@ public class Core : MelonMod
         {
             if (!File.Exists(filePath))
                 return;
-                
+
             string relativePath = filePath.Replace(_scriptsDirectory, "").TrimStart('\\', '/');
-            
+
             // If script is already loaded, reload it
             if (_loadedScripts.TryGetValue(filePath, out LuaScript script))
             {
@@ -454,10 +459,10 @@ public class Core : MelonMod
             IncludeSubdirectories = true,
             EnableRaisingEvents = true
         };
-        
+
         _fileWatcher.Changed += OnScriptFileChanged;
         _fileWatcher.Created += OnScriptFileChanged;
-        
+
         LoggerInstance.Msg("File watcher initialized for hot reloading.");
     }
 
@@ -490,7 +495,7 @@ public class Core : MelonMod
             }
         }
     }
-    
+
     /// <summary>
     /// Hook into game events
     /// </summary>
@@ -509,17 +514,17 @@ public class Core : MelonMod
             if (TimeManager.Instance != null)
             {
                 TimeManager timeManager = TimeManager.Instance;
-                
+
                 // Day change event
                 timeManager.onDayPass = (Action)Delegate.Combine(timeManager.onDayPass, new Action(() => {
                     TriggerEvent("OnDayChanged", timeManager.CurrentDay.ToString());
                 }));
-                
+
                 // Time change event
                 timeManager.onHourPass = (Action)Delegate.Combine(timeManager.onHourPass, new Action(() => {
                     TriggerEvent("OnTimeChanged", timeManager.CurrentTime);
                 }));
-                
+
                 // Sleep events
                 if (timeManager._onSleepStart != null)
                 {
@@ -527,7 +532,7 @@ public class Core : MelonMod
                         TriggerEvent("OnSleepStart");
                     });
                 }
-                
+
                 if (timeManager._onSleepEnd != null)
                 {
                     timeManager._onSleepEnd.AddListener(new UnityEngine.Events.UnityAction(OnSleepEndHandler));
@@ -537,18 +542,15 @@ public class Core : MelonMod
             {
                 LoggerInstance.Warning("TimeManager not found, time events won't be triggered");
             }
-            
-            // Player events
-            HookPlayerEvents();
-            
-            LoggerInstance.Msg("Game events hooked successfully");
+
+            LoggerInstance.Msg("Core game events hooked successfully");
         }
         catch (Exception ex)
         {
             LoggerInstance.Error($"Error hooking game events: {ex.Message}");
         }
     }
-    
+
     /// <summary>
     /// Hook into player events - can be called multiple times until successful
     /// </summary>
@@ -556,7 +558,7 @@ public class Core : MelonMod
     {
         if (_playerEventsBound)
             return;
-            
+
         if (Player.Local != null)
         {
             // Health change - try to find and attach to appropriate events
@@ -572,7 +574,7 @@ public class Core : MelonMod
                     LoggerInstance.Warning($"Could not attach to player health events: {ex.Message}");
                 }
             }
-            
+
             // Energy change - try to find and attach to appropriate events
             if (Player.Local.Energy != null)
             {
@@ -586,7 +588,7 @@ public class Core : MelonMod
                     LoggerInstance.Warning($"Could not attach to player energy events: {ex.Message}");
                 }
             }
-            
+
             _playerEventsBound = true;
             LoggerInstance.Msg("Player events bound successfully");
         }
@@ -595,69 +597,76 @@ public class Core : MelonMod
             LoggerInstance.Warning("Local player not found, will attempt to bind player events later");
         }
     }
-    
+
     // Handler for sleep end event - must match the UnityAction signature
     private void OnSleepEndHandler()
     {
         TriggerEvent("OnSleepEnd");
     }
-    
+
     // Try different approaches to attach to player health events
     private void AttachToPlayerHealthEvents(object playerHealth)
     {
         // The actual event might be named differently or accessed differently
         // Logging current state to handle monitoring 
-        var healthValue = API.Player.PlayerAPI.GetPlayerHealth();
+        var healthValue = API.PlayerAPI.GetPlayerHealth();
         LoggerInstance.Msg($"Current player health: {healthValue}");
-        
+
         // We'll create a monitoring system instead since we can't directly access the events
         StartHealthMonitoring();
     }
-    
+
     // Try different approaches to attach to player energy events
     private void AttachToPlayerEnergyEvents(object playerEnergy)
     {
         // The actual event might be named differently or accessed differently
         // Logging current state for monitoring
-        var energyValue = API.Player.PlayerAPI.GetPlayerEnergy();
+        var energyValue = API.PlayerAPI.GetPlayerEnergy();
         LoggerInstance.Msg($"Current player energy: {energyValue}");
-        
+
         // We'll create a monitoring system instead since we can't directly access the events
         StartEnergyMonitoring();
     }
-    
+
     // Monitor health changes manually through periodic checks
     private float _lastHealthValue = -1;
     private float _lastEnergyValue = -1;
     private bool _isMonitoring = false;
-    
+
     private void StartHealthMonitoring()
     {
         if (!_isMonitoring)
         {
             _isMonitoring = true;
-            _lastHealthValue = API.Player.PlayerAPI.GetPlayerHealth();
-            _lastEnergyValue = API.Player.PlayerAPI.GetPlayerEnergy();
+            _lastHealthValue = API.PlayerAPI.GetPlayerHealth();
+            _lastEnergyValue = API.PlayerAPI.GetPlayerEnergy();
             LoggerInstance.Msg("Started player stats monitoring");
         }
     }
-    
+
     private void StartEnergyMonitoring()
     {
         StartHealthMonitoring(); // Uses the same monitoring system
     }
-    
+
     // Override OnLateUpdate to check for health/energy changes
     public override void OnLateUpdate()
     {
         base.OnLateUpdate();
-        
+
+        if (!_consoleReadyTriggered && ScheduleOne.Console.Commands.Count > 0)
+        {
+            LoggerInstance.Msg($"Console is ready with {ScheduleOne.Console.Commands.Count} commands, triggering OnConsoleReady event");
+            _consoleReadyTriggered = true;
+            TriggerEvent("OnConsoleReady");
+        }
+
         // If player events aren't bound yet, try to bind them now
         if (!_playerEventsBound && Player.Local != null)
         {
             LoggerInstance.Msg("Player is now available, binding events...");
             HookPlayerEvents();
-            
+
             // Trigger OnPlayerReady event once when player is available
             if (!_playerReadyTriggered)
             {
@@ -666,19 +675,19 @@ public class Core : MelonMod
                 TriggerEvent("OnPlayerReady");
             }
         }
-        
+
         if (_isMonitoring && Player.Local != null)
         {
             // Check health
-            float currentHealth = API.Player.PlayerAPI.GetPlayerHealth();
+            float currentHealth = API.PlayerAPI.GetPlayerHealth();
             if (currentHealth != _lastHealthValue)
             {
                 TriggerEvent("OnPlayerHealthChanged", currentHealth);
                 _lastHealthValue = currentHealth;
             }
-            
+
             // Check energy
-            float currentEnergy = API.Player.PlayerAPI.GetPlayerEnergy();
+            float currentEnergy = API.PlayerAPI.GetPlayerEnergy();
             if (currentEnergy != _lastEnergyValue)
             {
                 TriggerEvent("OnPlayerEnergyChanged", currentEnergy);
@@ -686,47 +695,7 @@ public class Core : MelonMod
             }
         }
     }
-    
-    /// <summary>
-    /// Process a chat command from the game
-    /// </summary>
-    public bool ProcessCommand(string command)
-    {
-        if (!_prefEnableInGameCommands.Value)
-            return false;
-            
-        bool handled = false;
-        
-        foreach (var script in _loadedScripts.Values)
-        {
-            if (script.IsInitialized)
-            {
-                try
-                {
-                    // Trigger OnCommand event
-                    script.TriggerEvent("OnCommand", command);
-                    
-                    // Call HandleCommand function if it exists
-                    var result = script.CallFunction("HandleCommand", command);
-                    if (result != null && result.Type != DataType.Nil && result.Type != DataType.Void)
-                    {
-                        LoggerInstance.Msg($"[Command] {result.ToPrintString()}");
-                        handled = true;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    if (_prefLogScriptErrors.Value)
-                    {
-                        LoggerInstance.Error($"Error processing command in script {script.Name}: {ex.Message}");
-                    }
-                }
-            }
-        }
-        
-        return handled;
-    }
-    
+
     /// <summary>
     /// Trigger an event across all loaded scripts
     /// </summary>
@@ -751,23 +720,32 @@ public class Core : MelonMod
             _fileWatcher.Created -= OnScriptFileChanged;
             _fileWatcher.Dispose();
         }
-        
+
+        // Unregister all Lua commands before exiting
+        CommandRegistry.UnregisterAllCommands();
+
         LoggerInstance.Msg("ScheduleLua unloaded.");
     }
 
     public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
         base.OnSceneWasLoaded(buildIndex, sceneName);
-        
+
         // Trigger event for all scripts
         LoggerInstance.Msg($"Scene loaded: {sceneName}, triggering OnSceneLoaded event");
         TriggerEvent("OnSceneLoaded", sceneName);
-        
+
         // Re-hook events when entering the main game scene
         if (sceneName == "Main")
         {
             LoggerInstance.Msg("Main scene loaded, hooking game events...");
             HookGameEvents();
+        }
+        else if (sceneName == "Menu")
+        {
+            _playerEventsBound = false;
+            _playerReadyTriggered = false;
+            _consoleReadyTriggered = false;
         }
     }
 }

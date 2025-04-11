@@ -15,6 +15,7 @@ A Lua modding framework for Schedule I that aims to expose the game's functional
   - [Configuration](#configuration)
   - [API Reference](#api-reference)
     - [Logging Functions](#logging-functions)
+    - [Console Command Functions](#console-command-functions)
     - [GameObject Functions](#gameobject-functions)
     - [Player Functions](#player-functions)
     - [Inventory Functions](#inventory-functions)
@@ -61,6 +62,12 @@ A Lua modding framework for Schedule I that aims to expose the game's functional
       - [Basic Utilities](#basic-utilities)
       - [Advanced Utilities](#advanced-utilities)
   - [Events](#events)
+  - [Console Command System](#console-command-system)
+    - [Basic Usage](#basic-usage)
+    - [Command Arguments](#command-arguments)
+    - [Cleanup](#cleanup)
+    - [Example Commands](#example-commands)
+    - [Command Best Practices](#command-best-practices)
   - [Example Script](#example-script)
   - [Contributing](#contributing)
   - [License](#license)
@@ -200,6 +207,15 @@ LogScriptErrors = true
 | `Log(message)`        | Logs a normal message to the console  |
 | `LogWarning(message)` | Logs a warning message to the console |
 | `LogError(message)`   | Logs an error message to the console  |
+
+### Console Command Functions
+
+| Function                          | Description                                           |
+| --------------------------------- | ----------------------------------------------------- |
+| `RegisterCommand(name, description, usage, callback)` | Registers a console command with the game |
+| `UnregisterCommand(name)`         | Unregisters a previously registered command           |
+| `UnregisterAllCommands()`         | Unregisters all commands registered by the script     |
+| `IsCommandRegistered(name)`       | Checks if a command is registered                     |
 
 ### GameObject Functions
 
@@ -510,26 +526,120 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 
 ## Events
 
-Your scripts can define these functions to handle game events:
+- `OnSceneLoaded(sceneName)`: Called when a Unity scene is loaded
+- `OnPlayerReady()`: Called when the player character is fully initialized
+- `OnGameDayChanged(dayName, dayIndex)`: Called when the game day changes
+- `OnGameTimeChanged(timeValue)`: Called when the game time changes
+- `OnCommand(command)`: Called when a console command is entered (deprecated, use RegisterCommand instead)
+- `OnPlayerHealthChanged(oldValue, newValue)`: Called when player health changes
+- `OnPlayerEnergyChanged(oldValue, newValue)`: Called when player energy changes
+- `OnSleepStart()`: Called when the player goes to sleep
+- `OnSleepEnd()`: Called when the player wakes up
 
-| Event                                  | Parameters                       | Description                                        |
-| -------------------------------------- | -------------------------------- | -------------------------------------------------- |
-| `Initialize()`                         | None                             | Called when a script is first loaded               |
-| `OnSceneLoaded(sceneName)`             | sceneName: string                | Called when a Unity scene is loaded                |
-| `OnPlayerReady()`                      | None                             | Called when the player is fully initialized        |
-| `OnCommand(command)`                   | command: string                  | Called when a command is processed                 |
-| `OnDayChanged(dayName)`                | dayName: string                  | Called when the day changes                        |
-| `OnTimeChanged(time)`                  | time: number                     | Called when the hour changes                       |
-| `OnSleepStart()`                       | None                             | Called when the player starts sleeping             |
-| `OnSleepEnd()`                         | None                             | Called when the player wakes up                    |
-| `OnPlayerMoneyChanged(amount)`         | amount: number                   | Called when the player's money changes             |
-| `OnPlayerHealthChanged(health)`        | health: number                   | Called when the player's health changes            |
-| `OnPlayerEnergyChanged(energy)`        | energy: number                   | Called when the player's energy changes            |
-| `OnItemAdded(itemName, amount)`        | itemName: string, amount: number | Called when an item is added to inventory          |
-| `OnItemRemoved(itemName, amount)`      | itemName: string, amount: number | Called when an item is removed from inventory      |
-| `OnPlayerMovedSignificantly(position)` | position: Vector3                | Called when the player moves significantly         |
-| `OnNPCInteraction(npcName)`            | npcName: string                  | Called when the player interacts with an NPC       |
-| `Update()`                             | None                             | Called every frame for continuous script execution |
+## Console Command System
+
+ScheduleLua provides a system for creating custom console commands that integrate with the native ScheduleOne console. This allows mod developers to easily create commands that can be used in the game's built-in console.
+
+### Basic Usage
+
+To register a command, use the `RegisterCommand` function in your script's `Initialize` function:
+
+```lua
+function Initialize()
+    RegisterCommand(
+        "commandname",        -- Name of the command
+        "Command description", -- Description shown in help
+        "commandname arg1",   -- Example usage
+        function(args)        -- Callback function
+            -- Command implementation
+            Log("Command executed!")
+        end
+    )
+end
+```
+
+### Command Arguments
+
+The callback function receives a table containing the command arguments:
+
+```lua
+RegisterCommand("greet", "Greets someone", "greet John", function(args)
+    local name = args[1] or "stranger"
+    Log("Hello, " .. name .. "!")
+end)
+```
+
+### Cleanup
+
+It's good practice to unregister your commands when your script shuts down:
+
+```lua
+function Shutdown()
+    UnregisterCommand("commandname")
+    -- Or unregister all commands from this script:
+    -- UnregisterAllCommands()
+end
+```
+
+### Example Commands
+
+Here's a more complex example showing how to create useful commands:
+
+```lua
+-- Teleport to a specific region
+RegisterCommand(
+    "tpnpc",
+    "Teleports to an npn in the specified region",
+    "tpnpc barn",
+    function(args)
+        if #args < 1 then
+            Log("Usage: tpnpc <region_name>")
+            return
+        end
+        
+        local regionName = args[1]
+        local allRegions = GetAllMapRegions()
+        
+        -- Check if region exists
+        local found = false
+        for i = 1, #allRegions do
+            if string.lower(allRegions[i]) == string.lower(regionName) then
+                regionName = allRegions[i]  -- Use correct case
+                found = true
+                break
+            end
+        end
+        
+        if not found then
+            Log("Region not found: " .. regionName)
+            return
+        end
+        
+        -- Find NPCs in region to teleport near
+        local npcsInRegion = GetNPCsInRegion(regionName)
+        if #npcsInRegion > 0 then
+            local npc = FindNPC(npcsInRegion[1].id)
+            if npc then
+                local pos = GetNPCPosition(npc)
+                SetPlayerPosition(pos.x + 1, pos.y, pos.z + 1)
+                Log("Teleported to " .. regionName)
+            else
+                Log("Could not find NPC to teleport near")
+            end
+        else
+            Log("No NPCs found in region: " .. regionName)
+        end
+    end
+)
+```
+
+### Command Best Practices
+
+- Choose command names that don't conflict with built-in commands
+- Provide clear descriptions and usage examples
+- Handle missing or invalid arguments gracefully
+- Include proper error handling in your command functions
+- Unregister commands when your script is unloaded
 
 ## Example Script
 
