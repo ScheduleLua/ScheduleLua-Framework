@@ -304,5 +304,241 @@ namespace ScheduleLua.API.Player
                 return null;
             }
         }
+
+        /// <summary>
+        /// Gets the player instance
+        /// </summary>
+        /// <returns>The player instance</returns>
+        public static ScheduleOne.PlayerScripts.Player GetPlayer()
+        {
+            return PlayerInstance;
+        }
+
+        /// <summary>
+        /// Gets the player's position as a Vector3
+        /// </summary>
+        /// <returns>Vector3 position of the player</returns>
+        public static Vector3 GetPlayerPositionVector()
+        {
+            try
+            {
+                var player = Player;
+                if (player == null)
+                {
+                    LuaUtility.LogWarning("Player not found");
+                    return Vector3.zero;
+                }
+                
+                return player.transform.position;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting player position", ex);
+                return Vector3.zero;
+            }
+        }
+
+        /// <summary>
+        /// Gets the player's position as a Vector3Proxy for Lua compatibility
+        /// </summary>
+        /// <returns>Vector3Proxy position of the player</returns>
+        public static API.Core.Vector3Proxy GetPlayerPositionProxy()
+        {
+            try
+            {
+                var player = Player;
+                if (player == null)
+                {
+                    LuaUtility.LogWarning("Player not found");
+                    return API.Core.Vector3Proxy.zero;
+                }
+                
+                return new API.Core.Vector3Proxy(player.transform.position);
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting player position", ex);
+                return API.Core.Vector3Proxy.zero;
+            }
+        }
+
+        /// <summary>
+        /// Sets the player's position
+        /// </summary>
+        /// <param name="x">X coordinate</param>
+        /// <param name="y">Y coordinate</param>
+        /// <param name="z">Z coordinate</param>
+        public static void SetPlayerPosition(float x, float y, float z)
+        {
+            try
+            {
+                var player = Player;
+                if (player == null)
+                {
+                    LuaUtility.LogWarning("Player not found, position not set");
+                    return;
+                }
+                
+                player.transform.position = new Vector3(x, y, z);
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error setting player position", ex);
+            }
+        }
+
+        /// <summary>
+        /// Gets the player's current money
+        /// </summary>
+        /// <returns>The amount of money the player has</returns>
+        public static float GetPlayerMoney()
+        {
+            try
+            {
+                var player = PlayerInstance;
+                if (player == null)
+                {
+                    LuaUtility.LogWarning("Player not found, returning 0");
+                    return 0f;
+                }
+                
+                // This is a placeholder - replace with actual implementation once available
+                return 0f;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting player money", ex);
+                return 0f;
+            }
+        }
+
+        /// <summary>
+        /// Adds money to the player
+        /// </summary>
+        /// <param name="amount">The amount of money to add</param>
+        public static void AddPlayerMoney(float amount)
+        {
+            try
+            {
+                var player = PlayerInstance;
+                if (player == null)
+                {
+                    LuaUtility.LogWarning("Player not found, money not added");
+                    return;
+                }
+                
+                // This is a placeholder - replace with actual implementation once available
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error adding player money", ex);
+            }
+        }
+
+        /// <summary>
+        /// Gets the player's current energy
+        /// </summary>
+        /// <returns>The amount of energy the player has</returns>
+        public static float GetPlayerEnergy()
+        {
+            try
+            {
+                var player = PlayerInstance;
+                if (player == null)
+                {
+                    LuaUtility.LogWarning("Player not found, returning 0");
+                    return 0f;
+                }
+                
+                if (player.Energy == null)
+                {
+                    LuaUtility.LogWarning("Player.Energy component is null, returning 0");
+                    return 0f;
+                }
+                
+                return player.Energy.CurrentEnergy;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting player energy", ex);
+                return 0f;
+            }
+        }
+
+        /// <summary>
+        /// Sets the player's energy
+        /// </summary>
+        /// <param name="amount">The amount of energy to set</param>
+        public static void SetPlayerEnergy(float amount)
+        {
+            try
+            {
+                var player = PlayerInstance;
+                if (player == null)
+                {
+                    LuaUtility.LogWarning("Player not found, energy not set");
+                    return;
+                }
+                
+                if (player.Energy == null)
+                {
+                    LuaUtility.LogWarning("Player.Energy component is null, energy not set");
+                    return;
+                }
+                
+                player.Energy.SetEnergy(amount);
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error setting player energy", ex);
+            }
+        }
+
+        /// <summary>
+        /// Gets the player's current health
+        /// </summary>
+        /// <returns>The amount of health the player has</returns>
+        public static float GetPlayerHealth()
+        {
+            try
+            {
+                var playerHealth = PlayerHealth;
+                if (playerHealth == null)
+                {
+                    LuaUtility.LogWarning("Player health component not found, returning 0");
+                    return 0f;
+                }
+                
+                return playerHealth.CurrentHealth;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting player health", ex);
+                return 0f;
+            }
+        }
+
+        /// <summary>
+        /// Sets the player's health
+        /// </summary>
+        /// <param name="amount">The amount of health to set</param>
+        public static void SetPlayerHealth(float amount)
+        {
+            try
+            {
+                var playerHealth = PlayerHealth;
+                if (playerHealth == null)
+                {
+                    LuaUtility.LogWarning("Player health component not found, health not set");
+                    return;
+                }
+                
+                playerHealth.SetHealth(amount);
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error setting player health", ex);
+            }
+        }
     }
 }

@@ -20,7 +20,7 @@ public class Core : MelonMod
     public static Core Instance => _instance;
 
     // Lua script engine
-    private Script _luaEngine;
+    public Script _luaEngine;
     
     // File watcher for hot reloading
     private FileSystemWatcher _fileWatcher;
@@ -77,14 +77,76 @@ public class Core : MelonMod
         // Register Unity types with MoonSharp
         UserData.RegisterAssembly();
         
+        // Set up script loader for better compatibility with IL2CPP/AOT platforms
+        SetupScriptLoader();
+        
         // Create Lua script environment
-        _luaEngine = new Script();
+        _luaEngine = new Script(CoreModules.Preset_Complete);
         
         // Enable the debugger for better error reporting
         _luaEngine.DebuggerEnabled = true;
         
+        // Use the configured script loader
+        _luaEngine.Options.ScriptLoader = Script.DefaultOptions.ScriptLoader;
+        
+        // Initialize Unity type proxies for better IL2CPP/AOT compatibility
+        API.Core.UnityTypeProxies.Initialize();
+        
         // Register game-specific API
         LuaAPI.RegisterAPI(_luaEngine);
+        
+        // Add extra debug info to Script
+        _luaEngine.Globals["_SCRIPT_VERSION"] = "1.0.0";
+        _luaEngine.Globals["_ENGINE_VERSION"] = System.Environment.Version.ToString();
+    }
+
+    /// <summary>
+    /// Sets up the script loader with explicit registration of script files
+    /// This improves compatibility on IL2CPP and AOT platforms
+    /// </summary>
+    private void SetupScriptLoader()
+    {
+        // Load all Lua scripts from Resources folder
+        Dictionary<string, string> scripts = new Dictionary<string, string>();
+        
+        try
+        {
+            // Load scripts from Resources/Lua folder
+            object[] result = Resources.LoadAll("Lua", typeof(TextAsset));
+            
+            foreach(TextAsset ta in result)
+            {
+                scripts.Add(ta.name, ta.text);
+                LoggerInstance.Msg($"Registered script from resources: {ta.name}");
+            }
+            
+            // Also register scripts from file system if they exist
+            if (Directory.Exists(_scriptsDirectory))
+            {
+                foreach (string filePath in Directory.GetFiles(_scriptsDirectory, "*.lua", SearchOption.AllDirectories))
+                {
+                    string scriptName = Path.GetFileNameWithoutExtension(filePath);
+                    string scriptText = File.ReadAllText(filePath);
+                    
+                    // Don't overwrite resources scripts with same name
+                    if (!scripts.ContainsKey(scriptName))
+                    {
+                        scripts.Add(scriptName, scriptText);
+                        LoggerInstance.Msg($"Registered script from file system: {scriptName}");
+                    }
+                }
+            }
+            
+            // Set the script loader
+            Script.DefaultOptions.ScriptLoader = new MoonSharp.Interpreter.Loaders.UnityAssetsScriptLoader(scripts);
+        }
+        catch (Exception ex)
+        {
+            LoggerInstance.Error($"Error setting up script loader: {ex.Message}");
+            
+            // Fall back to standard script loader
+            Script.DefaultOptions.ScriptLoader = new MoonSharp.Interpreter.Loaders.FileSystemScriptLoader();
+        }
     }
 
     private void SetupScriptsDirectory()
@@ -545,7 +607,7 @@ public class Core : MelonMod
     {
         // The actual event might be named differently or accessed differently
         // Logging current state to handle monitoring 
-        var healthValue = LuaAPI.GetPlayerHealth();
+        var healthValue = API.Player.PlayerAPI.GetPlayerHealth();
         LoggerInstance.Msg($"Current player health: {healthValue}");
         
         // We'll create a monitoring system instead since we can't directly access the events
@@ -557,7 +619,7 @@ public class Core : MelonMod
     {
         // The actual event might be named differently or accessed differently
         // Logging current state for monitoring
-        var energyValue = LuaAPI.GetPlayerEnergy();
+        var energyValue = API.Player.PlayerAPI.GetPlayerEnergy();
         LoggerInstance.Msg($"Current player energy: {energyValue}");
         
         // We'll create a monitoring system instead since we can't directly access the events
@@ -574,8 +636,8 @@ public class Core : MelonMod
         if (!_isMonitoring)
         {
             _isMonitoring = true;
-            _lastHealthValue = LuaAPI.GetPlayerHealth();
-            _lastEnergyValue = LuaAPI.GetPlayerEnergy();
+            _lastHealthValue = API.Player.PlayerAPI.GetPlayerHealth();
+            _lastEnergyValue = API.Player.PlayerAPI.GetPlayerEnergy();
             LoggerInstance.Msg("Started player stats monitoring");
         }
     }
@@ -608,7 +670,7 @@ public class Core : MelonMod
         if (_isMonitoring && Player.Local != null)
         {
             // Check health
-            float currentHealth = LuaAPI.GetPlayerHealth();
+            float currentHealth = API.Player.PlayerAPI.GetPlayerHealth();
             if (currentHealth != _lastHealthValue)
             {
                 TriggerEvent("OnPlayerHealthChanged", currentHealth);
@@ -616,7 +678,7 @@ public class Core : MelonMod
             }
             
             // Check energy
-            float currentEnergy = LuaAPI.GetPlayerEnergy();
+            float currentEnergy = API.Player.PlayerAPI.GetPlayerEnergy();
             if (currentEnergy != _lastEnergyValue)
             {
                 TriggerEvent("OnPlayerEnergyChanged", currentEnergy);

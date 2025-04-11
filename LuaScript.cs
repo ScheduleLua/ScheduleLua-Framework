@@ -184,6 +184,11 @@ namespace ScheduleLua
                 _isInitialized = true;
                 return true;
             }
+            catch (InterpreterException luaEx)
+            {
+                LogDetailedError(luaEx, $"Error initializing script {_name}");
+                return false;
+            }
             catch (Exception ex)
             {
                 _logger.Error($"Error initializing script {_name}: {ex.Message}");
@@ -203,6 +208,11 @@ namespace ScheduleLua
             {
                 DynValue updateFunction = _scriptEngine.Globals.Get("Update");
                 _scriptEngine.Call(updateFunction);
+            }
+            catch (InterpreterException luaEx)
+            {
+                LogDetailedError(luaEx, $"Error in script {_name} Update");
+                _hasUpdateFunction = false; // Prevent further update calls if there's an error
             }
             catch (Exception ex)
             {
@@ -244,6 +254,10 @@ namespace ScheduleLua
             {
                 DynValue handler = _eventHandlers[eventName];
                 _scriptEngine.Call(handler, args);
+            }
+            catch (InterpreterException luaEx)
+            {
+                LogDetailedError(luaEx, $"Error in script {_name} event handler for {eventName}");
             }
             catch (Exception ex)
             {
@@ -307,6 +321,11 @@ namespace ScheduleLua
                     return _scriptEngine.Call(function, args);
                 }
                 
+                return DynValue.Nil;
+            }
+            catch (InterpreterException luaEx)
+            {
+                LogDetailedError(luaEx, $"Error calling function {functionName} in script {_name}");
                 return DynValue.Nil;
             }
             catch (Exception ex)

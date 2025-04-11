@@ -18,6 +18,104 @@ namespace ScheduleLua.API.NPC
         private static ScheduleOne.NPCs.NPCManager NPCManager => _npcManager ??= ScheduleOne.NPCs.NPCManager.Instance;
 
         /// <summary>
+        /// Finds an NPC by name
+        /// </summary>
+        /// <param name="npcName">The name of the NPC to find</param>
+        /// <returns>The NPC component or null if not found</returns>
+        public static ScheduleOne.NPCs.NPC FindNPC(string npcName)
+        {
+            try
+            {
+                GameObject npcObject = GameObject.Find(npcName);
+                if (npcObject == null)
+                {
+                    LuaUtility.LogWarning($"NPC with name {npcName} not found");
+                    return null;
+                }
+                
+                return npcObject.GetComponent<ScheduleOne.NPCs.NPC>();
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError($"Error finding NPC {npcName}", ex);
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Gets an NPC's position
+        /// </summary>
+        /// <param name="npc">The NPC to get the position of</param>
+        /// <returns>The position vector of the NPC</returns>
+        public static Vector3 GetNPCPosition(ScheduleOne.NPCs.NPC npc)
+        {
+            try
+            {
+                if (npc == null)
+                {
+                    LuaUtility.LogWarning("Cannot get position of null NPC");
+                    return Vector3.zero;
+                }
+                
+                return npc.transform.position;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting NPC position", ex);
+                return Vector3.zero;
+            }
+        }
+        
+        /// <summary>
+        /// Gets an NPC's position as Vector3Proxy for Lua compatibility
+        /// </summary>
+        /// <param name="npc">The NPC to get the position of</param>
+        /// <returns>The position vector of the NPC as Vector3Proxy</returns>
+        public static API.Core.Vector3Proxy GetNPCPositionProxy(ScheduleOne.NPCs.NPC npc)
+        {
+            try
+            {
+                if (npc == null)
+                {
+                    LuaUtility.LogWarning("Cannot get position of null NPC");
+                    return API.Core.Vector3Proxy.zero;
+                }
+                
+                return new API.Core.Vector3Proxy(npc.transform.position);
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting NPC position", ex);
+                return API.Core.Vector3Proxy.zero;
+            }
+        }
+
+        /// <summary>
+        /// Sets an NPC's position
+        /// </summary>
+        /// <param name="npc">The NPC to set the position of</param>
+        /// <param name="x">X coordinate</param>
+        /// <param name="y">Y coordinate</param>
+        /// <param name="z">Z coordinate</param>
+        public static void SetNPCPosition(ScheduleOne.NPCs.NPC npc, float x, float y, float z)
+        {
+            try
+            {
+                if (npc == null)
+                {
+                    LuaUtility.LogWarning("Cannot set position of null NPC");
+                    return;
+                }
+                
+                npc.transform.position = new Vector3(x, y, z);
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error setting NPC position", ex);
+            }
+        }
+
+        /// <summary>
         /// Gets an NPC by their ID
         /// </summary>
         /// <param name="npcId">The ID of the NPC to find</param>

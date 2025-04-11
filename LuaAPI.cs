@@ -36,21 +36,21 @@ namespace ScheduleLua
             
             // Game object functions
             luaEngine.Globals["FindGameObject"] = (Func<string, GameObject>)FindGameObject;
-            luaEngine.Globals["GetPosition"] = (Func<GameObject, Vector3>)GetPosition;
+            luaEngine.Globals["GetPosition"] = (Func<GameObject, API.Core.Vector3Proxy>)GetPosition;
             luaEngine.Globals["SetPosition"] = (Action<GameObject, float, float, float>)SetPosition;
             
             // Player functions
-            luaEngine.Globals["GetPlayer"] = (Func<Player>)GetPlayer;
+            luaEngine.Globals["GetPlayer"] = (Func<Player>)PlayerAPI.GetPlayer;
             luaEngine.Globals["GetPlayerState"] = (Func<Table>)API.Player.PlayerAPI.GetPlayerState;
-            luaEngine.Globals["GetPlayerPosition"] = (Func<Vector3>)GetPlayerPosition;
+            luaEngine.Globals["GetPlayerPosition"] = (Func<API.Core.Vector3Proxy>)API.Player.PlayerAPI.GetPlayerPositionProxy;
             luaEngine.Globals["GetPlayerRegion"] = (Func<string>)API.Player.PlayerAPI.GetPlayerRegion;
-            luaEngine.Globals["SetPlayerPosition"] = (Action<float, float, float>)SetPlayerPosition;
-            luaEngine.Globals["GetPlayerMoney"] = (Func<float>)GetPlayerMoney;
-            luaEngine.Globals["AddPlayerMoney"] = (Action<float>)AddPlayerMoney;
-            luaEngine.Globals["GetPlayerEnergy"] = (Func<float>)GetPlayerEnergy;
-            luaEngine.Globals["SetPlayerEnergy"] = (Action<float>)SetPlayerEnergy;
-            luaEngine.Globals["GetPlayerHealth"] = (Func<float>)GetPlayerHealth;
-            luaEngine.Globals["SetPlayerHealth"] = (Action<float>)SetPlayerHealth;
+            luaEngine.Globals["SetPlayerPosition"] = (Action<float, float, float>)PlayerAPI.SetPlayerPosition;
+            luaEngine.Globals["GetPlayerMoney"] = (Func<float>)PlayerAPI.GetPlayerMoney;
+            luaEngine.Globals["AddPlayerMoney"] = (Action<float>)PlayerAPI.AddPlayerMoney;
+            luaEngine.Globals["GetPlayerEnergy"] = (Func<float>)PlayerAPI.GetPlayerEnergy;
+            luaEngine.Globals["SetPlayerEnergy"] = (Action<float>)PlayerAPI.SetPlayerEnergy;
+            luaEngine.Globals["GetPlayerHealth"] = (Func<float>)PlayerAPI.GetPlayerHealth;
+            luaEngine.Globals["SetPlayerHealth"] = (Action<float>)PlayerAPI.SetPlayerHealth;
             
             // Inventory functions
             luaEngine.Globals["GetInventorySlotCount"] = (Func<int>)GetInventorySlotCount;
@@ -66,9 +66,9 @@ namespace ScheduleLua
             luaEngine.Globals["FormatGameTime"] = (Func<int, string>)FormatGameTime;
             
             // NPC functions
-            luaEngine.Globals["FindNPC"] = (Func<string, NPC>)FindNPC;
-            luaEngine.Globals["GetNPCPosition"] = (Func<NPC, Vector3>)GetNPCPosition;
-            luaEngine.Globals["SetNPCPosition"] = (Action<NPC, float, float, float>)SetNPCPosition;
+            luaEngine.Globals["FindNPC"] = (Func<string, NPC>)NPCAPI.FindNPC;
+            luaEngine.Globals["GetNPCPosition"] = (Func<NPC, API.Core.Vector3Proxy>)NPCAPI.GetNPCPositionProxy;
+            luaEngine.Globals["SetNPCPosition"] = (Action<NPC, float, float, float>)NPCAPI.SetNPCPosition;
             luaEngine.Globals["GetNPC"] = (Func<string, Table>)NPCAPI.GetNPC;
             luaEngine.Globals["GetNPCRegion"] = (Func<string, string>)NPCAPI.GetNPCRegion;
             luaEngine.Globals["GetNPCsInRegion"] = (Func<string, Table>)NPCAPI.GetNPCsInRegion;
@@ -80,20 +80,28 @@ namespace ScheduleLua
             luaEngine.Globals["GetAllMapRegions"] = (Func<Table>)GetAllMapRegions;
             
             // Helper functions
-            luaEngine.Globals["Vector3"] = (Func<float, float, float, Vector3>)CreateVector3;
-            luaEngine.Globals["Vector3Distance"] = (Func<Vector3, Vector3, float>)Vector3.Distance;
+            luaEngine.Globals["Vector3"] = (Func<float, float, float, API.Core.Vector3Proxy>)CreateVector3;
+            luaEngine.Globals["Vector3Distance"] = (Func<API.Core.Vector3Proxy, API.Core.Vector3Proxy, float>)API.Core.Vector3Proxy.Distance;
             
-            // Register common Unity types
-            UserData.RegisterType<Vector3>();
-            UserData.RegisterType<GameObject>();
-            UserData.RegisterType<Transform>();
+            // Use proxy objects instead of direct Unity type registration
+            // This improves compatibility across platforms, especially on IL2CPP/AOT
+            RegisterProxyTypes(luaEngine);
             
-            // Register game-specific types
-            UserData.RegisterType<Player>();
-            UserData.RegisterType<NPC>();
-            UserData.RegisterType<TimeManager>();
-            UserData.RegisterType<ItemDefinition>();
-            UserData.RegisterType<ItemSlot>();
+            // Register necessary types that can't be proxied easily
+            // Make sure to test these thoroughly on target platforms
+            UserData.RegisterType<API.Core.Vector3Proxy>();
+            
+            // IMPORTANT: Don't directly register these types, use proxy methods instead
+            // These registrations are commented out as they should be handled via proxies
+            // UserData.RegisterType<Player>();
+            // UserData.RegisterType<NPC>();
+            // UserData.RegisterType<TimeManager>();
+            // UserData.RegisterType<ItemDefinition>();
+            // UserData.RegisterType<ItemSlot>();
+            
+            // Set up hardwiring for IL2CPP and AOT compatibility
+            // This pre-generates necessary conversion code
+            Script.WarmUp();
         }
 
         #region Logging Functions
@@ -122,12 +130,12 @@ namespace ScheduleLua
             return GameObject.Find(name);
         }
         
-        public static Vector3 GetPosition(GameObject gameObject)
+        public static API.Core.Vector3Proxy GetPosition(GameObject gameObject)
         {
             if (gameObject == null)
-                return Vector3.zero;
+                return API.Core.Vector3Proxy.zero;
                 
-            return gameObject.transform.position;
+            return new API.Core.Vector3Proxy(gameObject.transform.position);
         }
         
         public static void SetPosition(GameObject gameObject, float x, float y, float z)
@@ -140,142 +148,6 @@ namespace ScheduleLua
         
         #endregion
 
-        #region Player Functions
-        
-        public static Player GetPlayer()
-        {
-            if (Player.Local == null)
-            {
-                Log("GetPlayer: Player.Local is null, ensure player is initialized");
-            }
-            return Player.Local;
-        }
-        
-        public static Vector3 GetPlayerPosition()
-        {
-            Player player = Player.Local;
-            if (player == null)
-            {
-                Log("GetPlayerPosition: Player.Local is null, returning zero vector");
-                return Vector3.zero;
-            }
-                
-            return player.transform.position;
-        }
-        
-        public static void SetPlayerPosition(float x, float y, float z)
-        {
-            Player player = Player.Local;
-            if (player == null)
-            {
-                Log("SetPlayerPosition: Player.Local is null, position not set");
-                return;
-            }
-                
-            player.transform.position = new Vector3(x, y, z);
-        }
-        
-        public static float GetPlayerMoney()
-        {
-            // Access the player's money through the appropriate API
-            // This implementation may need to be adjusted based on actual game API
-            if (Player.Local == null)
-            {
-                Log("GetPlayerMoney: Player.Local is null, returning 0");
-                return 0f;
-            }
-                
-            // Assuming the Player class has a method to get money
-            return 0f; // Placeholder
-        }
-        
-        public static void AddPlayerMoney(float amount)
-        {
-            // Add money to the player through the appropriate API
-            // This implementation may need to be adjusted based on actual game API
-            if (Player.Local == null)
-            {
-                Log("AddPlayerMoney: Player.Local is null, money not added");
-                return;
-            }
-                
-            // Placeholder implementation
-        }
-        
-        public static float GetPlayerEnergy()
-        {
-            Player player = Player.Local;
-            if (player == null)
-            {
-                Log("GetPlayerEnergy: Player.Local is null, returning 0");
-                return 0f;
-            }
-                
-            if (player.Energy == null)
-            {
-                Log("GetPlayerEnergy: Player.Energy component is null, returning 0");
-                return 0f;
-            }
-                
-            return player.Energy.CurrentEnergy;
-        }
-        
-        public static void SetPlayerEnergy(float amount)
-        {
-            Player player = Player.Local;
-            if (player == null)
-            {
-                Log("SetPlayerEnergy: Player.Local is null, energy not set");
-                return;
-            }
-                
-            if (player.Energy == null)
-            {
-                Log("SetPlayerEnergy: Player.Energy component is null, energy not set");
-                return;
-            }
-                
-            player.Energy.SetEnergy(amount);
-        }
-        
-        public static float GetPlayerHealth()
-        {
-            Player player = Player.Local;
-            if (player == null)
-            {
-                Log("GetPlayerHealth: Player.Local is null, returning 0");
-                return 0f;
-            }
-                
-            if (player.Health == null)
-            {
-                Log("GetPlayerHealth: Player.Health component is null, returning 0");
-                return 0f;
-            }
-                
-            return player.Health.CurrentHealth;
-        }
-        
-        public static void SetPlayerHealth(float amount)
-        {
-            Player player = Player.Local;
-            if (player == null)
-            {
-                Log("SetPlayerHealth: Player.Local is null, health not set");
-                return;
-            }
-                
-            if (player.Health == null)
-            {
-                Log("SetPlayerHealth: Player.Health component is null, health not set");
-                return;
-            }
-                
-            player.Health.SetHealth(amount);
-        }
-        
-        #endregion
-        
         #region Inventory Functions
         
         public static int GetInventorySlotCount()
@@ -366,35 +238,6 @@ namespace ScheduleLua
         
         #endregion
         
-        #region NPC Functions
-        
-        public static NPC FindNPC(string npcName)
-        {
-            GameObject npcObject = GameObject.Find(npcName);
-            if (npcObject == null)
-                return null;
-                
-            return npcObject.GetComponent<NPC>();
-        }
-        
-        public static Vector3 GetNPCPosition(NPC npc)
-        {
-            if (npc == null)
-                return Vector3.zero;
-                
-            return npc.transform.position;
-        }
-        
-        public static void SetNPCPosition(NPC npc, float x, float y, float z)
-        {
-            if (npc == null)
-                return;
-                
-            npc.transform.position = new Vector3(x, y, z);
-        }
-        
-        #endregion
-        
         #region Map Functions
         
         public static Table GetAllMapRegions()
@@ -407,11 +250,46 @@ namespace ScheduleLua
         
         #region Helper Functions
         
-        public static Vector3 CreateVector3(float x, float y, float z)
+        public static API.Core.Vector3Proxy CreateVector3(float x, float y, float z)
         {
-            return new Vector3(x, y, z);
+            return new API.Core.Vector3Proxy(x, y, z);
         }
         
         #endregion
+
+        /// <summary>
+        /// Registers proxy classes instead of direct Unity types for better compatibility
+        /// </summary>
+        private static void RegisterProxyTypes(Script luaEngine)
+        {
+            // Register proxy classes
+            luaEngine.Globals["CreateGameObject"] = (Func<string, GameObject>)(name => new GameObject(name));
+            
+            // GameObject proxy methods (instead of direct GameObject registration)
+            luaEngine.Globals["GetGameObjectName"] = (Func<GameObject, string>)(go => go?.name ?? string.Empty);
+            luaEngine.Globals["SetGameObjectName"] = (Action<GameObject, string>)((go, name) => { if (go != null) go.name = name; });
+            luaEngine.Globals["SetGameObjectActive"] = (Action<GameObject, bool>)((go, active) => { if (go != null) go.SetActive(active); });
+            luaEngine.Globals["IsGameObjectActive"] = (Func<GameObject, bool>)(go => go != null && go.activeSelf);
+            
+            // Transform proxy methods (instead of direct Transform registration)
+            luaEngine.Globals["GetTransform"] = (Func<GameObject, Transform>)(go => go?.transform);
+            
+            // Fix: Return Vector3Proxy instead of Vector3
+            luaEngine.Globals["GetTransformPosition"] = (Func<Transform, API.Core.Vector3Proxy>)(t => 
+                t != null ? new API.Core.Vector3Proxy(t.position) : API.Core.Vector3Proxy.zero);
+                
+            luaEngine.Globals["SetTransformPosition"] = (Action<Transform, API.Core.Vector3Proxy>)((t, pos) => 
+                { if (t != null) t.position = pos; });
+                
+            luaEngine.Globals["GetTransformRotation"] = (Func<Transform, API.Core.Vector3Proxy>)(t => 
+                t != null ? new API.Core.Vector3Proxy(t.eulerAngles) : API.Core.Vector3Proxy.zero);
+                
+            luaEngine.Globals["SetTransformRotation"] = (Action<Transform, API.Core.Vector3Proxy>)((t, rot) => 
+                { if (t != null) t.eulerAngles = rot; });
+                
+            // Add additional proxy methods for any Unity types you need to expose
+            
+            // Add more proxy registration here as needed
+        }
     }
 } 
