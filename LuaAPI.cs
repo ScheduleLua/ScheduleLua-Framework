@@ -12,7 +12,10 @@ using ScheduleLua.API.Core;
 using ScheduleLua.API.NPC;
 using ScheduleLua.API.Registry;
 using ScheduleLua.API.Law;
+using ScheduleLua.API.UI;
+using ScheduleLua.API.Economy;
 using ScheduleLua.API;
+using System.Collections;
 
 namespace ScheduleLua
 {
@@ -47,8 +50,6 @@ namespace ScheduleLua
             luaEngine.Globals["GetPlayerPosition"] = (Func<Vector3Proxy>)PlayerAPI.GetPlayerPositionProxy;
             luaEngine.Globals["GetPlayerRegion"] = (Func<string>)PlayerAPI.GetPlayerRegion;
             luaEngine.Globals["SetPlayerPosition"] = (Action<float, float, float>)PlayerAPI.SetPlayerPosition;
-            luaEngine.Globals["GetPlayerMoney"] = (Func<float>)PlayerAPI.GetPlayerMoney;
-            luaEngine.Globals["AddPlayerMoney"] = (Action<float>)PlayerAPI.AddPlayerMoney;
             luaEngine.Globals["GetPlayerEnergy"] = (Func<float>)PlayerAPI.GetPlayerEnergy;
             luaEngine.Globals["SetPlayerEnergy"] = (Action<float>)PlayerAPI.SetPlayerEnergy;
             luaEngine.Globals["GetPlayerHealth"] = (Func<float>)PlayerAPI.GetPlayerHealth;
@@ -85,11 +86,24 @@ namespace ScheduleLua
             luaEngine.Globals["Vector3"] = (Func<float, float, float, Vector3Proxy>)CreateVector3;
             luaEngine.Globals["Vector3Distance"] = (Func<Vector3Proxy, Vector3Proxy, float>)Vector3Proxy.Distance;
             
+            // Timing and coroutine functions
+            luaEngine.Globals["Wait"] = (Action<float, DynValue>)Wait;
+            luaEngine.Globals["Delay"] = (Action<float, DynValue>)Wait; // Alias for Wait
+            
             // Register console command registry
             CommandRegistry.RegisterCommandAPI(luaEngine);
             
             // Register Law/Curfew API
             CurfewManagerAPI.RegisterAPI(luaEngine);
+            
+            // Register UI API
+            UIAPI.RegisterAPI(luaEngine);
+            
+            // Register Economy API
+            EconomyAPI.RegisterAPI(luaEngine);
+
+            // Register Registry API
+            RegistryAPI.RegisterAPI(luaEngine);
             
             // Use proxy objects instead of direct Unity type registration
             // This improves compatibility across platforms, especially on IL2CPP/AOT
@@ -99,13 +113,7 @@ namespace ScheduleLua
             // Make sure to test these thoroughly on target platforms
             UserData.RegisterType<Vector3Proxy>();
             
-            // IMPORTANT: Don't directly register these types, use proxy methods instead
-            // These registrations are commented out as they should be handled via proxies
-            // UserData.RegisterType<Player>();
-            // UserData.RegisterType<NPC>();
-            // UserData.RegisterType<TimeManager>();
-            // UserData.RegisterType<ItemDefinition>();
-            // UserData.RegisterType<ItemSlot>();
+            // IMPORTANT: Don't directly register Unity types, use proxy methods instead
             
             // Set up hardwiring for IL2CPP and AOT compatibility
             // This pre-generates necessary conversion code
@@ -127,6 +135,45 @@ namespace ScheduleLua
         public static void LogError(string message)
         {
             _logger.Error($"[Lua] {message}");
+        }
+        
+        #endregion
+        
+        #region Timing and Coroutine Functions
+        
+        /// <summary>
+        /// Executes a Lua function after a specified delay
+        /// </summary>
+        /// <param name="seconds">Delay in seconds</param>
+        /// <param name="callback">Lua function to call after the delay</param>
+        public static void Wait(float seconds, DynValue callback)
+        {
+            if (callback == null || callback.Type != DataType.Function)
+            {
+                LogWarning("Wait: callback is not a function");
+                return;
+            }
+            
+            if (seconds < 0)
+                seconds = 0;
+                
+            // Use MelonCoroutines instead of MonoBehaviour for running coroutines
+            MelonLoader.MelonCoroutines.Start(WaitCoroutine(seconds, callback));
+        }
+        
+        private static IEnumerator WaitCoroutine(float seconds, DynValue callback)
+        {
+            yield return new WaitForSeconds(seconds);
+            
+            try
+            {
+                var script = Core.Instance._luaEngine;
+                script.Call(callback);
+            }
+            catch (Exception ex)
+            {
+                LogError($"Error in Wait callback: {ex.Message}");
+            }
         }
         
         #endregion

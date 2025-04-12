@@ -290,6 +290,11 @@ namespace ScheduleLua
             CheckAndRegisterEvent("OnSceneLoaded");
             CheckAndRegisterEvent("OnPlayerReady");
             CheckAndRegisterEvent("OnConsoleReady");
+            CheckAndRegisterEvent("OnRegistryReady");
+            CheckAndRegisterEvent("OnCurfewEnabled");
+            CheckAndRegisterEvent("OnCurfewDisabled");
+            CheckAndRegisterEvent("OnCurfewWarning");
+            CheckAndRegisterEvent("OnCurfewHint");
         }
         
         /// <summary>

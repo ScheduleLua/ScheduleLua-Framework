@@ -30,7 +30,7 @@ public class Core : MelonMod
     private string _scriptsDirectory;
 
     // Loaded scripts collection
-    private Dictionary<string, LuaScript> _loadedScripts = new Dictionary<string, LuaScript>();
+    public Dictionary<string, LuaScript> _loadedScripts = new Dictionary<string, LuaScript>();
 
     // MelonPreferences
     private static MelonPreferences_Category _prefCategory;
@@ -41,6 +41,16 @@ public class Core : MelonMod
     private bool _playerEventsBound = false;
     private bool _playerReadyTriggered = false;
     public bool _consoleReadyTriggered = false;
+
+    // GUI callback event
+    public event Action OnGUICallback;
+
+    // Add GUI initialization flag
+    private bool _guiInitialized = false;
+
+    // Add this queue for pending script reloads
+    private Queue<string> _pendingScriptReloads = new Queue<string>();
+    private object _queueLock = new object(); // Lock for thread safety
 
     public override void OnInitializeMelon()
     {
@@ -60,6 +70,9 @@ public class Core : MelonMod
 
         // Hook into game events
         HookGameEvents();
+
+        // Make sure GUI is initialized when the mod loads
+        InitializeGUI();
 
         LoggerInstance.Msg("ScheduleLua initialized successfully.");
     }
@@ -93,6 +106,9 @@ public class Core : MelonMod
 
         // Initialize Unity type proxies for better IL2CPP/AOT compatibility
         API.Core.UnityTypeProxies.Initialize();
+
+        // Initialize GUI system
+        InitializeGUI();
 
         // Register game-specific API
         LuaAPI.RegisterAPI(_luaEngine);
@@ -161,9 +177,8 @@ public class Core : MelonMod
             Directory.CreateDirectory(_scriptsDirectory);
 
             // Create example script from embedded resource
+            // In the future either remove this or make it needed to be turned on from melon preferences
             string examplePath = Path.Combine(_scriptsDirectory, "example.lua");
-
-            // Check if we have embedded resource
             var assembly = Assembly.GetExecutingAssembly();
             using (var stream = assembly.GetManifestResourceStream("ScheduleLua.Resources.example.lua"))
             {
@@ -174,11 +189,6 @@ public class Core : MelonMod
                         string content = reader.ReadToEnd();
                         File.WriteAllText(examplePath, content);
                     }
-                }
-                else
-                {
-                    // Fallback to simple example
-                    File.WriteAllText(examplePath, "-- Example Lua script\nLog('Hello from Lua!')\n\nfunction Initialize()\n  Log('Script initialized!')\nend\n\n-- This file will auto-reload when changed\n");
                 }
             }
         }
@@ -468,12 +478,22 @@ public class Core : MelonMod
 
     private void OnScriptFileChanged(object sender, FileSystemEventArgs e)
     {
-        // File system events can fire multiple times, so add a small delay
+        // Instead of reloading immediately, queue the file for reload on the main thread
         try
         {
             // Wait to ensure file is not locked
             System.Threading.Thread.Sleep(100);
-            ReloadScript(e.FullPath);
+
+            // Queue the file for reload
+            lock (_queueLock)
+            {
+                // Check if file already queued to avoid duplicates
+                if (!_pendingScriptReloads.Contains(e.FullPath))
+                {
+                    _pendingScriptReloads.Enqueue(e.FullPath);
+                    LoggerInstance.Msg($"Script queued for reload: {Path.GetFileName(e.FullPath)}");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -486,6 +506,25 @@ public class Core : MelonMod
 
     public override void OnUpdate()
     {
+        // Process any pending script reloads on the main thread
+        if (_pendingScriptReloads.Count > 0)
+        {
+            string filePath = null;
+
+            lock (_queueLock)
+            {
+                if (_pendingScriptReloads.Count > 0)
+                {
+                    filePath = _pendingScriptReloads.Dequeue();
+                }
+            }
+
+            if (filePath != null)
+            {
+                ReloadScript(filePath);
+            }
+        }
+
         // Call Update on all initialized scripts
         foreach (var script in _loadedScripts.Values)
         {
@@ -506,7 +545,7 @@ public class Core : MelonMod
             // Only hook events if we're in the main game scene
             if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Main")
             {
-                LoggerInstance.Msg("Not in main game scene, skipping event hooks");
+                // LoggerInstance.Msg("Not in main game scene, skipping game event hooks");
                 return;
             }
 
@@ -654,10 +693,13 @@ public class Core : MelonMod
     {
         base.OnLateUpdate();
 
-        if (!_consoleReadyTriggered && ScheduleOne.Console.Commands.Count > 0)
+        if (!_consoleReadyTriggered && ScheduleOne.Console.Commands.Count > 0 && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Main")
         {
             LoggerInstance.Msg($"Console is ready with {ScheduleOne.Console.Commands.Count} commands, triggering OnConsoleReady event");
             _consoleReadyTriggered = true;
+
+            LoggerInstance.Msg("Registering Lua backend commands");
+            API.Registry.ScriptCommands.RegisterBackendCommands();
             TriggerEvent("OnConsoleReady");
         }
 
@@ -693,6 +735,18 @@ public class Core : MelonMod
                 TriggerEvent("OnPlayerEnergyChanged", currentEnergy);
                 _lastEnergyValue = currentEnergy;
             }
+        }
+    }
+
+    /// <summary>
+    /// OnGUI is called for rendering and handling GUI events
+    /// </summary>
+    public override void OnGUI()
+    {
+        // Trigger the OnGUI event for any subscribers (like UIAPI)
+        if (_guiInitialized)
+        {
+            OnGUICallback?.Invoke();
         }
     }
 
@@ -740,6 +794,13 @@ public class Core : MelonMod
         {
             LoggerInstance.Msg("Main scene loaded, hooking game events...");
             HookGameEvents();
+
+            // Register backend commands if console is ready
+            if (_consoleReadyTriggered)
+            {
+                LoggerInstance.Msg("Console is ready, registering Lua backend commands");
+                API.Registry.ScriptCommands.RegisterBackendCommands();
+            }
         }
         else if (sceneName == "Menu")
         {
@@ -747,6 +808,16 @@ public class Core : MelonMod
             _playerReadyTriggered = false;
             _consoleReadyTriggered = false;
         }
+    }
+
+    // Make sure GUI is initialized when the mod loads
+    private void InitializeGUI()
+    {
+        if (_guiInitialized)
+            return;
+
+        LoggerInstance.Msg("Initializing GUI system...");
+        _guiInitialized = true;
     }
 }
 

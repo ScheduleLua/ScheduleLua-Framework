@@ -3,6 +3,7 @@ using MoonSharp.Interpreter;
 using ScheduleOne.Law;
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace ScheduleLua.API.Law
 {
@@ -12,6 +13,7 @@ namespace ScheduleLua.API.Law
     public static class CurfewManagerAPI
     {
         private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
+        private static bool _eventsHooked = false;
 
         /// <summary>
         /// Registers Curfew API with the Lua interpreter
@@ -31,7 +33,105 @@ namespace ScheduleLua.API.Law
             luaEngine.Globals["GetTimeUntilCurfew"] = (Func<int>)GetTimeUntilCurfew;
             luaEngine.Globals["RegisterCurfewCallback"] = (Action<string, string>)RegisterCurfewCallback;
             
-            _logger.Msg("CurfewManager API registered with Lua engine");
+            // Hook into scene changes to detect when we enter the main game
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+        
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            // Reset event hooks when entering Menu scene
+            if (scene.name == "Menu")
+            {
+                _eventsHooked = false;
+                _logger.Msg("Menu scene loaded, resetting curfew event hooks");
+            }
+            else if (scene.name == "Main")
+            {
+                // Try to hook events when entering main scene
+                _logger.Msg("Main scene loaded, setting up curfew event hooks");
+                TryHookCurfewEvents();
+            }
+        }
+        
+        private static void TryHookCurfewEvents()
+        {
+            // Don't attempt to hook events if we're in the Menu scene
+            if (SceneManager.GetActiveScene().name == "Menu")
+            {
+                _logger.Msg("Currently in Menu scene, skipping curfew event hooks");
+                return;
+            }
+            
+            // Don't hook events again if already hooked
+            if (_eventsHooked)
+            {
+                return;
+            }
+            
+            // If CurfewManager is available now, hook events immediately
+            if (ScheduleOne.Law.CurfewManager.Instance != null)
+            {
+                HookCurfewEvents();
+            }
+            else
+            {
+                // If not, wait a bit and try again
+                MelonLoader.MelonCoroutines.Start(WaitForCurfewManager());
+            }
+        }
+        
+        private static System.Collections.IEnumerator WaitForCurfewManager()
+        {
+            // Wait a few frames for CurfewManager to be initialized
+            for (int i = 0; i < 10; i++)
+            {
+                yield return null;
+                
+                // Try to hook events if the CurfewManager is now available
+                if (ScheduleOne.Law.CurfewManager.Instance != null)
+                {
+                    HookCurfewEvents();
+                    yield break;
+                }
+            }
+            
+            // Still not available after waiting
+            _logger.Warning("CurfewManager not available after waiting. Events will be hooked when the CurfewManager becomes available.");
+        }
+        
+        private static void HookCurfewEvents()
+        {
+            // Skip if already hooked or if in Menu scene
+            if (_eventsHooked || SceneManager.GetActiveScene().name == "Menu")
+                return;
+                
+            // Hook into the CurfewManager events once
+            var curfewManager = ScheduleOne.Law.CurfewManager.Instance;
+            if (curfewManager == null)
+                return;
+            
+            curfewManager.onCurfewEnabled.AddListener(() => {
+                _logger.Msg("Curfew system enabled, triggering OnCurfewEnabled event");
+                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewEnabled");
+            });
+            
+            curfewManager.onCurfewDisabled.AddListener(() => {
+                _logger.Msg("Curfew system disabled, triggering OnCurfewDisabled event");
+                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewDisabled");
+            });
+            
+            curfewManager.onCurfewWarning.AddListener(() => {
+                _logger.Msg("Curfew warning triggered, triggering OnCurfewWarning event");
+                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewWarning");
+            });
+            
+            curfewManager.onCurfewHint.AddListener(() => {
+                _logger.Msg("Curfew hint triggered, triggering OnCurfewHint event");
+                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewHint");
+            });
+            
+            _eventsHooked = true;
+            _logger.Msg("Successfully hooked all curfew events");
         }
 
         #region Curfew Status Functions
@@ -150,10 +250,11 @@ namespace ScheduleLua.API.Law
         }
 
         /// <summary>
-        /// Registers a Lua function as a callback for curfew events
+        /// Registers a Lua function as a callback for curfew events (Deprecated - use event functions like OnCurfewEnabled instead)
         /// </summary>
         public static void RegisterCurfewCallback(string eventType, string functionName)
         {
+            _logger.Warning($"RegisterCurfewCallback is deprecated. Use direct event functions (OnCurfewEnabled, OnCurfewDisabled, OnCurfewWarning, OnCurfewHint) instead.");
             try
             {
                 if (string.IsNullOrEmpty(eventType) || string.IsNullOrEmpty(functionName))

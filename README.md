@@ -49,6 +49,9 @@ A Lua modding framework for Schedule I that aims to expose the game's functional
     - [Economy System](#economy-system)
       - [Basic Economy](#basic-economy)
       - [Advanced Economy](#advanced-economy)
+    - [Weather System](#weather-system)
+      - [Basic Weather](#basic-weather)
+      - [Advanced Weather](#advanced-weather)
     - [Modding Tools](#modding-tools)
       - [Development Tools](#development-tools)
       - [Configuration](#configuration-1)
@@ -207,12 +210,12 @@ LogScriptErrors = true
 
 ### Console Command Functions
 
-| Function                                              | Description                                       |
-| ----------------------------------------------------- | ------------------------------------------------- |
-| `RegisterCommand(name, description, usage, callback)` | Registers a console command with the game         |
-| `UnregisterCommand(name)`                             | Unregisters a previously registered command       |
-| `UnregisterAllCommands()`                             | Unregisters all commands registered by the script |
-| `IsCommandRegistered(name)`                           | Checks if a command is registered                 |
+| Function                          | Description                                           |
+| --------------------------------- | ----------------------------------------------------- |
+| `RegisterCommand(name, description, usage, callback)` | Registers a console command with the game |
+| `UnregisterCommand(name)`         | Unregisters a previously registered command           |
+| `UnregisterAllCommands()`         | Unregisters all commands registered by the script     |
+| `IsCommandRegistered(name)`       | Checks if a command is registered                     |
 
 ### GameObject Functions
 
@@ -373,6 +376,8 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 - [ ] Day change events
 - [ ] Time change events
 - [ ] Sleep start/end events
+- [ ] Weather change events
+- [ ] Season change events
 
 ### Map/World System
 
@@ -382,6 +387,8 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 - [x] Get NPC region
 - [ ] Create custom region
 - [ ] Modify region properties
+- [ ] Get region weather
+- [ ] Get region time
 
 #### World Interaction
 - [ ] Spawn objects
@@ -444,6 +451,24 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 - [ ] Create economy events
 - [ ] Create market fluctuations
 - [ ] Create custom currencies
+
+### Weather System
+
+#### Basic Weather
+- [ ] Get current weather
+- [ ] Set weather
+- [ ] Get weather forecast
+- [ ] Create weather effects
+- [ ] Modify weather intensity
+- [ ] Create custom weather
+
+#### Advanced Weather
+- [ ] Create weather patterns
+- [ ] Create weather zones
+- [ ] Create weather events
+- [ ] Modify weather duration
+- [ ] Create weather transitions
+- [ ] Create weather effects
 
 ### Modding Tools
 

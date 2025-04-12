@@ -388,54 +388,6 @@ namespace ScheduleLua.API
         }
 
         /// <summary>
-        /// Gets the player's current money
-        /// </summary>
-        /// <returns>The amount of money the player has</returns>
-        public static float GetPlayerMoney()
-        {
-            try
-            {
-                var player = PlayerInstance;
-                if (player == null)
-                {
-                    LuaUtility.LogWarning("Player not found, returning 0");
-                    return 0f;
-                }
-                
-                // This is a placeholder - replace with actual implementation once available
-                return 0f;
-            }
-            catch (Exception ex)
-            {
-                LuaUtility.LogError("Error getting player money", ex);
-                return 0f;
-            }
-        }
-
-        /// <summary>
-        /// Adds money to the player
-        /// </summary>
-        /// <param name="amount">The amount of money to add</param>
-        public static void AddPlayerMoney(float amount)
-        {
-            try
-            {
-                var player = PlayerInstance;
-                if (player == null)
-                {
-                    LuaUtility.LogWarning("Player not found, money not added");
-                    return;
-                }
-                
-                // This is a placeholder - replace with actual implementation once available
-            }
-            catch (Exception ex)
-            {
-                LuaUtility.LogError("Error adding player money", ex);
-            }
-        }
-
-        /// <summary>
         /// Gets the player's current energy
         /// </summary>
         /// <returns>The amount of energy the player has</returns>

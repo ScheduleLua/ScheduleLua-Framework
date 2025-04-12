@@ -33,9 +33,6 @@ namespace ScheduleLua.API.Registry
             luaEngine.Globals["UnregisterAllCommands"] = (Action)UnregisterAllCommands;
             luaEngine.Globals["IsCommandRegistered"] = (Func<string, bool>)IsCommandRegistered;
             luaEngine.Globals["GetGameCommands"] = (Func<Table>)GetGameCommands;
-
-            // Log info about the command system
-            _logger.Msg("Console command API registered with Lua engine");
         }
 
         /// <summary>

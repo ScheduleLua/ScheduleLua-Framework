@@ -4,9 +4,15 @@ using ScheduleOne;
 using ScheduleOne.ConstructableScripts;
 using ScheduleOne.ItemFramework;
 using ScheduleOne.Growing;
+using ScheduleOne.UI;
+using ScheduleOne.GameTime;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.DevUtilities;
+using System.Collections;
 
 namespace ScheduleLua.API.Registry
 {
@@ -16,6 +22,8 @@ namespace ScheduleLua.API.Registry
     public static class RegistryAPI
     {
         private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
+        private static bool _registryReady = false;
+        private static bool _checkingRegistry = false;
 
         /// <summary>
         /// Registers Registry API with the Lua interpreter
@@ -25,51 +33,162 @@ namespace ScheduleLua.API.Registry
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
 
+            // Registry Ready Event
+            luaEngine.Globals["OnRegistryReady"] = (Action<DynValue>)OnRegistryReady;
+            luaEngine.Globals["IsRegistryReady"] = (Func<bool>)IsRegistryReady;
+
             // Item Functions
             luaEngine.Globals["GetItem"] = (Func<string, Table>)GetItem;
             luaEngine.Globals["GetItemDirect"] = (Func<string, ItemDefinition>)GetItemDirect;
             luaEngine.Globals["DoesItemExist"] = (Func<string, bool>)DoesItemExist;
             luaEngine.Globals["GetItemCategories"] = (Func<Table>)GetItemCategories;
             luaEngine.Globals["GetItemsInCategory"] = (Func<string, Table>)GetItemsInCategory;
-            
+
+            // New Item Management Functions
+            luaEngine.Globals["CreateItem"] = (Func<string, string, string, string, int, Table>)CreateItem;
+            luaEngine.Globals["CreateQualityItem"] = (Func<string, string, string, string, int, string, Table>)CreateQualityItem;
+            luaEngine.Globals["CreateIntegerItem"] = (Func<string, string, string, string, int, int, Table>)CreateIntegerItem;
+            luaEngine.Globals["ModifyItem"] = (Func<string, Table, bool>)ModifyItem;
+            luaEngine.Globals["GetAllItems"] = (Func<Table>)GetAllItems;
+            luaEngine.Globals["CreateItemInstance"] = (Func<string, int, ItemInstance>)CreateItemInstance;
+            luaEngine.Globals["AddItemToPlayerInventory"] = (Func<ItemInstance, bool>)AddItemToPlayerInventory;
+
             // Prefab Functions
             luaEngine.Globals["GetPrefab"] = (Func<string, GameObject>)GetPrefab;
             luaEngine.Globals["DoesPrefabExist"] = (Func<string, bool>)DoesPrefabExist;
-            
+
             // Constructable Functions
             luaEngine.Globals["GetConstructable"] = (Func<string, Constructable>)GetConstructable;
             luaEngine.Globals["DoesConstructableExist"] = (Func<string, bool>)DoesConstructableExist;
-            
+
             // Seed Functions
             luaEngine.Globals["GetSeed"] = (Func<string, Table>)GetSeed;
             luaEngine.Globals["GetAllSeeds"] = (Func<Table>)GetAllSeeds;
-            
+
             // Quality Functions
             luaEngine.Globals["GetQualityLevel"] = (Func<string, int>)GetQualityLevel;
             luaEngine.Globals["GetQualityName"] = (Func<string, string>)GetQualityName;
             luaEngine.Globals["GetAllQualities"] = (Func<Table>)GetAllQualities;
-            
+
             // Register custom type handlers
             RegisterCustomTypes(luaEngine);
-            
-            _logger.Msg("Registry API registered with Lua engine");
+
+            // Start checking if registry is ready
+            StartRegistryReadyCheck();
         }
-        
+
+        /// <summary>
+        /// Subscribe to the registry ready event
+        /// </summary>
+        public static void OnRegistryReady(DynValue callback)
+        {
+
+            _logger.Msg("OnRegistryReady called - use event subscription instead of callbacks");
+
+            // Make sure we're checking for registry readiness
+            if (!_checkingRegistry)
+            {
+                StartRegistryReadyCheck();
+            }
+        }
+
+        /// <summary>
+        /// Check if the registry is ready
+        /// </summary>
+        public static bool IsRegistryReady()
+        {
+            return _registryReady;
+        }
+
+        /// <summary>
+        /// Start checking if the registry is ready
+        /// </summary>
+        private static void StartRegistryReadyCheck()
+        {
+            if (_checkingRegistry)
+                return;
+
+            _checkingRegistry = true;
+            MelonLoader.MelonCoroutines.Start(CheckRegistryReady());
+        }
+
+        /// <summary>
+        /// Coroutine to check if the registry is ready
+        /// </summary>
+        private static IEnumerator CheckRegistryReady()
+        {
+            // Wait until the current scene is not the menu scene
+            while (SceneManager.GetActiveScene().name == "Menu" || !IsGameSceneLoaded())
+            {
+                yield return new WaitForSeconds(0.5f);
+            }
+
+            // Wait a bit for the registry to be fully initialized
+            yield return new WaitForSeconds(1.0f);
+
+            // Additional checks to ensure Registry is fully initialized
+            while (ScheduleOne.Registry.Instance == null ||
+                  TimeManager.Instance == null ||
+                  !CheckRegistryInitialized())
+            {
+                yield return new WaitForSeconds(0.5f);
+            }
+
+            // Registry is now ready
+            _registryReady = true;
+            _logger.Msg("Registry is now ready");
+
+            // Trigger callbacks
+            ScheduleLua.Core.Instance.TriggerEvent("OnRegistryReady");
+        }
+
+        /// <summary>
+        /// Checks if the Registry has been initialized with items
+        /// </summary>
+        private static bool CheckRegistryInitialized()
+        {
+            try
+            {
+                return ScheduleOne.Registry.Instance != null &&
+                       ScheduleOne.Registry.GetItem("cash") != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Check if a game scene is loaded (not menu or loading screen)
+        /// </summary>
+        private static bool IsGameSceneLoaded()
+        {
+            var sceneName = SceneManager.GetActiveScene().name;
+            return sceneName != "Menu" &&
+                   sceneName != "Loading" &&
+                   sceneName != "CharacterCreation" &&
+                   !string.IsNullOrEmpty(sceneName);
+        }
+
         /// <summary>
         /// Registers custom types needed for Registry API
         /// </summary>
         private static void RegisterCustomTypes(Script luaEngine)
         {
-            // Register item-related enum types for Lua with safe proxies
+            // Register item-related types for Lua with safe proxies
             UserData.RegisterType<ItemProxy>();
+            UserData.RegisterType<ItemInstanceProxy>();
             UserData.RegisterType<EItemCategory>();
-            
-            // Register conversion function for ItemDefinition -> ItemProxy
+            UserData.RegisterType<EQuality>();
+            UserData.RegisterType<ELegalStatus>();
+
+            // Register conversion functions
             luaEngine.Globals["CreateItemProxy"] = (Func<ItemDefinition, ItemProxy>)CreateItemProxy;
+            luaEngine.Globals["CreateItemInstanceProxy"] = (Func<ItemInstance, ItemInstanceProxy>)CreateItemInstanceProxy;
         }
-        
+
         #region Item Functions
-        
+
         /// <summary>
         /// Gets an item by ID and returns it as a Lua-friendly table
         /// </summary>
@@ -80,7 +199,7 @@ namespace ScheduleLua.API.Registry
                 var item = ScheduleOne.Registry.GetItem(itemId);
                 if (item == null)
                     return null;
-                    
+
                 return ItemToTable(item);
             }
             catch (Exception ex)
@@ -89,7 +208,7 @@ namespace ScheduleLua.API.Registry
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Gets an item by ID directly (for advanced use)
         /// </summary>
@@ -105,7 +224,7 @@ namespace ScheduleLua.API.Registry
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Checks if an item with the given ID exists
         /// </summary>
@@ -113,22 +232,22 @@ namespace ScheduleLua.API.Registry
         {
             return ScheduleOne.Registry.GetItem(itemId) != null;
         }
-        
+
         /// <summary>
         /// Gets all item categories as a Lua table
         /// </summary>
         public static Table GetItemCategories()
         {
             var table = new Table(ScheduleLua.Core.Instance._luaEngine);
-            
+
             foreach (EItemCategory category in Enum.GetValues(typeof(EItemCategory)))
             {
                 table.Append(DynValue.NewString(category.ToString()));
             }
-            
+
             return table;
         }
-        
+
         /// <summary>
         /// Gets all items in a specific category
         /// </summary>
@@ -136,22 +255,386 @@ namespace ScheduleLua.API.Registry
         {
             if (!Enum.TryParse(categoryName, true, out EItemCategory category))
                 return new Table(ScheduleLua.Core.Instance._luaEngine);
-                
+
             var table = new Table(ScheduleLua.Core.Instance._luaEngine);
-            
-            // Note: This is a simplified implementation
-            // A comprehensive implementation would need to scan all items in the registry
-            // But that would require internal Registry access which may not be available
-            
-            _logger.Warning("GetItemsInCategory functionality is limited - returning empty table");
-            
+
+            try
+            {
+                // Loop through all known items and filter by category
+                var allItems = GetAllAvailableItems();
+
+                int index = 1;
+                foreach (var item in allItems)
+                {
+                    if (item.Category == category)
+                    {
+                        table.Set(index++, DynValue.NewTable(ItemToTable(item)));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error getting items in category {categoryName}: {ex.Message}");
+            }
+
             return table;
         }
-        
+
+        /// <summary>
+        /// Helper method to get all available items in the game
+        /// </summary>
+        private static List<ItemDefinition> GetAllAvailableItems()
+        {
+            var items = new HashSet<ItemDefinition>();
+            var registry = ScheduleOne.Registry.Instance;
+
+            if (registry == null)
+            {
+                _logger.Error("Registry instance is null");
+                return new List<ItemDefinition>();
+            }
+
+            // TODO
+
+            _logger.Msg($"Found {items.Count} total items");
+
+            return items.ToList();
+        }
+
+        /// <summary>
+        /// Gets all items in the registry
+        /// </summary>
+        public static Table GetAllItems()
+        {
+            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+
+            try
+            {
+                var allItems = GetAllAvailableItems();
+
+                int index = 1;
+                foreach (var item in allItems)
+                {
+                    table.Set(index++, DynValue.NewTable(ItemToTable(item)));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error getting all items: {ex.Message}");
+            }
+
+            return table;
+        }
+
+        /// <summary>
+        /// Creates a new basic item definition
+        /// </summary>
+        public static Table CreateItem(string id, string name, string description, string category, int stackLimit)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    _logger.Error("Cannot create item with empty ID");
+                    return null;
+                }
+
+                if (DoesItemExist(id))
+                {
+                    _logger.Error($"Item with ID '{id}' already exists");
+                    return null;
+                }
+
+                if (!Enum.TryParse(category, true, out EItemCategory itemCategory))
+                {
+                    _logger.Error($"Invalid item category: {category}");
+                    return null;
+                }
+
+                var item = ScriptableObject.CreateInstance<ItemDefinition>();
+                item.ID = id;
+                item.Name = name;
+                item.Description = description;
+                item.Category = itemCategory;
+                item.StackLimit = stackLimit;
+                item.AvailableInDemo = true;
+
+                // Register the item with the game registry
+                ScheduleOne.Registry.Instance.AddToRegistry(item);
+
+                _logger.Msg($"Created new item '{id}'");
+                return ItemToTable(item);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error creating item: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Creates a new quality item definition
+        /// </summary>
+        public static Table CreateQualityItem(string id, string name, string description, string category, int stackLimit, string defaultQuality)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    _logger.Error("Cannot create quality item with empty ID");
+                    return null;
+                }
+
+                if (DoesItemExist(id))
+                {
+                    _logger.Error($"Item with ID '{id}' already exists");
+                    return null;
+                }
+
+                if (!Enum.TryParse(category, true, out EItemCategory itemCategory))
+                {
+                    _logger.Error($"Invalid item category: {category}");
+                    return null;
+                }
+
+                if (!Enum.TryParse(defaultQuality, true, out EQuality quality))
+                {
+                    _logger.Error($"Invalid quality: {defaultQuality}");
+                    return null;
+                }
+
+                var item = ScriptableObject.CreateInstance<QualityItemDefinition>();
+                item.ID = id;
+                item.Name = name;
+                item.Description = description;
+                item.Category = itemCategory;
+                item.StackLimit = stackLimit;
+                item.AvailableInDemo = true;
+                item.DefaultQuality = quality;
+
+                // Register the item with the game registry
+                ScheduleOne.Registry.Instance.AddToRegistry(item);
+
+                _logger.Msg($"Created new quality item '{id}'");
+                return ItemToTable(item);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error creating quality item: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Creates a new integer item definition
+        /// </summary>
+        public static Table CreateIntegerItem(string id, string name, string description, string category, int stackLimit, int defaultValue)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    _logger.Error("Cannot create integer item with empty ID");
+                    return null;
+                }
+
+                if (DoesItemExist(id))
+                {
+                    _logger.Error($"Item with ID '{id}' already exists");
+                    return null;
+                }
+
+                if (!Enum.TryParse(category, true, out EItemCategory itemCategory))
+                {
+                    _logger.Error($"Invalid item category: {category}");
+                    return null;
+                }
+
+                var item = ScriptableObject.CreateInstance<IntegerItemDefinition>();
+                item.ID = id;
+                item.Name = name;
+                item.Description = description;
+                item.Category = itemCategory;
+                item.StackLimit = stackLimit;
+                item.AvailableInDemo = true;
+                item.DefaultValue = defaultValue;
+
+                // Register the item with the game registry
+                ScheduleOne.Registry.Instance.AddToRegistry(item);
+
+                _logger.Msg($"Created new integer item '{id}'");
+                return ItemToTable(item);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error creating integer item: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Modifies an existing item definition
+        /// </summary>
+        public static bool ModifyItem(string itemId, Table properties)
+        {
+            try
+            {
+                var item = ScheduleOne.Registry.GetItem(itemId);
+                if (item == null)
+                {
+                    _logger.Error($"Item '{itemId}' not found");
+                    return false;
+                }
+
+                // Process each property
+                foreach (var pair in properties.Pairs)
+                {
+                    string propertyName = pair.Key.String;
+                    DynValue propertyValue = pair.Value;
+
+                    switch (propertyName.ToLower())
+                    {
+                        case "name":
+                            item.Name = propertyValue.String;
+                            break;
+                        case "description":
+                            item.Description = propertyValue.String;
+                            break;
+                        case "stacklimit":
+                            item.StackLimit = (int)propertyValue.Number;
+                            break;
+                        case "availableindemo":
+                            item.AvailableInDemo = propertyValue.Boolean;
+                            break;
+                        case "keywords":
+                            if (propertyValue.Type == DataType.Table)
+                            {
+                                var keywordsTable = propertyValue.Table;
+                                var keywords = new List<string>();
+                                foreach (var kv in keywordsTable.Pairs)
+                                {
+                                    if (kv.Value.Type == DataType.String)
+                                    {
+                                        keywords.Add(kv.Value.String);
+                                    }
+                                }
+                                item.Keywords = keywords.ToArray();
+                            }
+                            break;
+                        case "legalstatus":
+                            if (Enum.TryParse(propertyValue.String, true, out ELegalStatus legalStatus))
+                            {
+                                item.legalStatus = legalStatus;
+                            }
+                            break;
+                        case "category":
+                            if (Enum.TryParse(propertyValue.String, true, out EItemCategory category))
+                            {
+                                item.Category = category;
+                            }
+                            break;
+                        case "defaultquality":
+                            if (item is QualityItemDefinition qualityItem &&
+                                Enum.TryParse(propertyValue.String, true, out EQuality quality))
+                            {
+                                qualityItem.DefaultQuality = quality;
+                            }
+                            break;
+                        case "defaultvalue":
+                            if (item is IntegerItemDefinition intItem &&
+                                propertyValue.Type == DataType.Number)
+                            {
+                                intItem.DefaultValue = (int)propertyValue.Number;
+                            }
+                            break;
+                        default:
+                            _logger.Warning($"Unknown property '{propertyName}' for item");
+                            break;
+                    }
+                }
+
+                _logger.Msg($"Modified item '{itemId}'");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error modifying item '{itemId}': {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Creates an item instance from an item definition
+        /// </summary>
+        public static ItemInstance CreateItemInstance(string itemId, int quantity)
+        {
+            try
+            {
+                var itemDef = ScheduleOne.Registry.GetItem(itemId);
+                if (itemDef == null)
+                {
+                    _logger.Error($"Item '{itemId}' not found");
+                    return null;
+                }
+
+                var instance = itemDef.GetDefaultInstance();
+                if (instance == null)
+                {
+                    _logger.Error($"Failed to create instance of item '{itemId}'");
+                    return null;
+                }
+
+                if (quantity > 0)
+                {
+                    instance.ChangeQuantity(quantity - 1); // -1 because default is already 1
+                }
+
+                return instance;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error creating item instance for '{itemId}': {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Adds an item instance to the player's inventory
+        /// </summary>
+        public static bool AddItemToPlayerInventory(ItemInstance itemInstance)
+        {
+            try
+            {
+                if (itemInstance == null)
+                {
+                    _logger.Error("Cannot add null item to inventory");
+                    return false;
+                }
+
+                var playerInventory = PlayerSingleton<PlayerInventory>.Instance;
+                if (playerInventory == null)
+                {
+                    _logger.Error("Player inventory not available");
+                    return false;
+                }
+
+                // Note: AddItemToInventory returns void, so we need to assume success if no exception occurs
+                playerInventory.AddItemToInventory(itemInstance);
+                _logger.Msg($"Added {itemInstance.Definition.Name} x{itemInstance.Quantity} to player inventory");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error adding item to inventory: {ex.Message}");
+                return false;
+            }
+        }
+
         #endregion
-        
+
         #region Prefab Functions
-        
+
         /// <summary>
         /// Gets a prefab by ID
         /// </summary>
@@ -167,7 +650,7 @@ namespace ScheduleLua.API.Registry
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Checks if a prefab with the given ID exists
         /// </summary>
@@ -175,11 +658,11 @@ namespace ScheduleLua.API.Registry
         {
             return ScheduleOne.Registry.GetPrefab(prefabId) != null;
         }
-        
+
         #endregion
-        
+
         #region Constructable Functions
-        
+
         /// <summary>
         /// Gets a constructable by ID
         /// </summary>
@@ -195,7 +678,7 @@ namespace ScheduleLua.API.Registry
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Checks if a constructable with the given ID exists
         /// </summary>
@@ -203,11 +686,11 @@ namespace ScheduleLua.API.Registry
         {
             return ScheduleOne.Registry.GetConstructable(constructableId) != null;
         }
-        
+
         #endregion
-        
+
         #region Seed Functions
-        
+
         /// <summary>
         /// Gets a seed by ID
         /// </summary>
@@ -218,11 +701,11 @@ namespace ScheduleLua.API.Registry
                 var seeds = ScheduleOne.Registry.Instance?.Seeds;
                 if (seeds == null)
                     return null;
-                    
+
                 var seed = seeds.Find(s => s != null && s.ID == seedId);
                 if (seed == null)
                     return null;
-                    
+
                 return SeedToTable(seed);
             }
             catch (Exception ex)
@@ -231,20 +714,20 @@ namespace ScheduleLua.API.Registry
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Gets all seeds in the registry
         /// </summary>
         public static Table GetAllSeeds()
         {
             var table = new Table(ScheduleLua.Core.Instance._luaEngine);
-            
+
             try
             {
                 var seeds = ScheduleOne.Registry.Instance?.Seeds;
                 if (seeds == null)
                     return table;
-                    
+
                 int index = 1;
                 foreach (var seed in seeds)
                 {
@@ -258,14 +741,14 @@ namespace ScheduleLua.API.Registry
             {
                 _logger.Error($"Error getting all seeds: {ex.Message}");
             }
-            
+
             return table;
         }
-        
+
         #endregion
-        
+
         #region Quality Functions
-        
+
         /// <summary>
         /// Gets a quality level by name
         /// </summary>
@@ -273,47 +756,47 @@ namespace ScheduleLua.API.Registry
         {
             if (Enum.TryParse(qualityName, true, out EQuality quality))
                 return (int)quality;
-                
+
             return 0;
         }
-        
+
         /// <summary>
         /// Gets a quality name by level
         /// </summary>
         public static string GetQualityName(string qualityLevelStr)
         {
-            if (int.TryParse(qualityLevelStr, out int qualityLevel) && 
+            if (int.TryParse(qualityLevelStr, out int qualityLevel) &&
                 Enum.IsDefined(typeof(EQuality), qualityLevel))
             {
                 return ((EQuality)qualityLevel).ToString();
             }
-            
+
             return "Unknown";
         }
-        
+
         /// <summary>
         /// Gets all quality levels as a Lua table
         /// </summary>
         public static Table GetAllQualities()
         {
             var table = new Table(ScheduleLua.Core.Instance._luaEngine);
-            
+
             foreach (EQuality quality in Enum.GetValues(typeof(EQuality)))
             {
                 var qualityTable = new Table(ScheduleLua.Core.Instance._luaEngine);
                 qualityTable.Set("name", DynValue.NewString(quality.ToString()));
                 qualityTable.Set("level", DynValue.NewNumber((int)quality));
-                
+
                 table.Append(DynValue.NewTable(qualityTable));
             }
-            
+
             return table;
         }
-        
+
         #endregion
-        
+
         #region Helper Functions
-        
+
         /// <summary>
         /// Converts an ItemDefinition to a Lua table
         /// </summary>
@@ -321,7 +804,7 @@ namespace ScheduleLua.API.Registry
         {
             if (item == null)
                 return null;
-                
+
             var table = new Table(ScheduleLua.Core.Instance._luaEngine);
             table.Set("id", DynValue.NewString(item.ID));
             table.Set("name", DynValue.NewString(item.Name));
@@ -329,7 +812,8 @@ namespace ScheduleLua.API.Registry
             table.Set("category", DynValue.NewString(item.Category.ToString()));
             table.Set("stackLimit", DynValue.NewNumber(item.StackLimit));
             table.Set("availableInDemo", DynValue.NewBoolean(item.AvailableInDemo));
-            
+            table.Set("legalStatus", DynValue.NewString(item.legalStatus.ToString()));
+
             // Convert keywords array to table
             if (item.Keywords != null && item.Keywords.Length > 0)
             {
@@ -340,24 +824,27 @@ namespace ScheduleLua.API.Registry
                 }
                 table.Set("keywords", DynValue.NewTable(keywordsTable));
             }
-            
+
             // Add special properties for different item types
             if (item is QualityItemDefinition qualityItem)
             {
                 table.Set("isQualityItem", DynValue.NewBoolean(true));
+                table.Set("defaultQuality", DynValue.NewString(qualityItem.DefaultQuality.ToString()));
             }
             else if (item is IntegerItemDefinition intItem)
             {
                 table.Set("isIntegerItem", DynValue.NewBoolean(true));
+                table.Set("defaultValue", DynValue.NewNumber(intItem.DefaultValue));
             }
             else if (item is StorableItemDefinition storableItem)
             {
                 table.Set("isStorableItem", DynValue.NewBoolean(true));
+                AddStorableProperties(table, storableItem);
             }
-            
+
             return table;
         }
-        
+
         /// <summary>
         /// Converts a SeedDefinition to a Lua table
         /// </summary>
@@ -365,15 +852,41 @@ namespace ScheduleLua.API.Registry
         {
             if (seed == null)
                 return null;
-                
+
             var table = new Table(ScheduleLua.Core.Instance._luaEngine);
             table.Set("id", DynValue.NewString(seed.ID));
             table.Set("name", DynValue.NewString(seed.Name));
             // Add more seed properties as needed
-            
+
             return table;
         }
-        
+
+        /// <summary>
+        /// Converts a StorableItemDefinition to include price and required rank information
+        /// </summary>
+        private static void AddStorableProperties(Table table, StorableItemDefinition item)
+        {
+            if (item == null)
+                return;
+
+            table.Set("basePurchasePrice", DynValue.NewNumber(item.BasePurchasePrice));
+
+            // Handle the FullRank conversion
+            if (item.RequiredRank != null)
+            {
+                // Create a table to represent the FullRank
+                var rankTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+                rankTable.Set("rank", DynValue.NewString(item.RequiredRank.Rank.ToString()));
+                rankTable.Set("tier", DynValue.NewNumber(item.RequiredRank.Tier));
+                table.Set("requiredRank", DynValue.NewTable(rankTable));
+
+                // Also provide a simplified numeric representation for easier sorting
+                table.Set("requiredRankValue", DynValue.NewNumber((int)item.RequiredRank.Rank * 10 + item.RequiredRank.Tier));
+            }
+
+            table.Set("isPurchasable", DynValue.NewBoolean(item.IsPurchasable));
+        }
+
         /// <summary>
         /// Creates an ItemProxy from an ItemDefinition
         /// </summary>
@@ -381,10 +894,18 @@ namespace ScheduleLua.API.Registry
         {
             return new ItemProxy(item);
         }
-        
+
+        /// <summary>
+        /// Creates an ItemInstanceProxy from an ItemInstance
+        /// </summary>
+        public static ItemInstanceProxy CreateItemInstanceProxy(ItemInstance instance)
+        {
+            return new ItemInstanceProxy(instance);
+        }
+
         #endregion
     }
-    
+
     /// <summary>
     /// A Lua-friendly proxy for ItemDefinition to prevent IL2CPP/AOT issues
     /// </summary>
@@ -392,21 +913,172 @@ namespace ScheduleLua.API.Registry
     public class ItemProxy
     {
         private ItemDefinition _item;
-        
+
         public string ID => _item?.ID;
-        public string Name => _item?.Name;
-        public string Description => _item?.Description;
-        public int StackLimit => _item?.StackLimit ?? 0;
+        public string Name { get => _item?.Name; set { if (_item != null) _item.Name = value; } }
+        public string Description { get => _item?.Description; set { if (_item != null) _item.Description = value; } }
+        public int StackLimit { get => _item?.StackLimit ?? 0; set { if (_item != null) _item.StackLimit = value; } }
         public EItemCategory Category => _item?.Category ?? default(EItemCategory);
-        
+        public bool AvailableInDemo { get => _item?.AvailableInDemo ?? false; set { if (_item != null) _item.AvailableInDemo = value; } }
+        public ELegalStatus LegalStatus { get => _item?.legalStatus ?? default(ELegalStatus); set { if (_item != null) _item.legalStatus = value; } }
+
         public ItemProxy(ItemDefinition item)
         {
             _item = item;
         }
-        
+
+        public string[] GetKeywords()
+        {
+            return _item?.Keywords ?? new string[0];
+        }
+
+        public void SetKeywords(Table keywordsTable)
+        {
+            if (_item == null || keywordsTable == null)
+                return;
+
+            var keywords = new List<string>();
+            foreach (var pair in keywordsTable.Pairs)
+            {
+                if (pair.Value.Type == DataType.String)
+                {
+                    keywords.Add(pair.Value.String);
+                }
+            }
+
+            _item.Keywords = keywords.ToArray();
+        }
+
+        public ItemInstance CreateInstance(int quantity = 1)
+        {
+            if (_item == null)
+                return null;
+
+            var instance = _item.GetDefaultInstance();
+            if (instance != null && quantity > 1)
+            {
+                instance.ChangeQuantity(quantity - 1); // -1 because default is already 1
+            }
+
+            return instance;
+        }
+
         public override string ToString()
         {
             return $"Item[{ID}]: {Name}";
         }
     }
-} 
+
+    /// <summary>
+    /// A Lua-friendly proxy for ItemInstance to prevent IL2CPP/AOT issues
+    /// </summary>
+    [MoonSharpUserData]
+    public class ItemInstanceProxy
+    {
+        private ItemInstance _instance;
+
+        public string Name => _instance?.Definition?.Name;
+        public string Description => _instance?.Definition?.Description;
+        public int Quantity { get => _instance?.Quantity ?? 0; set { if (_instance != null) _instance.ChangeQuantity(value - _instance.Quantity); } }
+        public ItemDefinition Definition => _instance?.Definition;
+
+        public ItemInstanceProxy(ItemInstance instance)
+        {
+            _instance = instance;
+        }
+
+        public void ChangeQuantity(int delta)
+        {
+            _instance?.ChangeQuantity(delta);
+        }
+
+        public ItemInstanceProxy Copy(int quantity = -1)
+        {
+            if (_instance == null)
+                return null;
+
+            var copy = _instance.GetCopy(quantity >= 0 ? quantity : _instance.Quantity);
+            return new ItemInstanceProxy(copy);
+        }
+
+        public bool IsQualityItem()
+        {
+            return _instance is QualityItemInstance;
+        }
+
+        public string GetQuality()
+        {
+            if (_instance is QualityItemInstance qualityInstance)
+            {
+                return qualityInstance.Quality.ToString();
+            }
+            return "None";
+        }
+
+        public void SetQuality(string qualityName)
+        {
+            if (_instance is QualityItemInstance qualityInstance &&
+                Enum.TryParse(qualityName, true, out EQuality quality))
+            {
+                qualityInstance.Quality = quality;
+            }
+        }
+
+        public bool IsIntegerItem()
+        {
+            return _instance is IntegerItemInstance;
+        }
+
+        public int GetValue()
+        {
+            if (_instance is IntegerItemInstance intInstance)
+            {
+                return intInstance.Value;
+            }
+            return 0;
+        }
+
+        public void SetValue(int value)
+        {
+            if (_instance is IntegerItemInstance intInstance)
+            {
+                intInstance.Value = value;
+            }
+        }
+
+        public bool IsCashItem()
+        {
+            return _instance is CashInstance;
+        }
+
+        public float GetBalance()
+        {
+            if (_instance is CashInstance cashInstance)
+            {
+                return cashInstance.Balance;
+            }
+            return 0f;
+        }
+
+        public void SetBalance(float balance)
+        {
+            if (_instance is CashInstance cashInstance)
+            {
+                cashInstance.SetBalance(balance);
+            }
+        }
+
+        public void ChangeBalance(float delta)
+        {
+            if (_instance is CashInstance cashInstance)
+            {
+                cashInstance.ChangeBalance(delta);
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{Name} x{Quantity}";
+        }
+    }
+}
