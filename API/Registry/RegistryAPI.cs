@@ -136,7 +136,6 @@ namespace ScheduleLua.API.Registry
 
             // Registry is now ready
             _registryReady = true;
-            _logger.Msg("Registry is now ready");
 
             // Trigger callbacks
             ScheduleLua.Core.Instance.TriggerEvent("OnRegistryReady");

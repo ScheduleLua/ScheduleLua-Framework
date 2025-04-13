@@ -37,18 +37,15 @@ namespace ScheduleLua.API.Law
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
         
-        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, LoadSceneMode mode)
         {
             // Reset event hooks when entering Menu scene
             if (scene.name == "Menu")
             {
                 _eventsHooked = false;
-                _logger.Msg("Menu scene loaded, resetting curfew event hooks");
             }
             else if (scene.name == "Main")
             {
-                // Try to hook events when entering main scene
-                _logger.Msg("Main scene loaded, setting up curfew event hooks");
                 TryHookCurfewEvents();
             }
         }
@@ -111,27 +108,22 @@ namespace ScheduleLua.API.Law
                 return;
             
             curfewManager.onCurfewEnabled.AddListener(() => {
-                _logger.Msg("Curfew system enabled, triggering OnCurfewEnabled event");
                 ScheduleLua.Core.Instance.TriggerEvent("OnCurfewEnabled");
             });
             
             curfewManager.onCurfewDisabled.AddListener(() => {
-                _logger.Msg("Curfew system disabled, triggering OnCurfewDisabled event");
                 ScheduleLua.Core.Instance.TriggerEvent("OnCurfewDisabled");
             });
             
             curfewManager.onCurfewWarning.AddListener(() => {
-                _logger.Msg("Curfew warning triggered, triggering OnCurfewWarning event");
                 ScheduleLua.Core.Instance.TriggerEvent("OnCurfewWarning");
             });
             
             curfewManager.onCurfewHint.AddListener(() => {
-                _logger.Msg("Curfew hint triggered, triggering OnCurfewHint event");
                 ScheduleLua.Core.Instance.TriggerEvent("OnCurfewHint");
             });
             
             _eventsHooked = true;
-            _logger.Msg("Successfully hooked all curfew events");
         }
 
         #region Curfew Status Functions

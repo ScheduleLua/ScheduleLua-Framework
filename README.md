@@ -437,12 +437,14 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 ### Economy System
 
 #### Basic Economy
-- [ ] Get player money
-- [ ] Add/remove player money
-- [ ] Get shop inventory
-- [ ] Buy/sell items
-- [ ] Get item prices
-- [ ] Modify item prices
+- [x] Get player money
+- [x] Add/remove player money
+- [x] Get shop inventory
+- [x] Buy/sell items
+- [x] Get item prices
+- [x] Modify item prices
+- [x] Get ATM deposit limit
+- [x] Set ATM deposit limit
 
 #### Advanced Economy
 - [ ] Create shops

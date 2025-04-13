@@ -25,10 +25,7 @@ namespace ScheduleLua.API.Registry
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
 
-            // Register the command registration function
             luaEngine.Globals["RegisterCommand"] = (Action<string, string, string, Closure>)RegisterCommand;
-
-            // Register command utility functions
             luaEngine.Globals["UnregisterCommand"] = (Action<string>)UnregisterCommand;
             luaEngine.Globals["UnregisterAllCommands"] = (Action)UnregisterAllCommands;
             luaEngine.Globals["IsCommandRegistered"] = (Func<string, bool>)IsCommandRegistered;

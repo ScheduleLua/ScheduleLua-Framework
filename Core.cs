@@ -11,7 +11,7 @@ using UnityEngine.Events;
 using MelonLoader.Utils;
 using ScheduleLua.API.Registry;
 
-[assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", "1.0.0", "ghost", null)]
+[assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", "1.0.0", "Bars", null)]
 [assembly: MelonGame("TVGS", "Schedule I")]
 namespace ScheduleLua;
 
@@ -170,7 +170,8 @@ public class Core : MelonMod
     private void SetupScriptsDirectory()
     {
         // Create scripts directory if it doesn't exist
-        _scriptsDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "ScheduleLua", "Scripts");
+        _scriptsDirectory = Path.Combine(MelonEnvironment.ModsDirectory, "ScheduleLua", "Scripts");
+        // _scriptsDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "ScheduleLua", "Scripts");
 
         if (!Directory.Exists(_scriptsDirectory))
         {
@@ -637,37 +638,24 @@ public class Core : MelonMod
         }
     }
 
-    // Handler for sleep end event - must match the UnityAction signature
     private void OnSleepEndHandler()
     {
         TriggerEvent("OnSleepEnd");
     }
 
-    // Try different approaches to attach to player health events
     private void AttachToPlayerHealthEvents(object playerHealth)
     {
-        // The actual event might be named differently or accessed differently
-        // Logging current state to handle monitoring 
         var healthValue = API.PlayerAPI.GetPlayerHealth();
-        LoggerInstance.Msg($"Current player health: {healthValue}");
 
-        // We'll create a monitoring system instead since we can't directly access the events
         StartHealthMonitoring();
     }
 
-    // Try different approaches to attach to player energy events
     private void AttachToPlayerEnergyEvents(object playerEnergy)
     {
-        // The actual event might be named differently or accessed differently
-        // Logging current state for monitoring
         var energyValue = API.PlayerAPI.GetPlayerEnergy();
-        LoggerInstance.Msg($"Current player energy: {energyValue}");
 
-        // We'll create a monitoring system instead since we can't directly access the events
         StartEnergyMonitoring();
     }
-
-    // Monitor health changes manually through periodic checks
     private float _lastHealthValue = -1;
     private float _lastEnergyValue = -1;
     private bool _isMonitoring = false;
@@ -679,13 +667,12 @@ public class Core : MelonMod
             _isMonitoring = true;
             _lastHealthValue = API.PlayerAPI.GetPlayerHealth();
             _lastEnergyValue = API.PlayerAPI.GetPlayerEnergy();
-            LoggerInstance.Msg("Started player stats monitoring");
         }
     }
 
     private void StartEnergyMonitoring()
     {
-        StartHealthMonitoring(); // Uses the same monitoring system
+        StartHealthMonitoring();
     }
 
     // Override OnLateUpdate to check for health/energy changes
@@ -695,7 +682,7 @@ public class Core : MelonMod
 
         if (!_consoleReadyTriggered && ScheduleOne.Console.Commands.Count > 0 && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Main")
         {
-            LoggerInstance.Msg($"Console is ready with {ScheduleOne.Console.Commands.Count} commands, triggering OnConsoleReady event");
+            // LoggerInstance.Msg($"Console is ready with {ScheduleOne.Console.Commands.Count} commands, triggering OnConsoleReady event");
             _consoleReadyTriggered = true;
 
             LoggerInstance.Msg("Registering Lua backend commands");
@@ -712,7 +699,7 @@ public class Core : MelonMod
             // Trigger OnPlayerReady event once when player is available
             if (!_playerReadyTriggered)
             {
-                LoggerInstance.Msg("Player is ready, triggering OnPlayerReady event");
+                // LoggerInstance.Msg("Player is ready, triggering OnPlayerReady event");
                 _playerReadyTriggered = true;
                 TriggerEvent("OnPlayerReady");
             }
@@ -784,10 +771,6 @@ public class Core : MelonMod
     public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
         base.OnSceneWasLoaded(buildIndex, sceneName);
-
-        // Trigger event for all scripts
-        LoggerInstance.Msg($"Scene loaded: {sceneName}, triggering OnSceneLoaded event");
-        TriggerEvent("OnSceneLoaded", sceneName);
 
         // Re-hook events when entering the main game scene
         if (sceneName == "Main")

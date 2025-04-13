@@ -1,8 +1,13 @@
 using MoonSharp.Interpreter;
 using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine;
 using ScheduleOne.Money;
 using ScheduleLua.API.Core;
+using ScheduleOne.UI.ATM;
+using HarmonyLib;
 
 namespace ScheduleLua.API.Economy
 {
@@ -11,6 +16,10 @@ namespace ScheduleLua.API.Economy
     /// </summary>
     public static class EconomyAPI
     {
+        private static float _atmDepositLimit = 10000f;
+        private static bool _atmLimitPatchesApplied = false;
+        private static HarmonyLib.Harmony _harmonyInstance = null;
+
         /// <summary>
         /// Register all economy-related API functions with the Lua engine
         /// </summary>
@@ -31,6 +40,10 @@ namespace ScheduleLua.API.Economy
             luaEngine.Globals["GetNetWorth"] = (Func<float>)GetNetWorth;
             luaEngine.Globals["CreateTransaction"] = (Func<string, float, int, bool, bool>)CreateTransaction;
             luaEngine.Globals["CheckIfCanAfford"] = (Func<float, bool>)CheckIfCanAfford;
+            
+            // ATM limit functions
+            luaEngine.Globals["GetATMDepositLimit"] = (Func<float>)GetATMDepositLimit;
+            luaEngine.Globals["SetATMDepositLimit"] = (Func<float, bool>)SetATMDepositLimit;
         }
 
         /// <summary>
@@ -388,5 +401,239 @@ namespace ScheduleLua.API.Economy
                 return false;
             }
         }
+
+        /// <summary>
+        /// Gets the current ATM deposit limit
+        /// </summary>
+        /// <returns>Current ATM deposit limit</returns>
+        public static float GetATMDepositLimit()
+        {
+            return _atmDepositLimit;
+        }
+
+        /// <summary>
+        /// Sets the ATM deposit limit using Harmony transpiler patches
+        /// </summary>
+        /// <param name="amount">New deposit limit amount</param>
+        /// <returns>True if successful, false otherwise</returns>
+        public static bool SetATMDepositLimit(float amount)
+        {
+            try
+            {
+                if (amount <= 0)
+                {
+                    LuaUtility.LogWarning("ATM deposit limit must be positive");
+                    return false;
+                }
+
+                // Store the new limit
+                _atmDepositLimit = amount;
+                LuaUtility.Log($"Setting ATM deposit limit to: {_atmDepositLimit}");
+
+                // If we haven't applied Harmony patches yet, do so now
+                if (!_atmLimitPatchesApplied)
+                {
+                    ApplyATMHarmonyPatches();
+                }
+
+                // Try to modify any existing ATM instances as a backup
+                ModifyExistingATMInstances();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError($"Error setting ATM deposit limit: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Applies Harmony patches to replace the hardcoded 10000 value in ATM and ATMInterface classes
+        /// </summary>
+        private static void ApplyATMHarmonyPatches()
+        {
+            try
+            {
+                // Create a Harmony instance if we don't have one yet
+                if (_harmonyInstance == null)
+                {
+                    _harmonyInstance = new HarmonyLib.Harmony("com.schedulelua.atm.depositlimit");
+                    LuaUtility.Log("Created Harmony instance for ATM deposit limit patching");
+                }
+
+                // Patch ATMInterface.remainingAllowedDeposit property
+                MethodInfo remainingAllowedDepositMethod = typeof(ATMInterface)
+                    .GetProperty("remainingAllowedDeposit", BindingFlags.NonPublic | BindingFlags.Static)
+                    ?.GetGetMethod(true);
+
+                if (remainingAllowedDepositMethod != null)
+                {
+                    _harmonyInstance.Patch(
+                        remainingAllowedDepositMethod,
+                        transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(TranspileRemainingAllowedDeposit), BindingFlags.Static | BindingFlags.NonPublic))
+                    );
+                    LuaUtility.Log("Patched ATMInterface.remainingAllowedDeposit");
+                }
+                else
+                {
+                    LuaUtility.LogWarning("Could not find ATMInterface.remainingAllowedDeposit method to patch");
+                }
+
+                // Patch ATMInterface.Update method
+                MethodInfo updateMethod = typeof(ATMInterface).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (updateMethod != null)
+                {
+                    _harmonyInstance.Patch(
+                        updateMethod,
+                        transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(TranspileUpdate), BindingFlags.Static | BindingFlags.NonPublic))
+                    );
+                    LuaUtility.Log("Patched ATMInterface.Update");
+                }
+                else
+                {
+                    LuaUtility.LogWarning("Could not find ATMInterface.Update method to patch");
+                }
+                
+                // Patch ATMInterface.UpdateAvailableAmounts method
+                MethodInfo updateAvailableAmountsMethod = typeof(ATMInterface).GetMethod("UpdateAvailableAmounts", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (updateAvailableAmountsMethod != null)
+                {
+                    _harmonyInstance.Patch(
+                        updateAvailableAmountsMethod,
+                        transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(TranspileUpdateAvailableAmounts), BindingFlags.Static | BindingFlags.NonPublic))
+                    );
+                    LuaUtility.Log("Patched ATMInterface.UpdateAvailableAmounts");
+                }
+                else
+                {
+                    LuaUtility.LogWarning("Could not find ATMInterface.UpdateAvailableAmounts method to patch");
+                }
+
+                _atmLimitPatchesApplied = true;
+                LuaUtility.Log("Successfully applied all ATM deposit limit Harmony patches");
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError($"Error applying Harmony patches: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// Transpiler for the remainingAllowedDeposit property to replace 10000f with our custom limit
+        /// </summary>
+        private static IEnumerable<CodeInstruction> TranspileRemainingAllowedDeposit(IEnumerable<CodeInstruction> instructions)
+        {
+            foreach (var instruction in instructions)
+            {
+                if (instruction.opcode == OpCodes.Ldc_R4 && (float)instruction.operand == 10000f)
+                {
+                    LuaUtility.Log($"Replacing 10000f with {_atmDepositLimit} in remainingAllowedDeposit");
+                    yield return new CodeInstruction(OpCodes.Ldc_R4, _atmDepositLimit);
+                }
+                else
+                {
+                    yield return instruction;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Transpiler for the Update method to replace 10000f with our custom limit
+        /// </summary>
+        private static IEnumerable<CodeInstruction> TranspileUpdate(IEnumerable<CodeInstruction> instructions)
+        {
+            foreach (var instruction in instructions)
+            {
+                if (instruction.opcode == OpCodes.Ldc_R4 && (float)instruction.operand == 10000f)
+                {
+                    LuaUtility.Log($"Replacing 10000f with {_atmDepositLimit} in Update");
+                    yield return new CodeInstruction(OpCodes.Ldc_R4, _atmDepositLimit);
+                }
+                else
+                {
+                    yield return instruction;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Transpiler for the UpdateAvailableAmounts method to replace 10000f with our custom limit
+        /// </summary>
+        private static IEnumerable<CodeInstruction> TranspileUpdateAvailableAmounts(IEnumerable<CodeInstruction> instructions)
+        {
+            foreach (var instruction in instructions)
+            {
+                if (instruction.opcode == OpCodes.Ldc_R4 && (float)instruction.operand == 10000f)
+                {
+                    LuaUtility.Log($"Replacing 10000f with {_atmDepositLimit} in UpdateAvailableAmounts");
+                    yield return new CodeInstruction(OpCodes.Ldc_R4, _atmDepositLimit);
+                }
+                else
+                {
+                    yield return instruction;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Attempts to modify any existing ATM instances' static fields as a backup approach
+        /// </summary>
+        private static void ModifyExistingATMInstances()
+        {
+            try
+            {
+                // Try to set the static field WeeklyDepositSum via reflection
+                FieldInfo weeklyDepositSumField = typeof(ATM).GetField("WeeklyDepositSum", BindingFlags.Public | BindingFlags.Static);
+                if (weeklyDepositSumField != null)
+                {
+                    // Don't change the current deposit sum, just read it for logging
+                    float currentSum = (float)weeklyDepositSumField.GetValue(null);
+                    LuaUtility.Log($"Current WeeklyDepositSum: {currentSum}");
+                }
+
+                // Update deposit limit text in all active ATM interfaces
+                var atmInterfaces = UnityEngine.Object.FindObjectsOfType<ATMInterface>();
+                if (atmInterfaces.Length > 0)
+                {
+                    foreach (var atmInterface in atmInterfaces)
+                    {
+                        try
+                        {
+                            // Find and update the deposit limit text
+                            var depositLimitText = atmInterface.GetType()
+                                .GetField("depositLimitText", BindingFlags.NonPublic | BindingFlags.Instance)
+                                ?.GetValue(atmInterface) as UnityEngine.UI.Text;
+
+                            if (depositLimitText != null)
+                            {
+                                string currentText = depositLimitText.text;
+                                if (currentText.Contains("10000") || currentText.Contains("$10,000"))
+                                {
+                                    string formattedLimit = MoneyManager.FormatAmount(_atmDepositLimit);
+                                    depositLimitText.text = currentText
+                                        .Replace("10000", _atmDepositLimit.ToString())
+                                        .Replace("$10,000", formattedLimit);
+                                    LuaUtility.Log($"Updated ATM UI text to show new limit: {formattedLimit}");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LuaUtility.LogWarning($"Error updating ATM interface UI: {ex.Message}");
+                        }
+                    }
+                }
+                else
+                {
+                    LuaUtility.Log("No active ATM interfaces found to update");
+                }
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogWarning($"Error in ModifyExistingATMInstances: {ex.Message}");
+            }
+        }
     }
 }
+

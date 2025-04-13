@@ -9,6 +9,7 @@ using ScheduleOne.ItemFramework;
 using ScheduleOne.Management;
 using ScheduleOne.NPCs;
 using ScheduleLua.API.Core;
+using ScheduleLua.API.Scene;
 using ScheduleLua.API.NPC;
 using ScheduleLua.API.Registry;
 using ScheduleLua.API.Law;
@@ -104,7 +105,10 @@ namespace ScheduleLua
 
             // Register Registry API
             RegistryAPI.RegisterAPI(luaEngine);
-            
+
+            // Register Scene API
+            SceneAPI.RegisterAPI(luaEngine);
+
             // Use proxy objects instead of direct Unity type registration
             // This improves compatibility across platforms, especially on IL2CPP/AOT
             RegisterProxyTypes(luaEngine);
