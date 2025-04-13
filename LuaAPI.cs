@@ -17,6 +17,8 @@ using ScheduleLua.API.UI;
 using ScheduleLua.API.Economy;
 using ScheduleLua.API;
 using System.Collections;
+using System.IO;
+using MelonLoader.Utils;
 
 namespace ScheduleLua
 {
@@ -26,6 +28,9 @@ namespace ScheduleLua
     public class LuaAPI
     {
         private static MelonLogger.Instance _logger => Core.Instance.LoggerInstance;
+        
+        // Dictionary to cache loaded modules
+        private static Dictionary<string, DynValue> _loadedModules = new Dictionary<string, DynValue>();
 
         /// <summary>
         /// Initializes API and registers it with the Lua interpreter
@@ -39,6 +44,9 @@ namespace ScheduleLua
             luaEngine.Globals["Log"] = (Action<string>)Log;
             luaEngine.Globals["LogWarning"] = (Action<string>)LogWarning;
             luaEngine.Globals["LogError"] = (Action<string>)LogError;
+            
+            // Register the custom require function
+            luaEngine.Globals["require"] = (Func<string, DynValue>)((moduleName) => RequireModule(luaEngine, moduleName));
             
             // Game object functions
             luaEngine.Globals["FindGameObject"] = (Func<string, GameObject>)FindGameObject;
@@ -122,6 +130,102 @@ namespace ScheduleLua
             // Set up hardwiring for IL2CPP and AOT compatibility
             // This pre-generates necessary conversion code
             Script.WarmUp();
+        }
+
+        /// <summary>
+        /// Custom implementation of require function to load modules from loaded scripts
+        /// </summary>
+        private static DynValue RequireModule(Script luaEngine, string moduleName)
+        {
+            _logger.Msg($"Requiring module: {moduleName}");
+            
+            // Check if the module is already loaded (caching)
+            if (_loadedModules.TryGetValue(moduleName, out DynValue cachedModule))
+            {
+                _logger.Msg($"Returning cached module: {moduleName}");
+                return cachedModule;
+            }
+            
+            foreach (var scriptEntry in Core.Instance._loadedScripts)
+            {
+                string scriptName = Path.GetFileNameWithoutExtension(scriptEntry.Value.Name);
+                
+                if (string.Equals(scriptName, moduleName, StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        if (luaEngine.Globals.Get(scriptName + "_module") != DynValue.Nil)
+                        {
+                            DynValue scriptResult = luaEngine.Globals.Get(scriptName + "_module");
+                            _loadedModules[moduleName] = scriptResult;
+                            _logger.Msg($"Requiring already loaded module: {moduleName}");
+                            return scriptResult;
+                        }
+                        
+                        string scriptPath = scriptEntry.Value.FilePath;
+                        string content = File.ReadAllText(scriptPath);
+                        
+                        DynValue result = luaEngine.DoString(content, null, moduleName);
+
+                        if (result.IsNil())
+                        {
+                            result = DynValue.NewTable(luaEngine);
+                        }
+                        
+                        _loadedModules[moduleName] = result;
+                        
+                        _logger.Msg($"Successfully loaded module from script: {scriptName}");
+                        return result;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"Error loading module {moduleName} from script {scriptName}: {ex.Message}");
+                        throw new ScriptRuntimeException($"Error loading module '{moduleName}' from script {scriptName}: {ex.Message}");
+                    }
+                }
+            }
+            
+            // If no matching loaded script, look for the file on disk
+            string scriptsDirectory = Path.Combine(MelonEnvironment.ModsDirectory, "ScheduleLua", "Scripts");
+            
+            // Look for .lua files that match the module name
+            foreach (string filePath in Directory.GetFiles(scriptsDirectory, "*.lua", SearchOption.AllDirectories))
+            {
+                string fileName = Path.GetFileNameWithoutExtension(filePath);
+                
+                if (string.Equals(fileName, moduleName, StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        // Load the module content
+                        string content = File.ReadAllText(filePath);
+                        
+                        // Execute the module code as a chunk that can return a value
+                        DynValue result = luaEngine.DoString(content, null, moduleName);
+                        
+                        // If the script doesn't return anything, create an empty table
+                        if (result.IsNil())
+                        {
+                            result = DynValue.NewTable(luaEngine);
+                        }
+                        
+                        // Cache the result
+                        _loadedModules[moduleName] = result;
+                        
+                        _logger.Msg($"Successfully loaded module from file: {fileName}");
+                        return result;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.Error($"Error loading module {moduleName}: {ex.Message}");
+                        throw new ScriptRuntimeException($"Error loading module '{moduleName}': {ex.Message}");
+                    }
+                }
+            }
+            
+            // Module not found
+            _logger.Error($"Module not found: {moduleName}");
+            throw new ScriptRuntimeException($"Module '{moduleName}' not found");
         }
 
         #region Logging Functions

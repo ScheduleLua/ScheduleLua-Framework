@@ -219,3 +219,7 @@ end
 
 -- Initial script load message
 Log("Economy example script loaded.")
+
+-- Export the EconomyFunctions table for other scripts to use
+-- This is the key part that makes this script usable as a module
+return EconomyFunctions

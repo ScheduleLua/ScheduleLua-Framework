@@ -80,6 +80,11 @@ namespace ScheduleLua
                 string scriptContent = File.ReadAllText(_filePath);
                 _scriptInstance = _scriptEngine.DoString(scriptContent, null, _name);
                 
+                if (!_scriptInstance.IsNil() && !_scriptInstance.IsVoid())
+                {
+                    _scriptEngine.Globals[_name + "_module"] = _scriptInstance;
+                }
+                
                 CheckForUpdateFunction();
                 RegisterEventHandlers();
                 
