@@ -40,7 +40,7 @@ function OnConsoleReady()
         "Shows available commands",
         "help",
         function(args)
-            Log("Available commands: help, pos, time, heal, energy, region, npcs")
+            Log("Available example commands: help, pos, lua_teleport, time, heal, energy, region, npcs")
         end
     )
     
@@ -51,6 +51,31 @@ function OnConsoleReady()
         function(args)
             local pos = GetPlayerPosition()
             Log("Position: " .. pos.x .. ", " .. pos.y .. ", " .. pos.z)
+        end
+    )
+
+    RegisterCommand(
+        "lua_teleport", 
+        "Teleports player to specified coordinates", 
+        "lua_teleport <x> <y> <z>", 
+        function(args)
+            -- Command name is already removed from args, so actual arguments start at index 1
+            if #args < 3 then
+                LogError("Not enough arguments. Usage: lua_teleport <x> <y> <z>")
+                return
+            end
+            
+            local x = tonumber(args[1])
+            local y = tonumber(args[2])
+            local z = tonumber(args[3])
+            
+            if not x or not y or not z then
+                LogError("Invalid coordinates. All values must be numbers.")
+                return
+            end
+            
+            SetPlayerPosition(x, y, z)
+            Log("Teleported to: " .. x .. ", " .. y .. ", " .. z)
         end
     )
     

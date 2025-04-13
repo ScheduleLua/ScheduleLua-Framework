@@ -197,7 +197,7 @@ local function CreateUI()
     isUIVisible = true
     
     -- Always show a notification to confirm the UI is loaded
-    ShowNotification("UI Example loaded. Try /ui_example to toggle.")
+    ShowNotification("UI Example loaded.")
     Log("UI window created and shown")
     
     -- Debug info
@@ -219,7 +219,7 @@ local function SetupCommand()
     end)
     
     commandRegistered = true
-    Log("UI Example command registered. Type /ui_example to toggle the UI")
+    Log("UI Example command registered.")
 end
 
 -- Scene loaded event handler
@@ -240,7 +240,7 @@ function OnSceneLoaded(sceneName)
             end
             -- Create UI automatically
             CreateUI()
-            ShowNotification("UI Example loaded. Type /ui_example to toggle.")
+            ShowNotification("UI Example loaded.")
         end)
     elseif sceneName == "Menu" then
         -- Menu scene - hide UI if it exists
