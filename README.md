@@ -1,5 +1,7 @@
 # ScheduleLua
 
+![ScheduleLua Logo](logo.png)
+
 A Lua modding framework for Schedule I that aims to expose the game's functionality to Lua scripts, enabling custom gameplay mechanics, automation, and new features.
 
 ## Table of Contents
@@ -210,12 +212,12 @@ LogScriptErrors = true
 
 ### Console Command Functions
 
-| Function                          | Description                                           |
-| --------------------------------- | ----------------------------------------------------- |
-| `RegisterCommand(name, description, usage, callback)` | Registers a console command with the game |
-| `UnregisterCommand(name)`         | Unregisters a previously registered command           |
-| `UnregisterAllCommands()`         | Unregisters all commands registered by the script     |
-| `IsCommandRegistered(name)`       | Checks if a command is registered                     |
+| Function                                              | Description                                       |
+| ----------------------------------------------------- | ------------------------------------------------- |
+| `RegisterCommand(name, description, usage, callback)` | Registers a console command with the game         |
+| `UnregisterCommand(name)`                             | Unregisters a previously registered command       |
+| `UnregisterAllCommands()`                             | Unregisters all commands registered by the script |
+| `IsCommandRegistered(name)`                           | Checks if a command is registered                 |
 
 ### GameObject Functions
 
