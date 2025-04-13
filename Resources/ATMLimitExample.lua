@@ -125,6 +125,3 @@ function Shutdown()
     
     Log("ATM Limit Example script shutdown, all commands unregistered")
 end
-
--- Return true to indicate successful execution
-return true 
