@@ -169,27 +169,10 @@ public class Core : MelonMod
     {
         // Create scripts directory if it doesn't exist
         _scriptsDirectory = Path.Combine(MelonEnvironment.ModsDirectory, "ScheduleLua", "Scripts");
-        // _scriptsDirectory = Path.Combine(MelonEnvironment.UserDataDirectory, "ScheduleLua", "Scripts");
 
         if (!Directory.Exists(_scriptsDirectory))
         {
             Directory.CreateDirectory(_scriptsDirectory);
-
-            // Create example script from embedded resource
-            // In the future either remove this or make it needed to be turned on from melon preferences
-            string examplePath = Path.Combine(_scriptsDirectory, "example.lua");
-            var assembly = Assembly.GetExecutingAssembly();
-            using (var stream = assembly.GetManifestResourceStream("ScheduleLua.Resources.example.lua"))
-            {
-                if (stream != null)
-                {
-                    using (var reader = new StreamReader(stream))
-                    {
-                        string content = reader.ReadToEnd();
-                        File.WriteAllText(examplePath, content);
-                    }
-                }
-            }
         }
 
         LoggerInstance.Msg($"Scripts directory: {_scriptsDirectory}");
