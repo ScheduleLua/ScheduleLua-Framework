@@ -1,6 +1,6 @@
 # ScheduleLua
 
-![ScheduleLua Logo](logo.png)
+<img src="logo.png" alt="ScheduleLua Logo" width="333">
 
 A Lua modding framework for Schedule I that aims to expose the game's functionality to Lua scripts, enabling custom gameplay mechanics, automation, and new features.
 
