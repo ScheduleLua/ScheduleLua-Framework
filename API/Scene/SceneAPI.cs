@@ -46,7 +46,7 @@ namespace ScheduleLua.API.Scene
             SceneManager.sceneUnloaded += OnSceneUnloaded;
 
             _eventsRegistered = true;
-            _logger.Msg("Scene event handlers registered");
+            // _logger.Msg("Scene event handlers registered");
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace ScheduleLua.API.Scene
         {
             // Forward event to Lua scripts
             ScheduleLua.Core.Instance.TriggerEvent("OnSceneLoaded", scene.name);
-            _logger.Msg($"Scene loaded event triggered for: {scene.name}");
+            // _logger.Msg($"Scene loaded event triggered for: {scene.name}");
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace ScheduleLua.API.Scene
         {
             // Forward event to Lua scripts
             ScheduleLua.Core.Instance.TriggerEvent("OnSceneUnloaded", scene.name);
-            _logger.Msg($"Scene unloaded event triggered for: {scene.name}");
+            // _logger.Msg($"Scene unloaded event triggered for: {scene.name}");
         }
 
         /// <summary>

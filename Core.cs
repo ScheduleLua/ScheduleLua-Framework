@@ -11,7 +11,7 @@ using UnityEngine.Events;
 using MelonLoader.Utils;
 using ScheduleLua.API.Registry;
 
-[assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", "1.0.0", "Bars", null)]
+[assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", "0.1.0", "Bars", null)]
 [assembly: MelonGame("TVGS", "Schedule I")]
 namespace ScheduleLua;
 
@@ -36,7 +36,6 @@ public class Core : MelonMod
     private static MelonPreferences_Category _prefCategory;
     private static MelonPreferences_Entry<bool> _prefEnableHotReload;
     private static MelonPreferences_Entry<bool> _prefLogScriptErrors;
-    private static MelonPreferences_Entry<bool> _prefEnableInGameCommands;
 
     private bool _playerEventsBound = false;
     private bool _playerReadyTriggered = false;
@@ -82,7 +81,6 @@ public class Core : MelonMod
         _prefCategory = MelonPreferences.CreateCategory("ScheduleLua");
         _prefEnableHotReload = _prefCategory.CreateEntry("EnableHotReload", true, "Enable Hot Reload", "Automatically reload scripts when they are modified");
         _prefLogScriptErrors = _prefCategory.CreateEntry("LogScriptErrors", true, "Log Script Errors", "Log detailed error messages when scripts fail");
-        _prefEnableInGameCommands = _prefCategory.CreateEntry("EnableInGameCommands", true, "Enable In-Game Commands", "Allow Lua scripts to process in-game commands");
     }
 
     private void InitializeLuaEngine()

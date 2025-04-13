@@ -1,5 +1,4 @@
--- Example script showing how to use the Curfew API with Event System
--- This script will display curfew status and use events for curfew notifications
+-- Curfew Example Script
 
 function Initialize()
     Log("Updated Curfew example script initialized!")

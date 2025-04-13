@@ -1,5 +1,4 @@
--- UI Example script for ScheduleLua
--- This script demonstrates the functionality of the IMGUI-based UI API
+-- UI Example Script
 
 -- Log that we're starting
 Log("Starting UI Example script")

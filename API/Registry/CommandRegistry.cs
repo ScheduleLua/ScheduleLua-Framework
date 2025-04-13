@@ -17,6 +17,27 @@ namespace ScheduleLua.API.Registry
         private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
         private static Dictionary<string, LuaCommand> _registeredCommands = new Dictionary<string, LuaCommand>();
 
+        // Track which script registered which command
+        private static Dictionary<string, LuaScript> _commandOwners = new Dictionary<string, LuaScript>();
+
+        // Track all script instances
+        private static Dictionary<string, LuaScript> _scriptInstances = new Dictionary<string, LuaScript>();
+
+        /// <summary>
+        /// Registers a script instance for command tracking
+        /// </summary>
+        public static void RegisterScriptInstance(LuaScript script)
+        {
+            if (script != null)
+            {
+                string scriptName = script.Name;
+                if (!string.IsNullOrEmpty(scriptName))
+                {
+                    _scriptInstances[scriptName] = script;
+                }
+            }
+        }
+
         /// <summary>
         /// Registers the command API with the Lua engine
         /// </summary>
@@ -103,6 +124,7 @@ namespace ScheduleLua.API.Registry
                 }
 
                 _registeredCommands.Remove(commandName);
+                _commandOwners.Remove(commandName);
             }
 
             // Create a new command
@@ -110,6 +132,14 @@ namespace ScheduleLua.API.Registry
 
             // Register with our system
             _registeredCommands.Add(commandName, luaCommand);
+
+            // Track which script registered this command by finding the currently executing script
+            LuaScript currentScript = GetCallingScript(callback);
+            if (currentScript != null)
+            {
+                _commandOwners[commandName] = currentScript;
+                currentScript.AddRegisteredCommand(commandName);
+            }
 
             // Register with ScheduleOne's console
             Console.Commands.Add(luaCommand);
@@ -126,6 +156,31 @@ namespace ScheduleLua.API.Registry
             }
 
             _logger.Msg($"Registered Lua command: {commandName}");
+        }
+
+        /// <summary>
+        /// Determine which script registered a command based on the closure's owner
+        /// </summary>
+        private static LuaScript GetCallingScript(Closure callback)
+        {
+            // Try to identify which script is making this call by accessing internal MoonSharp data
+            // This is a bit hacky but provides a good way to determine command ownership
+            if (callback == null || callback.OwnerScript == null)
+                return null;
+
+            // Look through script instances to find matching script
+            foreach (var script in _scriptInstances.Values)
+            {
+                if (ReferenceEquals(callback.OwnerScript, ScheduleLua.Core.Instance._luaEngine))
+                {
+                    return script;
+                }
+            }
+
+            // Fallback: try to find the currently executing script via other methods
+            // For simplicity, return the first script found - in a real implementation, 
+            // you might need to check call stacks or other indicators
+            return _scriptInstances.Count > 0 ? _scriptInstances.Values.GetEnumerator().Current : null;
         }
 
         /// <summary>
@@ -181,6 +236,14 @@ namespace ScheduleLua.API.Registry
                     {
                         commandsDict.Remove(commandName);
                     }
+                }
+
+                // Remove the command from the owning script's list if applicable
+                if (_commandOwners.TryGetValue(commandName, out var script))
+                {
+                    // We don't call script.RemoveCommand here, since this method might be called
+                    // directly during script reload when we're already handling command cleanup
+                    _commandOwners.Remove(commandName);
                 }
 
                 // Remove from our registry

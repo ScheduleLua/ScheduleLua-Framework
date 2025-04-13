@@ -2,6 +2,14 @@
 
 <img src="logo.png" alt="ScheduleLua Logo" width="333">
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/ifBars/ScheduleLua/releases)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-beta-orange.svg)]()
+[![MelonLoader](https://img.shields.io/badge/requires-MelonLoader-red.svg)](https://melonwiki.xyz/)
+[![Lua](https://img.shields.io/badge/language-Lua-blue.svg)](https://www.lua.org/)
+[![C#](https://img.shields.io/badge/language-C%23-darkgreen.svg)](https://docs.microsoft.com/en-us/dotnet/csharp/)
+[![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)]()
+
 A Lua modding framework for Schedule I that aims to expose the game's functionality to Lua scripts, enabling custom gameplay mechanics, automation, and new features.
 
 ## Table of Contents
@@ -90,18 +98,20 @@ ScheduleLua is a MelonLoader mod that integrates the MoonSharp Lua interpreter w
 
 ## Installation
 
-1. Install [MelonLoader](https://melonwiki.xyz/#/?id=automated-installation) for Schedule I
-2. Download the latest `ScheduleLua.dll` release from [GitHub Releases](https://github.com/ifBars/ScheduleLua/releases)
-3. Place the DLL in your `Mods` folder (typically `Schedule I/Mods/`)
-4. Launch the game
+[![MelonLoader Required](https://img.shields.io/badge/MelonLoader-Required-red)](https://melonwiki.xyz/#/?id=automated-installation)
+[![Schedule I](https://img.shields.io/badge/Game-Schedule_I-blue)](https://store.steampowered.com/)
+[![Latest Release](https://img.shields.io/badge/Latest_Release-Thunderstore-brightgreen)](https://thunderstore.io/)
 
-On first launch, a `UserData/ScheduleLua/Scripts` folder will be created with an example script, inside your Schedule 1 game directory.
+1. Install [MelonLoader](https://melonwiki.xyz/#/?id=automated-installation) for Schedule I
+2. Download the latest ScheduleLua release zip from [Thunderstore](https://thunderstore.io/)
+3. Extract the zip file and drag the `Mods` and `UserLibs` folders into your Schedule I game directory
+4. Launch the game
 
 ## Getting Started
 
 ### Creating Your First Script
 
-Create a new `.lua` file in the `UserData/ScheduleLua/Scripts` directory:
+Create a new `.lua` file in the `Mods/ScheduleLua/Scripts` directory:
 
 ```lua
 Log("Script loading...")
@@ -906,6 +916,10 @@ return true
 
 ## Contributing
 
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ifBars/ScheduleLua/pulls)
+[![Issues](https://img.shields.io/badge/Issues-welcome-blue.svg)](https://github.com/ifBars/ScheduleLua/issues)
+[![Contributors](https://img.shields.io/badge/Contributors-help_wanted-orange.svg)](https://github.com/ifBars/ScheduleLua/graphs/contributors)
+
 Contributions to ScheduleLua are welcome! To contribute:
 
 1. Fork the repository
@@ -914,7 +928,9 @@ Contributions to ScheduleLua are welcome! To contribute:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+[![GPL-3.0 License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
+
+This project is licensed under the GPL-3.0 License - see the LICENSE file for details.
 
 ## Acknowledgments
 

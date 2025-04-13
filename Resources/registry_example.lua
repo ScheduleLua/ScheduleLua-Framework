@@ -1,14 +1,4 @@
---[[
-    Registry API Example Script
-    
-    This script demonstrates how to properly use the Registry API in Schedule I.
-    It shows best practices for:
-    - Waiting for Registry to be ready
-    - Checking and retrieving items
-    - Modifying existing items
-    - Working with item instances
-    - Safe handling during scene changes
-]]
+-- Registry Example Script
 
 -- Global variables to track state
 local initialized = false
@@ -26,8 +16,6 @@ function Initialize()
     
     -- Start monitoring Registry status for scene changes
     StartRegistryMonitoring()
-    
-    return true
 end
 
 -- Called when the player is fully loaded

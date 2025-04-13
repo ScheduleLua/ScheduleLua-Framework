@@ -1,5 +1,4 @@
 -- ATM Limit Example Script
--- This script demonstrates how to use the ATM Harmony patching to modify ATM deposit limits
 
 -- Track ATM limit changes
 local originalLimit = 10000.0
@@ -14,7 +13,6 @@ local presetLimits = {
 -- Initialize function called when script is first loaded
 function Initialize()
     Log("ATM Limit Example script initialized!")
-    return true
 end
 
 -- Called when the console is fully loaded and ready

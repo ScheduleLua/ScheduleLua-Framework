@@ -1,5 +1,4 @@
--- ScheduleLua Example: Economy Functions
--- This script demonstrates how to use the Economy API to interact with the game's money system
+-- Economy Example Script
 
 -- Store functions to be initialized only after player is ready
 local EconomyFunctions = {}
@@ -8,7 +7,6 @@ local currentScene = ""
 -- Initialize function called when script is first loaded
 function Initialize()
     Log("Economy API example initialized!")
-    return true
 end
 
 -- Display player's money information

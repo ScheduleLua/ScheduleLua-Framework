@@ -1,4 +1,4 @@
--- ScheduleLua Example Script
+-- ScheduleLua Basic Example Script
 
 -- Print a header for our script
 Log("Example script loaded!")
@@ -12,7 +12,6 @@ local npcPositions = {}
 -- Initialize function called when script is first loaded
 function Initialize()
     Log("Example script initialized!")
-    return true
 end
 
 -- Update function called every frame

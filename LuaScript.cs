@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.Generic;
 using MoonSharp.Interpreter;
 using UnityEngine;
+using ScheduleLua.API.Registry;
 
 namespace ScheduleLua
 {
@@ -24,10 +25,16 @@ namespace ScheduleLua
         // Dictionary of event handlers
         private Dictionary<string, DynValue> _eventHandlers = new Dictionary<string, DynValue>();
         
+        // Track commands registered by this script
+        private HashSet<string> _registeredCommands = new HashSet<string>();
+        
         public string FilePath => _filePath;
         public string Name => _name;
         public bool IsLoaded => _scriptInstance != null;
         public bool IsInitialized => _isInitialized;
+        
+        // Allow accessing the script's registered commands
+        public IReadOnlyCollection<string> RegisteredCommands => _registeredCommands;
         
         public LuaScript(string filePath, Script scriptEngine, MelonLogger.Instance logger)
         {
@@ -40,6 +47,20 @@ namespace ScheduleLua
             if (_scriptEngine != null && !_scriptEngine.DebuggerEnabled)
             {
                 _scriptEngine.DebuggerEnabled = true;
+            }
+            
+            // Register the script instance with the command registry
+            CommandRegistry.RegisterScriptInstance(this);
+        }
+        
+        /// <summary>
+        /// Registers a command as belonging to this script
+        /// </summary>
+        public void AddRegisteredCommand(string commandName)
+        {
+            if (!string.IsNullOrEmpty(commandName))
+            {
+                _registeredCommands.Add(commandName);
             }
         }
         
@@ -222,11 +243,24 @@ namespace ScheduleLua
         }
         
         /// <summary>
-        /// Reloads the script from its file
+        /// Reloads the script from its file, preserving and restoring its registered commands
         /// </summary>
         public bool Reload()
         {
             bool wasInitialized = _isInitialized;
+            
+            // Store current registered commands
+            HashSet<string> previousCommands = new HashSet<string>(_registeredCommands);
+            
+            // Unregister only this script's commands
+            _logger.Msg($"Unregistering {_registeredCommands.Count} commands from script {_name} before reload");
+            foreach (var command in _registeredCommands)
+            {
+                CommandRegistry.UnregisterCommand(command);
+            }
+            
+            // Clear command list but don't forget which ones we had
+            _registeredCommands.Clear();
             
             // Clear event handlers
             _eventHandlers.Clear();
@@ -237,7 +271,19 @@ namespace ScheduleLua
                 
             // Re-initialize if it was initialized before
             if (wasInitialized)
-                return Initialize();
+            {
+                bool initResult = Initialize();
+                
+                // Now trigger the OnConsoleReady event to ensure commands get re-registered
+                // Note: Re-registering commands is the script's responsibility during OnConsoleReady
+                if (initResult && _eventHandlers.ContainsKey("OnConsoleReady"))
+                {
+                    _logger.Msg($"Triggering OnConsoleReady to re-register commands for script {_name}");
+                    TriggerEvent("OnConsoleReady");
+                }
+                
+                return initResult;
+            }
                 
             return true;
         }
@@ -306,7 +352,7 @@ namespace ScheduleLua
             if (handler != null && handler.Type == DataType.Function)
             {
                 _eventHandlers[eventName] = handler;
-                _logger.Msg($"Script {_name} registered handler for {eventName}");
+                // _logger.Msg($"Script {_name} registered handler for {eventName}");
             }
         }
         
