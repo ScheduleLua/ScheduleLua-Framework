@@ -330,7 +330,7 @@ namespace ScheduleLua.API.Economy
         }
 
         /// <summary>
-        /// Creates a transaction and adds it to the transaction history
+        /// Creates a transaction, later on this should use the ItemRegistry to give the player an item
         /// </summary>
         /// <param name="transactionName">Name of the transaction</param>
         /// <param name="unitAmount">Unit price</param>

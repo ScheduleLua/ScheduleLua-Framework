@@ -80,6 +80,10 @@ A Lua modding framework for Schedule I that aims to expose the game's functional
     - [Command Best Practices](#command-best-practices)
   - [Example Script](#example-script)
   - [Contributing](#contributing)
+    - [Getting Started](#getting-started-1)
+    - [Making Changes](#making-changes)
+    - [Submitting Your Contribution](#submitting-your-contribution)
+    - [Contribution Guidelines](#contribution-guidelines)
   - [License](#license)
   - [Acknowledgments](#acknowledgments)
 
@@ -842,11 +846,88 @@ return true
 [![Issues](https://img.shields.io/badge/Issues-welcome-blue.svg)](https://github.com/ifBars/ScheduleLua/issues)
 [![Contributors](https://img.shields.io/badge/Contributors-help_wanted-orange.svg)](https://github.com/ifBars/ScheduleLua/graphs/contributors)
 
-Contributions to ScheduleLua are welcome! To contribute:
+We welcome contributions to ScheduleLua! This guide will walk you through the process of contributing to the project.
 
-1. Fork the repository
-2. Make your changes
-3. Submit a pull request
+### Getting Started
+
+1. **Fork the Repository**
+   - Visit [ScheduleLua GitHub repository](https://github.com/ifBars/ScheduleLua)
+   - Click the "Fork" button in the top right corner
+   - This creates a copy of the repository in your GitHub account
+
+2. **Clone Your Fork**
+   ```bash
+   git clone https://github.com/YOUR-USERNAME/ScheduleLua.git
+   cd ScheduleLua
+   ```
+
+3. **Add the Original Repository as Upstream**
+   ```bash
+   git remote add upstream https://github.com/ifBars/ScheduleLua.git
+   ```
+
+### Making Changes
+
+4. **Create a Feature Branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+   - Use a descriptive branch name related to your changes
+   - Prefix with `feature/`, `bugfix/`, `docs/`, etc. as appropriate
+
+5. **Make Your Changes**
+   - Implement your feature or fix
+   - Follow the existing code style and conventions
+   - Add or update documentation as needed
+
+6. **Test Your Changes**
+   - Ensure your changes work as expected
+   - Test with the game to verify functionality
+   - Check for any unintended side effects
+
+7. **Commit Your Changes**
+   ```bash
+   git add .
+   git commit -m "Add a descriptive commit message"
+   ```
+   - Use clear and descriptive commit messages
+   - Reference issue numbers in commit messages when applicable
+
+### Submitting Your Contribution
+
+8. **Keep Your Branch Updated**
+   ```bash
+   git fetch upstream
+   git rebase upstream/main
+   ```
+
+9. **Push to Your Fork**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+
+10. **Create a Pull Request**
+    - Go to your fork on GitHub
+    - Click "New Pull Request"
+    - Select your feature branch
+    - Click "Create Pull Request"
+    - Fill in the PR template with details about your changes
+    - Reference any related issues
+
+11. **Respond to Feedback**
+    - Be responsive to comments and feedback
+    - Make requested changes and push to your branch
+    - The PR will update automatically
+
+### Contribution Guidelines
+
+- **Code Style**: Follow the existing code style in the project
+- **Documentation**: Update documentation when adding or changing features
+- **Commits**: Keep commits focused and logically separate
+- **Testing**: Test your changes thoroughly before submitting
+- **Issues**: Create an issue before working on major changes
+
+Thank you for contributing to ScheduleLua!
 
 ## License
 

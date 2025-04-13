@@ -78,10 +78,10 @@ namespace ScheduleLua
             luaEngine.Globals["FormatGameTime"] = (Func<int, string>)FormatGameTime;
             
             // NPC functions
-            luaEngine.Globals["FindNPC"] = (Func<string, NPC>)NPCAPI.FindNPC;
             luaEngine.Globals["GetNPCPosition"] = (Func<NPC, Vector3Proxy>)NPCAPI.GetNPCPositionProxy;
             luaEngine.Globals["SetNPCPosition"] = (Action<NPC, float, float, float>)NPCAPI.SetNPCPosition;
-            luaEngine.Globals["GetNPC"] = (Func<string, Table>)NPCAPI.GetNPC;
+            luaEngine.Globals["GetNPCState"] = (Func<string, Table>)NPCAPI.GetNPCState;
+            luaEngine.Globals["GetNPC"] = (Func<string, NPC>)NPCAPI.GetNPC;
             luaEngine.Globals["GetNPCRegion"] = (Func<string, string>)NPCAPI.GetNPCRegion;
             luaEngine.Globals["GetNPCsInRegion"] = (Func<string, Table>)NPCAPI.GetNPCsInRegion;
             luaEngine.Globals["GetAllNPCs"] = (Func<Table>)NPCAPI.GetAllNPCs;

@@ -18,30 +18,30 @@ namespace ScheduleLua.API.NPC
         private static ScheduleOne.NPCs.NPCManager NPCManager => _npcManager ??= ScheduleOne.NPCs.NPCManager.Instance;
 
         /// <summary>
-        /// Finds an NPC by name
+        /// Gets an NPC by ID
         /// </summary>
-        /// <param name="npcName">The name of the NPC to find</param>
+        /// <param name="npcId">The ID of the NPC to find</param>
         /// <returns>The NPC component or null if not found</returns>
-        public static ScheduleOne.NPCs.NPC FindNPC(string npcName)
+        public static ScheduleOne.NPCs.NPC GetNPC(string npcId)
         {
             try
             {
-                GameObject npcObject = GameObject.Find(npcName);
-                if (npcObject == null)
+                var npc = NPCManager.GetNPC(npcId);
+                if (npc == null)
                 {
-                    LuaUtility.LogWarning($"NPC with name {npcName} not found");
+                    LuaUtility.LogWarning($"NPC with ID {npcId} not found");
                     return null;
                 }
-                
-                return npcObject.GetComponent<ScheduleOne.NPCs.NPC>();
+
+                return npc;
             }
             catch (Exception ex)
             {
-                LuaUtility.LogError($"Error finding NPC {npcName}", ex);
+                LuaUtility.LogError($"Error finding NPC {npcId}", ex);
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Gets an NPC's position
         /// </summary>
@@ -56,7 +56,7 @@ namespace ScheduleLua.API.NPC
                     LuaUtility.LogWarning("Cannot get position of null NPC");
                     return Vector3.zero;
                 }
-                
+
                 return npc.transform.position;
             }
             catch (Exception ex)
@@ -65,7 +65,7 @@ namespace ScheduleLua.API.NPC
                 return Vector3.zero;
             }
         }
-        
+
         /// <summary>
         /// Gets an NPC's position as Vector3Proxy for Lua compatibility
         /// </summary>
@@ -80,7 +80,7 @@ namespace ScheduleLua.API.NPC
                     LuaUtility.LogWarning("Cannot get position of null NPC");
                     return API.Core.Vector3Proxy.zero;
                 }
-                
+
                 return new API.Core.Vector3Proxy(npc.transform.position);
             }
             catch (Exception ex)
@@ -106,7 +106,7 @@ namespace ScheduleLua.API.NPC
                     LuaUtility.LogWarning("Cannot set position of null NPC");
                     return;
                 }
-                
+
                 npc.transform.position = new Vector3(x, y, z);
             }
             catch (Exception ex)
@@ -120,7 +120,7 @@ namespace ScheduleLua.API.NPC
         /// </summary>
         /// <param name="npcId">The ID of the NPC to find</param>
         /// <returns>Lua table containing NPC data or nil if not found</returns>
-        public static Table GetNPC(string npcId)
+        public static Table GetNPCState(string npcId)
         {
             try
             {
@@ -132,18 +132,18 @@ namespace ScheduleLua.API.NPC
                 }
 
                 var table = LuaUtility.CreateTable();
-                
+
                 table["id"] = npc.ID;
                 table["fullName"] = npc.fullName;
                 table["isConscious"] = npc.IsConscious;
                 table["region"] = npc.Region.ToString();
                 table["position"] = LuaUtility.Vector3ToTable(npc.transform.position);
-                
+
                 if (npc.Movement != null)
                 {
                     table["isMoving"] = npc.Movement.IsMoving;
                 }
-                
+
                 return table;
             }
             catch (Exception ex)
@@ -196,7 +196,7 @@ namespace ScheduleLua.API.NPC
 
                 var npcs = NPCManager.GetNPCsInRegion(mapRegion);
                 var result = LuaUtility.CreateTable();
-                
+
                 int index = 1;
                 foreach (var npc in npcs)
                 {
@@ -206,7 +206,7 @@ namespace ScheduleLua.API.NPC
                     npcTable["region"] = npc.Region.ToString();
                     result[index++] = npcTable;
                 }
-                
+
                 return result;
             }
             catch (Exception ex)
@@ -226,7 +226,7 @@ namespace ScheduleLua.API.NPC
             {
                 var npcs = NPCManager.NPCRegistry;
                 var result = LuaUtility.CreateTable();
-                
+
                 int index = 1;
                 foreach (var npc in npcs)
                 {
@@ -236,7 +236,7 @@ namespace ScheduleLua.API.NPC
                     npcTable["region"] = npc.Region.ToString();
                     result[index++] = npcTable;
                 }
-                
+
                 return result;
             }
             catch (Exception ex)
@@ -290,7 +290,7 @@ namespace ScheduleLua.API.NPC
                 var npcs = NPCManager.NPCRegistry;
                 var regions = new List<string>();
                 var result = LuaUtility.CreateTable();
-                
+
                 foreach (var npc in npcs)
                 {
                     string regionName = npc.Region.ToString();
@@ -299,15 +299,15 @@ namespace ScheduleLua.API.NPC
                         regions.Add(regionName);
                     }
                 }
-                
+
                 regions.Sort();
-                
+
                 int index = 1;
                 foreach (var region in regions)
                 {
                     result[index++] = region;
                 }
-                
+
                 return result;
             }
             catch (Exception ex)
@@ -317,4 +317,4 @@ namespace ScheduleLua.API.NPC
             }
         }
     }
-} 
+}
