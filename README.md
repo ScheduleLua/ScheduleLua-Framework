@@ -10,7 +10,7 @@
 [![C#](https://img.shields.io/badge/language-C%23-darkgreen.svg)](https://docs.microsoft.com/en-us/dotnet/csharp/)
 [![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)]()
 
-A Lua modding framework for Schedule I that aims to expose the game's functionality to Lua scripts, enabling custom gameplay mechanics, automation, and new features.
+A Lua modding framework for Schedule I that aims to expose the game's functionality to Lua scripts, enabling custom gameplay mechanics, automation, and new features. ScheduleLua is currently in beta development, and the only features that are known to be working properly are the ones in the example scripts. I and or other contributors cannot guarantee that everything will work or be available, especially after the game updates.
 
 ## Table of Contents
 
