@@ -109,6 +109,8 @@ ScheduleLua is a MelonLoader mod that integrates the MoonSharp Lua interpreter w
 
 ## Getting Started
 
+For a comprehensive guide on getting started with ScheduleLua, visit our [online documentation](https://ifbars.github.io/ScheduleLua-Docs/guide/getting-started.html).
+
 ### Creating Your First Script
 
 Create a new `.lua` file in the `Mods/ScheduleLua/Scripts` directory. Check `Resources` directory in the repo for example lua scripts.
