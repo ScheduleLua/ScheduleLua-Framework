@@ -8,6 +8,8 @@ using ScheduleOne.Money;
 using ScheduleLua.API.Core;
 using ScheduleOne.UI.ATM;
 using HarmonyLib;
+using ScheduleOne.UI;
+using ScheduleOne.DevUtilities;
 
 namespace ScheduleLua.API.Economy
 {
@@ -204,13 +206,13 @@ namespace ScheduleLua.API.Economy
                     return false;
                 }
 
-                // Since there's no direct method, modify the field directly
                 float currentBalance = MoneyManager.Instance.onlineBalance;
                 MoneyManager.Instance.onlineBalance = currentBalance + amount;
                 
-                // Call MinPass to update UI variables
+                // Call MinPass and OnlineBalanceDisplay.SetBalance to update UI variables
                 MoneyManager.Instance.SendMessage("MinPass", SendMessageOptions.DontRequireReceiver);
-                
+                Singleton<HUD>.Instance.OnlineBalanceDisplay.SetBalance(MoneyManager.Instance.onlineBalance);
+
                 return true;
             }
             catch (Exception ex)
