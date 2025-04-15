@@ -937,7 +937,7 @@ This project is licensed under the GPL-3.0 License - see the LICENSE file for de
 
 ## Acknowledgments
 
-- MelonLoader for the mod loader
-- MoonSharp for the Lua interpreter
-- TVGS for making Schedule 1
+- [MelonLoader](https://melonwiki.xyz/#/) for the mod loader
+- [MoonSharp](https://www.moonsharp.org/) for the Lua interpreter
+- [TVGS](https://scheduleonegame.com/) for making Schedule 1
 - All contributors and the modding community
