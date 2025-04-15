@@ -19,7 +19,7 @@ namespace ScheduleLua;
 public class Core : MelonMod
 {
     // Version constant that can be used in both the MelonInfo attribute and exposed to Lua
-    public const string ModVersion = "0.1.2";
+    public const string ModVersion = "0.1.1";
     
     private static Core _instance;
     public static Core Instance => _instance;
