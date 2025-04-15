@@ -364,9 +364,6 @@ namespace ScheduleLua.API.Economy
 
                 float totalAmount = unitAmount * quantity;
 
-                LuaUtility.Log($"Transaction: {transactionName} - {quantity} x {FormatMoney(unitAmount)} = {FormatMoney(totalAmount)}");
-                LuaUtility.Log($"Payment method: {(useOnlineBalance ? "Online Balance" : "Cash")}");
-
                 // Check if player has enough funds in the selected payment method
                 if (useOnlineBalance)
                 {
@@ -432,7 +429,6 @@ namespace ScheduleLua.API.Economy
                 // Store the new limit
                 float previousLimit = _atmDepositLimit;
                 _atmDepositLimit = amount;
-                LuaUtility.Log($"Setting ATM deposit limit to: {_atmDepositLimit}");
 
                 // If we haven't applied Harmony patches yet, do so now
                 if (!_atmLimitPatchesApplied)
@@ -451,7 +447,7 @@ namespace ScheduleLua.API.Economy
 
                 // Force refresh any open ATM interfaces
                 ForceRefreshATMInterfaces();
-                
+
                 // Persist the new limit to ensure it survives scene changes
                 PersistDepositLimitValue();
 
@@ -463,7 +459,7 @@ namespace ScheduleLua.API.Economy
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Refreshes Harmony patches when changing limit at runtime to ensure all cached values are updated
         /// </summary>
@@ -474,9 +470,6 @@ namespace ScheduleLua.API.Economy
                 // First, unpatch any existing patches to avoid duplicates
                 if (_harmonyInstance != null)
                 {
-                    // Instead of unpatching everything, just update key methods
-                    LuaUtility.Log("Refreshing critical Harmony patches for ATM limit...");
-                    
                     // Re-patch the direct UI update methods for immediate effect
                     UpdateUIRelatedPatches();
                 }
@@ -486,7 +479,7 @@ namespace ScheduleLua.API.Economy
                 LuaUtility.LogError($"Error refreshing Harmony patches: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Updates UI-related patches to refresh with new limit value
         /// </summary>
@@ -496,17 +489,16 @@ namespace ScheduleLua.API.Economy
             {
                 // This is for when we change the limit while the game is running
                 // We need to make sure UI-specific methods are properly updated
-                
+
                 // Update the Update method in ATMInterface to reflect the new limit
                 MethodInfo updateMethod = typeof(ATMInterface).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
                 if (updateMethod != null)
                 {
                     _harmonyInstance.Patch(
                         updateMethod,
-                        postfix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Postfix_ForceUpdateATMUI), 
+                        postfix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Postfix_ForceUpdateATMUI),
                             BindingFlags.Static | BindingFlags.NonPublic))
                     );
-                    LuaUtility.Log("Applied direct UI update patch to ATMInterface.Update");
                 }
             }
             catch (Exception ex)
@@ -514,7 +506,7 @@ namespace ScheduleLua.API.Economy
                 LuaUtility.LogError($"Error updating UI patches: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Ensures the deposit limit value persists across scene changes
         /// </summary>
@@ -524,11 +516,11 @@ namespace ScheduleLua.API.Economy
             {
                 // We don't have direct access to save functionality, but we can make the limit "sticky"
                 // by ensuring direct field updates and any available persistence methods
-                
+
                 // Update the static fields that might cache the limit value
                 foreach (var field in typeof(ATMInterface).GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))
                 {
-                    if (field.FieldType == typeof(float) && 
+                    if (field.FieldType == typeof(float) &&
                         (field.Name.Contains("limit") || field.Name.Contains("Limit") || field.Name.Contains("max") || field.Name.Contains("Max")))
                     {
                         try
@@ -538,7 +530,6 @@ namespace ScheduleLua.API.Economy
                             if (Math.Abs(currentValue - 10000f) < 0.1f)
                             {
                                 field.SetValue(null, _atmDepositLimit);
-                                LuaUtility.Log($"Updated static field {field.Name} to {_atmDepositLimit}");
                             }
                         }
                         catch (Exception ex)
@@ -563,19 +554,12 @@ namespace ScheduleLua.API.Economy
             {
                 // Get the current deposit sum
                 float currentSum = ATM.WeeklyDepositSum;
-                
-                LuaUtility.Log($"Current WeeklyDepositSum: {currentSum}");
-                
+
                 // Only adjust the sum if we're lowering the limit and the current sum exceeds it
                 if (currentSum > _atmDepositLimit)
                 {
                     float newSum = _atmDepositLimit;
-                    LuaUtility.Log($"Adjusting WeeklyDepositSum from {currentSum} to {newSum} because it exceeds the new limit");
                     ATM.WeeklyDepositSum = newSum;
-                }
-                else
-                {
-                    LuaUtility.Log($"Keeping WeeklyDepositSum at {currentSum} as it doesn't exceed the new limit of {_atmDepositLimit}");
                 }
             }
             catch (Exception ex)
@@ -594,68 +578,62 @@ namespace ScheduleLua.API.Economy
                 var atmInterfaces = UnityEngine.Object.FindObjectsOfType<ATMInterface>();
                 if (atmInterfaces == null || atmInterfaces.Length == 0)
                 {
-                    LuaUtility.Log("No active ATM interfaces found to refresh");
                     return;
                 }
-                
-                LuaUtility.Log($"Refreshing {atmInterfaces.Length} ATM interfaces with new limit: {_atmDepositLimit}");
-                
+
                 foreach (var atmInterface in atmInterfaces)
                 {
                     try
                     {
                         // Get the depositLimitText field
-                        FieldInfo depositLimitTextField = atmInterface.GetType().GetField("depositLimitText", 
+                        FieldInfo depositLimitTextField = atmInterface.GetType().GetField("depositLimitText",
                             BindingFlags.NonPublic | BindingFlags.Instance);
-                        
+
                         if (depositLimitTextField != null)
                         {
                             Text depositLimitText = depositLimitTextField.GetValue(atmInterface) as Text;
                             if (depositLimitText != null)
                             {
                                 // Update the text to show the new limit
-                                string formattedText = MoneyManager.FormatAmount(ATM.WeeklyDepositSum) + " / " + 
+                                string formattedText = MoneyManager.FormatAmount(ATM.WeeklyDepositSum) + " / " +
                                     MoneyManager.FormatAmount(_atmDepositLimit);
-                                
+
                                 depositLimitText.text = formattedText;
-                                
+
                                 // Update the color
-                                depositLimitText.color = (ATM.WeeklyDepositSum >= _atmDepositLimit) 
-                                    ? new Color32(255, 75, 75, 255) 
+                                depositLimitText.color = (ATM.WeeklyDepositSum >= _atmDepositLimit)
+                                    ? new Color32(255, 75, 75, 255)
                                     : Color.white;
-                                
-                                LuaUtility.Log($"Directly updated ATM limit text to: {formattedText}");
                             }
                         }
-                        
+
                         // Force reset and reapply the entire interface to ensure all text elements are updated
                         // Try setting isOpen to false then back to true
-                        PropertyInfo isOpenProp = atmInterface.GetType().GetProperty("isOpen", 
+                        PropertyInfo isOpenProp = atmInterface.GetType().GetProperty("isOpen",
                             BindingFlags.Public | BindingFlags.Instance);
-                        
+
                         if (isOpenProp != null && isOpenProp.CanRead)
                         {
                             bool isCurrentlyOpen = (bool)isOpenProp.GetValue(atmInterface);
-                            
+
                             if (isCurrentlyOpen)
                             {
                                 // If it's open, try calling internal refresh methods
-                                MethodInfo updateMethod = atmInterface.GetType().GetMethod("Update", 
+                                MethodInfo updateMethod = atmInterface.GetType().GetMethod("Update",
                                     BindingFlags.NonPublic | BindingFlags.Instance);
-                                
+
                                 if (updateMethod != null)
                                 {
                                     // Force run a complete update cycle
                                     updateMethod.Invoke(atmInterface, null);
-                                    LuaUtility.Log("Forced ATM UI update cycle");
                                 }
                             }
                         }
-                        
+
                         // Update deposit button states
-                        FieldInfo depositButtonField = atmInterface.GetType().GetField("menu_DepositButton", 
+                        FieldInfo depositButtonField = atmInterface.GetType().GetField("menu_DepositButton",
                             BindingFlags.NonPublic | BindingFlags.Instance);
-                        
+
                         if (depositButtonField != null)
                         {
                             Button depositButton = depositButtonField.GetValue(atmInterface) as Button;
@@ -663,40 +641,37 @@ namespace ScheduleLua.API.Economy
                             {
                                 // Update button interactable state based on new limit
                                 depositButton.interactable = ATM.WeeklyDepositSum < _atmDepositLimit;
-                                LuaUtility.Log($"Updated deposit button interactable: {depositButton.interactable}");
                             }
                         }
-                        
+
                         // Try to update any amount buttons if on the amount selection screen
-                        var amountButtons = atmInterface.GetType().GetField("amountButtons", 
+                        var amountButtons = atmInterface.GetType().GetField("amountButtons",
                             BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(atmInterface) as List<Button>;
-                        
+
                         if (amountButtons != null)
                         {
-                            MethodInfo updateAvailableAmountsMethod = atmInterface.GetType().GetMethod("UpdateAvailableAmounts", 
+                            MethodInfo updateAvailableAmountsMethod = atmInterface.GetType().GetMethod("UpdateAvailableAmounts",
                                 BindingFlags.NonPublic | BindingFlags.Instance);
-                            
+
                             if (updateAvailableAmountsMethod != null)
                             {
                                 // Force calling the UpdateAvailableAmounts method to refresh button states
                                 updateAvailableAmountsMethod.Invoke(atmInterface, null);
-                                LuaUtility.Log("Triggered UpdateAvailableAmounts to refresh amount buttons");
                             }
-                            
+
                             // Also force the label text update
-                            Text amountLabelText = atmInterface.GetType().GetField("amountLabelText", 
+                            Text amountLabelText = atmInterface.GetType().GetField("amountLabelText",
                                 BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(atmInterface) as Text;
-                                
+
                             if (amountLabelText != null)
                             {
                                 // Force refresh any labels in the amount selection screen
-                                MethodInfo defaultAmountSelectionMethod = atmInterface.GetType().GetMethod("DefaultAmountSelection", 
+                                MethodInfo defaultAmountSelectionMethod = atmInterface.GetType().GetMethod("DefaultAmountSelection",
                                     BindingFlags.NonPublic | BindingFlags.Instance);
-                                
+
                                 if (defaultAmountSelectionMethod != null)
                                 {
                                     defaultAmountSelectionMethod.Invoke(atmInterface, null);
-                                    LuaUtility.Log("Triggered DefaultAmountSelection to refresh amount selection UI");
                                 }
                             }
                         }
@@ -724,15 +699,14 @@ namespace ScheduleLua.API.Economy
                 if (_harmonyInstance == null)
                 {
                     _harmonyInstance = new HarmonyLib.Harmony("com.schedulelua.atm.depositlimit");
-                    LuaUtility.Log("Created Harmony instance for ATM deposit limit patching");
                 }
 
                 // ** Patch 1: Patch the remainingAllowedDeposit property **
                 try
                 {
-                    PropertyInfo remainingAllowedDepositProperty = typeof(ATMInterface).GetProperty("remainingAllowedDeposit", 
+                    PropertyInfo remainingAllowedDepositProperty = typeof(ATMInterface).GetProperty("remainingAllowedDeposit",
                         BindingFlags.NonPublic | BindingFlags.Static);
-                        
+
                     if (remainingAllowedDepositProperty != null)
                     {
                         MethodInfo remainingAllowedDepositGetter = remainingAllowedDepositProperty.GetGetMethod(true);
@@ -740,10 +714,9 @@ namespace ScheduleLua.API.Economy
                         {
                             _harmonyInstance.Patch(
                                 remainingAllowedDepositGetter,
-                                prefix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Prefix_RemainingAllowedDeposit), 
+                                prefix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Prefix_RemainingAllowedDeposit),
                                     BindingFlags.Static | BindingFlags.NonPublic))
                             );
-                            LuaUtility.Log("Successfully patched remainingAllowedDeposit property with prefix");
                         }
                         else
                         {
@@ -764,9 +737,9 @@ namespace ScheduleLua.API.Economy
                 // This covers Update, UpdateAvailableAmounts and other methods
                 try
                 {
-                    var methods = typeof(ATMInterface).GetMethods(BindingFlags.Instance | BindingFlags.Static | 
+                    var methods = typeof(ATMInterface).GetMethods(BindingFlags.Instance | BindingFlags.Static |
                         BindingFlags.Public | BindingFlags.NonPublic);
-                        
+
                     foreach (var method in methods)
                     {
                         if (method.DeclaringType == typeof(ATMInterface))
@@ -775,10 +748,9 @@ namespace ScheduleLua.API.Economy
                             {
                                 _harmonyInstance.Patch(
                                     method,
-                                    transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Transpile_ReplaceATMLimit), 
+                                    transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Transpile_ReplaceATMLimit),
                                         BindingFlags.Static | BindingFlags.NonPublic))
                                 );
-                                LuaUtility.Log($"Patched method {method.Name} with transpiler");
                             }
                             catch (Exception ex)
                             {
@@ -793,42 +765,40 @@ namespace ScheduleLua.API.Economy
                 }
 
                 // ** Patch 3: Add specific postfixes for critical methods **
-                
+
                 // Patch the Update method with a direct postfix to force UI updates
                 try
                 {
-                    MethodInfo updateMethod = typeof(ATMInterface).GetMethod("Update", 
+                    MethodInfo updateMethod = typeof(ATMInterface).GetMethod("Update",
                         BindingFlags.NonPublic | BindingFlags.Instance);
-                    
+
                     if (updateMethod != null)
                     {
                         _harmonyInstance.Patch(
                             updateMethod,
-                            postfix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Postfix_ForceUpdateATMUI), 
+                            postfix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Postfix_ForceUpdateATMUI),
                                 BindingFlags.Static | BindingFlags.NonPublic))
                         );
-                        LuaUtility.Log("Added postfix to force UI updates in ATM interface");
                     }
                 }
                 catch (Exception ex)
                 {
                     LuaUtility.LogError($"Error adding UI update postfix: {ex.Message}");
                 }
-                
+
                 // Patch the ProcessTransaction method with postfix
                 try
                 {
-                    MethodInfo processTransactionMethod = typeof(ATMInterface).GetMethod("ProcessTransaction", 
+                    MethodInfo processTransactionMethod = typeof(ATMInterface).GetMethod("ProcessTransaction",
                         BindingFlags.Instance | BindingFlags.NonPublic);
-                        
+
                     if (processTransactionMethod != null)
                     {
                         _harmonyInstance.Patch(
                             processTransactionMethod,
-                            postfix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Postfix_ProcessTransaction), 
+                            postfix: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Postfix_ProcessTransaction),
                                 BindingFlags.Static | BindingFlags.NonPublic))
                         );
-                        LuaUtility.Log("Patched ProcessTransaction method with postfix");
                     }
                     else
                     {
@@ -843,30 +813,29 @@ namespace ScheduleLua.API.Economy
                 // ** Patch 4: Override the GetAmountFromIndex method **
                 try
                 {
-                    MethodInfo getAmountFromIndexMethod = typeof(ATMInterface).GetMethod("GetAmountFromIndex", 
+                    MethodInfo getAmountFromIndexMethod = typeof(ATMInterface).GetMethod("GetAmountFromIndex",
                         BindingFlags.Static | BindingFlags.Public);
-                        
+
                     if (getAmountFromIndexMethod != null)
                     {
                         _harmonyInstance.Patch(
                             getAmountFromIndexMethod,
-                            transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Transpile_ReplaceATMLimit), 
+                            transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Transpile_ReplaceATMLimit),
                                 BindingFlags.Static | BindingFlags.NonPublic))
                         );
-                        LuaUtility.Log("Patched GetAmountFromIndex method with transpiler");
                     }
                 }
                 catch (Exception ex)
                 {
                     LuaUtility.LogError($"Error patching GetAmountFromIndex: {ex.Message}");
                 }
-                
+
                 // ** Patch 5: Also patch the ATM class itself since it may contain hardcoded 10000 values **
                 try
                 {
-                    var atmMethods = typeof(ATM).GetMethods(BindingFlags.Instance | BindingFlags.Static | 
+                    var atmMethods = typeof(ATM).GetMethods(BindingFlags.Instance | BindingFlags.Static |
                         BindingFlags.Public | BindingFlags.NonPublic);
-                    
+
                     foreach (var method in atmMethods)
                     {
                         if (method.DeclaringType == typeof(ATM))
@@ -875,10 +844,9 @@ namespace ScheduleLua.API.Economy
                             {
                                 _harmonyInstance.Patch(
                                     method,
-                                    transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Transpile_ReplaceATMLimit), 
+                                    transpiler: new HarmonyMethod(typeof(EconomyAPI).GetMethod(nameof(Transpile_ReplaceATMLimit),
                                         BindingFlags.Static | BindingFlags.NonPublic))
                                 );
-                                LuaUtility.Log($"Patched ATM method {method.Name} with transpiler");
                             }
                             catch (Exception ex)
                             {
@@ -892,9 +860,8 @@ namespace ScheduleLua.API.Economy
                     LuaUtility.LogError($"Error patching ATM class methods: {ex.Message}");
                 }
 
-                // Set flag to indicate patches are applied
                 _atmLimitPatchesApplied = true;
-                LuaUtility.Log("Successfully applied all ATM deposit limit patches");
+                // LuaUtility.Log("Successfully applied all ATM deposit limit patches");
             }
             catch (Exception ex)
             {
@@ -918,27 +885,19 @@ namespace ScheduleLua.API.Economy
         private static IEnumerable<CodeInstruction> Transpile_ReplaceATMLimit(IEnumerable<CodeInstruction> instructions)
         {
             var instructionsList = new List<CodeInstruction>(instructions);
-            bool foundAny = false;
 
             for (int i = 0; i < instructionsList.Count; i++)
             {
                 if (instructionsList[i].opcode == OpCodes.Ldc_R4 &&
                     Math.Abs((float)instructionsList[i].operand - 10000f) < 0.01f)
                 {
-                    LuaUtility.Log($"Found 10000f at instruction index {i}, replacing with {_atmDepositLimit}");
                     instructionsList[i] = new CodeInstruction(OpCodes.Ldc_R4, _atmDepositLimit);
-                    foundAny = true;
                 }
-            }
-
-            if (!foundAny)
-            {
-                LuaUtility.LogWarning("No instances of 10000f found to replace in method");
             }
 
             return instructionsList;
         }
-        
+
         /// <summary>
         /// Postfix that forces UI text updates in the ATM interface
         /// </summary>
@@ -948,44 +907,44 @@ namespace ScheduleLua.API.Economy
             {
                 if (__instance == null)
                     return;
-                
+
                 // Get the isOpen property to check if the ATM is currently in use
-                PropertyInfo isOpenProp = __instance.GetType().GetProperty("isOpen", 
+                PropertyInfo isOpenProp = __instance.GetType().GetProperty("isOpen",
                     BindingFlags.Public | BindingFlags.Instance);
-                
+
                 bool isOpen = false;
                 if (isOpenProp != null && isOpenProp.CanRead)
                 {
                     isOpen = (bool)isOpenProp.GetValue(__instance);
                 }
-                
+
                 if (!isOpen)
                     return;
-                
+
                 // Find and update the deposit limit text
-                FieldInfo depositLimitTextField = __instance.GetType().GetField("depositLimitText", 
+                FieldInfo depositLimitTextField = __instance.GetType().GetField("depositLimitText",
                     BindingFlags.NonPublic | BindingFlags.Instance);
-                
+
                 if (depositLimitTextField != null)
                 {
                     Text depositLimitText = depositLimitTextField.GetValue(__instance) as Text;
                     if (depositLimitText != null)
                     {
                         // Force set the text using our custom limit
-                        depositLimitText.text = MoneyManager.FormatAmount(ATM.WeeklyDepositSum) + " / " + 
+                        depositLimitText.text = MoneyManager.FormatAmount(ATM.WeeklyDepositSum) + " / " +
                             MoneyManager.FormatAmount(_atmDepositLimit);
-                        
+
                         // Update color based on whether limit is reached
-                        depositLimitText.color = (ATM.WeeklyDepositSum >= _atmDepositLimit) 
-                            ? new Color32(255, 75, 75, 255) 
+                        depositLimitText.color = (ATM.WeeklyDepositSum >= _atmDepositLimit)
+                            ? new Color32(255, 75, 75, 255)
                             : Color.white;
                     }
                 }
-                
+
                 // Update deposit button state
-                FieldInfo menuDepositButtonField = __instance.GetType().GetField("menu_DepositButton", 
+                FieldInfo menuDepositButtonField = __instance.GetType().GetField("menu_DepositButton",
                     BindingFlags.NonPublic | BindingFlags.Instance);
-                
+
                 if (menuDepositButtonField != null)
                 {
                     Button menuDepositButton = menuDepositButtonField.GetValue(__instance) as Button;
@@ -1011,16 +970,14 @@ namespace ScheduleLua.API.Economy
             {
                 if (depositing)
                 {
-                    LuaUtility.Log($"After deposit transaction - WeeklyDepositSum: {ATM.WeeklyDepositSum}, Limit: {_atmDepositLimit}");
-                    
+
                     // If depositing went over our limit, cap it
                     if (ATM.WeeklyDepositSum > _atmDepositLimit)
                     {
                         float oldSum = ATM.WeeklyDepositSum;
                         ATM.WeeklyDepositSum = _atmDepositLimit;
-                        LuaUtility.Log($"Capped WeeklyDepositSum from {oldSum} to {_atmDepositLimit}");
                     }
-                    
+
                     // Force refresh the UI
                     ForceRefreshATMInterfaces();
                 }
