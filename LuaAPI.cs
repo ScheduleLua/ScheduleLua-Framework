@@ -40,6 +40,9 @@ namespace ScheduleLua
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
 
+            // Expose mod version to Lua
+            luaEngine.Globals["SCHEDULELUA_VERSION"] = Core.ModVersion;
+
             // Register basic API functions
             luaEngine.Globals["Log"] = (Action<string>)Log;
             luaEngine.Globals["LogWarning"] = (Action<string>)LogWarning;

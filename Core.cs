@@ -11,12 +11,16 @@ using UnityEngine.Events;
 using MelonLoader.Utils;
 using ScheduleLua.API.Registry;
 
-[assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", "0.1.0", "Bars", null)]
+// Define version constant
+[assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", ScheduleLua.Core.ModVersion, "Bars", null)]
 [assembly: MelonGame("TVGS", "Schedule I")]
 namespace ScheduleLua;
 
 public class Core : MelonMod
 {
+    // Version constant that can be used in both the MelonInfo attribute and exposed to Lua
+    public const string ModVersion = "0.1.2";
+    
     private static Core _instance;
     public static Core Instance => _instance;
 
@@ -111,9 +115,8 @@ public class Core : MelonMod
         // Register game-specific API
         LuaAPI.RegisterAPI(_luaEngine);
 
-        // Add extra debug info to Script
-        _luaEngine.Globals["_SCRIPT_VERSION"] = "1.0.0";
-        _luaEngine.Globals["_ENGINE_VERSION"] = System.Environment.Version.ToString();
+        // Expose mod version to Lua
+        _luaEngine.Globals["SCHEDULELUA_VERSION"] = ModVersion;
     }
 
     /// <summary>
