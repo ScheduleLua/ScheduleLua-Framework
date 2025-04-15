@@ -21,6 +21,7 @@ local isUIVisible = false
 local mainWindowId = nil
 local isMainSceneLoaded = false
 local commandRegistered = false
+local currentTheme = "blue" -- Default theme
 
 -- Button/Control IDs
 local showTooltipBtnId = nil
@@ -29,6 +30,92 @@ local toggleFlashlightBtnId = nil
 local showDialogBtnId = nil
 local showChoicesBtnId = nil
 local statusLabelId = nil
+
+-- Theme definitions
+local themes = {
+    blue = {
+        window = {background = {0.1, 0.1, 0.3, 0.95}, text = {1, 1, 1, 1}},
+        button = {background = {0.2, 0.2, 0.8, 0.9}, text = {1, 1, 1, 1}, hover = {0.3, 0.3, 0.9, 0.9}},
+        label = {text = {1, 1, 1, 1}},
+        textfield = {background = {0.15, 0.15, 0.25, 0.95}, text = {1, 1, 1, 1}}
+    },
+    dark = {
+        window = {background = {0.1, 0.1, 0.1, 0.95}, text = {0.9, 0.9, 0.9, 1}},
+        button = {background = {0.2, 0.2, 0.2, 0.9}, text = {0.9, 0.9, 0.9, 1}, hover = {0.3, 0.3, 0.3, 0.9}},
+        label = {text = {0.9, 0.9, 0.9, 1}},
+        textfield = {background = {0.15, 0.15, 0.15, 0.95}, text = {0.9, 0.9, 0.9, 1}}
+    },
+    green = {
+        window = {background = {0.1, 0.2, 0.1, 0.95}, text = {1, 1, 1, 1}},
+        button = {background = {0.2, 0.5, 0.2, 0.9}, text = {1, 1, 1, 1}, hover = {0.3, 0.6, 0.3, 0.9}},
+        label = {text = {0.8, 1, 0.8, 1}},
+        textfield = {background = {0.15, 0.25, 0.15, 0.95}, text = {1, 1, 1, 1}}
+    },
+    red = {
+        window = {background = {0.2, 0.1, 0.1, 0.95}, text = {1, 1, 1, 1}},
+        button = {background = {0.6, 0.2, 0.2, 0.9}, text = {1, 1, 1, 1}, hover = {0.7, 0.3, 0.3, 0.9}},
+        label = {text = {1, 0.9, 0.9, 1}},
+        textfield = {background = {0.25, 0.15, 0.15, 0.95}, text = {1, 1, 1, 1}}
+    }
+}
+
+-- Apply a theme to the UI
+local function ApplyTheme(themeName)
+    local theme = themes[themeName]
+    if not theme then
+        Log("Theme not found: " .. themeName)
+        return
+    end
+    
+    Log("Applying theme: " .. themeName)
+    
+    -- Apply window style
+    if theme.window.background then
+        local bg = theme.window.background
+        SetWindowStyle("background", bg[1], bg[2], bg[3], bg[4])
+    end
+    if theme.window.text then
+        local txt = theme.window.text
+        SetWindowStyle("text", txt[1], txt[2], txt[3], txt[4])
+    end
+    
+    -- Apply button style
+    if theme.button.background then
+        local bg = theme.button.background
+        SetButtonStyle("background", bg[1], bg[2], bg[3], bg[4])
+    end
+    if theme.button.text then
+        local txt = theme.button.text
+        SetButtonStyle("text", txt[1], txt[2], txt[3], txt[4])
+    end
+    if theme.button.hover then
+        local hov = theme.button.hover
+        SetButtonStyle("hover", hov[1], hov[2], hov[3], hov[4])
+    end
+    
+    -- Apply label style
+    if theme.label.text then
+        local txt = theme.label.text
+        SetLabelStyle("text", txt[1], txt[2], txt[3], txt[4])
+    end
+    
+    -- Apply text field style
+    if theme.textfield.background then
+        local bg = theme.textfield.background
+        SetTextFieldStyle("background", bg[1], bg[2], bg[3], bg[4])
+    end
+    if theme.textfield.text then
+        local txt = theme.textfield.text
+        SetTextFieldStyle("text", txt[1], txt[2], txt[3], txt[4])
+    end
+    
+    currentTheme = themeName
+    
+    -- Only set label text if status label exists
+    if statusLabelId then
+        SetControlText(statusLabelId, "Status: Theme changed to " .. themeName)
+    end
+end
 
 -- Function to create the UI
 local function CreateUI()
@@ -50,12 +137,24 @@ local function CreateUI()
     local screenWidth = 800 -- Approximate screen width
     local screenHeight = 600 -- Approximate screen height
     local winWidth = 400
-    local winHeight = 600  -- Increased height for extra buttons
+    local winHeight = 660  -- Increased height for extra buttons
     local x = (screenWidth - winWidth) / 2
     local y = (screenHeight - winHeight) / 2
     
     mainWindowId = CreateWindow("main_window", "Lua UI Example", x, y, winWidth, winHeight)
     Log("Window created with ID: " .. mainWindowId)
+    
+    -- Initialize styles with default theme
+    ApplyTheme(currentTheme)
+    
+    -- Additional style customizations
+    SetFontSize("window", 18)  -- Larger window title
+    SetFontStyle("window", "bold")
+    SetFontSize("button", 14)
+    SetFontStyle("button", "bold")
+    SetTextAlignment("button", "center")
+    SetBorder("button", 5, 5, 5, 5)
+    SetPadding("button", 5, 5, 5, 5)
     
     -- Add a status label at the top
     statusLabelId = AddLabel(mainWindowId, "status_label", "Status: Ready")
@@ -66,6 +165,8 @@ local function CreateUI()
     local testLabelId = AddLabel(mainWindowId, "test_label", "THIS IS A TEST LABEL - UI IS WORKING")
     SetControlPosition(testLabelId, 10, 80)
     SetControlSize(testLabelId, 380, 30)
+    SetFontStyle("label", "bold")
+    SetTextAlignment("label", "center")
     
     -- Add buttons with callbacks
     showTooltipBtnId = AddButton(mainWindowId, "tooltip_btn", "Show Tooltip", function()
@@ -182,13 +283,33 @@ local function CreateUI()
     SetControlPosition(showChoicesBtnId, 50, 480)
     SetControlSize(showChoicesBtnId, 300, 40)
     
+    -- Add a theme switcher button
+    local themeBtnId = AddButton(mainWindowId, "theme_btn", "Switch Theme", function()
+        local themes = {"blue", "dark", "green", "red"}
+        local nextThemeIndex = 1
+        
+        -- Find current theme index
+        for i, theme in ipairs(themes) do
+            if theme == currentTheme then
+                nextThemeIndex = i % #themes + 1
+                break
+            end
+        end
+        
+        -- Apply next theme
+        ApplyTheme(themes[nextThemeIndex])
+        ShowNotification("Theme changed to: " .. themes[nextThemeIndex])
+    end)
+    SetControlPosition(themeBtnId, 50, 540)
+    SetControlSize(themeBtnId, 300, 40)
+    
     -- Add a close button
     local closeBtnId = AddButton(mainWindowId, "close_btn", "Close Window", function()
         ShowWindow(mainWindowId, false)
         isUIVisible = false
         ShowNotification("UI window hidden")
     end)
-    SetControlPosition(closeBtnId, 50, 540)
+    SetControlPosition(closeBtnId, 50, 600)
     SetControlSize(closeBtnId, 300, 40)
     
     -- Make the window visible

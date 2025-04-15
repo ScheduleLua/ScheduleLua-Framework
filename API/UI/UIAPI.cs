@@ -91,6 +91,19 @@ namespace ScheduleLua.API.UI
             luaEngine.Globals["ShowChoiceDialogue"] = (Action<string, string, Table, DynValue>)ShowChoiceDialogue;
             luaEngine.Globals["CloseDialogue"] = (Action)CloseDialogue;
 
+            // Register UI Style functions
+            luaEngine.Globals["SetWindowStyle"] = (Action<string, float, float, float, float>)SetWindowStyle;
+            luaEngine.Globals["SetButtonStyle"] = (Action<string, float, float, float, float>)SetButtonStyle;
+            luaEngine.Globals["SetLabelStyle"] = (Action<string, float, float, float, float>)SetLabelStyle;
+            luaEngine.Globals["SetTextFieldStyle"] = (Action<string, float, float, float, float>)SetTextFieldStyle;
+            luaEngine.Globals["SetBoxStyle"] = (Action<string, float, float, float, float>)SetBoxStyle;
+
+            luaEngine.Globals["SetFontSize"] = (Action<string, int>)SetFontSize;
+            luaEngine.Globals["SetFontStyle"] = (Action<string, string>)SetFontStyle;
+            luaEngine.Globals["SetTextAlignment"] = (Action<string, string>)SetTextAlignment;
+            luaEngine.Globals["SetBorder"] = (Action<string, int, int, int, int>)SetBorder;
+            luaEngine.Globals["SetPadding"] = (Action<string, int, int, int, int>)SetPadding;
+
             // Initialize GUI
             InitializeGUI();
         }
@@ -1550,6 +1563,383 @@ namespace ScheduleLua.API.UI
                         _logger.Error($"Error drawing window '{Id}': {ex.Message}");
                     }
                 }
+            }
+        }
+
+        #endregion
+
+        #region UI Style Functions
+
+        /// <summary>
+        /// Sets the window style colors
+        /// </summary>
+        /// <param name="colorName">Name of the color to set: "background", "text", "hover", "active"</param>
+        /// <param name="r">Red component (0-1)</param>
+        /// <param name="g">Green component (0-1)</param>
+        /// <param name="b">Blue component (0-1)</param>
+        /// <param name="a">Alpha component (0-1)</param>
+        public static void SetWindowStyle(string colorName, float r, float g, float b, float a = 1.0f)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                SetStyleColor(_windowStyle, colorName, r, g, b, a);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetWindowStyle: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the button style colors
+        /// </summary>
+        /// <param name="colorName">Name of the color to set: "background", "text", "hover", "active"</param>
+        /// <param name="r">Red component (0-1)</param>
+        /// <param name="g">Green component (0-1)</param>
+        /// <param name="b">Blue component (0-1)</param>
+        /// <param name="a">Alpha component (0-1)</param>
+        public static void SetButtonStyle(string colorName, float r, float g, float b, float a = 1.0f)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                SetStyleColor(_buttonStyle, colorName, r, g, b, a);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetButtonStyle: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the label style colors
+        /// </summary>
+        /// <param name="colorName">Name of the color to set: "background", "text"</param>
+        /// <param name="r">Red component (0-1)</param>
+        /// <param name="g">Green component (0-1)</param>
+        /// <param name="b">Blue component (0-1)</param>
+        /// <param name="a">Alpha component (0-1)</param>
+        public static void SetLabelStyle(string colorName, float r, float g, float b, float a = 1.0f)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                SetStyleColor(_labelStyle, colorName, r, g, b, a);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetLabelStyle: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the text field style colors
+        /// </summary>
+        /// <param name="colorName">Name of the color to set: "background", "text"</param>
+        /// <param name="r">Red component (0-1)</param>
+        /// <param name="g">Green component (0-1)</param>
+        /// <param name="b">Blue component (0-1)</param>
+        /// <param name="a">Alpha component (0-1)</param>
+        public static void SetTextFieldStyle(string colorName, float r, float g, float b, float a = 1.0f)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                SetStyleColor(_textFieldStyle, colorName, r, g, b, a);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetTextFieldStyle: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the box style colors
+        /// </summary>
+        /// <param name="colorName">Name of the color to set: "background", "text"</param>
+        /// <param name="r">Red component (0-1)</param>
+        /// <param name="g">Green component (0-1)</param>
+        /// <param name="b">Blue component (0-1)</param>
+        /// <param name="a">Alpha component (0-1)</param>
+        public static void SetBoxStyle(string colorName, float r, float g, float b, float a = 1.0f)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                SetStyleColor(_boxStyle, colorName, r, g, b, a);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetBoxStyle: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Helper method to set a color on a style
+        /// </summary>
+        private static void SetStyleColor(GUIStyle style, string colorName, float r, float g, float b, float a)
+        {
+            if (style == null)
+                return;
+
+            Color color = new Color(r, g, b, a);
+
+            switch (colorName.ToLower())
+            {
+                case "background":
+                    var tex = MakeColorTexture(color);
+                    if (tex != null)
+                    {
+                        style.normal.background = tex;
+                        style.onNormal.background = tex;
+                    }
+                    break;
+                case "text":
+                    style.normal.textColor = color;
+                    style.onNormal.textColor = color;
+                    break;
+                case "hover":
+                    var hoverTex = MakeColorTexture(color);
+                    if (hoverTex != null)
+                    {
+                        style.hover.background = hoverTex;
+                        style.onHover.background = hoverTex;
+                    }
+                    style.hover.textColor = color;
+                    style.onHover.textColor = color;
+                    break;
+                case "active":
+                    var activeTex = MakeColorTexture(color);
+                    if (activeTex != null)
+                    {
+                        style.active.background = activeTex;
+                        style.onActive.background = activeTex;
+                    }
+                    style.active.textColor = color;
+                    style.onActive.textColor = color;
+                    break;
+                default:
+                    _logger.Warning($"Unknown color name: {colorName}");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Sets the font size for a UI element style
+        /// </summary>
+        /// <param name="styleName">Name of the style: "window", "button", "label", "textfield", "box"</param>
+        /// <param name="size">Font size</param>
+        public static void SetFontSize(string styleName, int size)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                GUIStyle style = GetStyleByName(styleName);
+                if (style != null)
+                {
+                    style.fontSize = size;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetFontSize: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the font style for a UI element
+        /// </summary>
+        /// <param name="styleName">Name of the style: "window", "button", "label", "textfield", "box"</param>
+        /// <param name="fontStyle">Font style: "normal", "bold", "italic", "bolditalic"</param>
+        public static void SetFontStyle(string styleName, string fontStyle)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                GUIStyle style = GetStyleByName(styleName);
+                if (style != null)
+                {
+                    switch (fontStyle.ToLower())
+                    {
+                        case "normal":
+                            style.fontStyle = FontStyle.Normal;
+                            break;
+                        case "bold":
+                            style.fontStyle = FontStyle.Bold;
+                            break;
+                        case "italic":
+                            style.fontStyle = FontStyle.Italic;
+                            break;
+                        case "bolditalic":
+                            style.fontStyle = FontStyle.BoldAndItalic;
+                            break;
+                        default:
+                            _logger.Warning($"Unknown font style: {fontStyle}");
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetFontStyle: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the text alignment for a UI element
+        /// </summary>
+        /// <param name="styleName">Name of the style: "window", "button", "label", "textfield", "box"</param>
+        /// <param name="alignment">Alignment: "left", "center", "right", "topleft", "topcenter", "topright", 
+        /// "middleleft", "middlecenter", "middleright", "bottomleft", "bottomcenter", "bottomright"</param>
+        public static void SetTextAlignment(string styleName, string alignment)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                GUIStyle style = GetStyleByName(styleName);
+                if (style != null)
+                {
+                    switch (alignment.ToLower())
+                    {
+                        case "left":
+                            style.alignment = TextAnchor.MiddleLeft;
+                            break;
+                        case "center":
+                            style.alignment = TextAnchor.MiddleCenter;
+                            break;
+                        case "right":
+                            style.alignment = TextAnchor.MiddleRight;
+                            break;
+                        case "topleft":
+                            style.alignment = TextAnchor.UpperLeft;
+                            break;
+                        case "topcenter":
+                            style.alignment = TextAnchor.UpperCenter;
+                            break;
+                        case "topright":
+                            style.alignment = TextAnchor.UpperRight;
+                            break;
+                        case "middleleft":
+                            style.alignment = TextAnchor.MiddleLeft;
+                            break;
+                        case "middlecenter":
+                            style.alignment = TextAnchor.MiddleCenter;
+                            break;
+                        case "middleright":
+                            style.alignment = TextAnchor.MiddleRight;
+                            break;
+                        case "bottomleft":
+                            style.alignment = TextAnchor.LowerLeft;
+                            break;
+                        case "bottomcenter":
+                            style.alignment = TextAnchor.LowerCenter;
+                            break;
+                        case "bottomright":
+                            style.alignment = TextAnchor.LowerRight;
+                            break;
+                        default:
+                            _logger.Warning($"Unknown text alignment: {alignment}");
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetTextAlignment: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the border for a UI element style
+        /// </summary>
+        /// <param name="styleName">Name of the style: "window", "button", "label", "textfield", "box"</param>
+        /// <param name="left">Left border width</param>
+        /// <param name="right">Right border width</param>
+        /// <param name="top">Top border width</param>
+        /// <param name="bottom">Bottom border width</param>
+        public static void SetBorder(string styleName, int left, int right, int top, int bottom)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                GUIStyle style = GetStyleByName(styleName);
+                if (style != null)
+                {
+                    style.border = new RectOffset(left, right, top, bottom);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetBorder: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the padding for a UI element style
+        /// </summary>
+        /// <param name="styleName">Name of the style: "window", "button", "label", "textfield", "box"</param>
+        /// <param name="left">Left padding</param>
+        /// <param name="right">Right padding</param>
+        /// <param name="top">Top padding</param>
+        /// <param name="bottom">Bottom padding</param>
+        public static void SetPadding(string styleName, int left, int right, int top, int bottom)
+        {
+            try
+            {
+                if (!_stylesInitialized)
+                    InitializeStyles();
+
+                GUIStyle style = GetStyleByName(styleName);
+                if (style != null)
+                {
+                    style.padding = new RectOffset(left, right, top, bottom);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in SetPadding: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Helper method to get a style by name
+        /// </summary>
+        private static GUIStyle GetStyleByName(string styleName)
+        {
+            switch (styleName.ToLower())
+            {
+                case "window":
+                    return _windowStyle;
+                case "button":
+                    return _buttonStyle;
+                case "label":
+                    return _labelStyle;
+                case "textfield":
+                    return _textFieldStyle;
+                case "box":
+                    return _boxStyle;
+                default:
+                    _logger.Warning($"Unknown style name: {styleName}");
+                    return null;
             }
         }
 

@@ -25,7 +25,7 @@ namespace ScheduleLua.API
         private static PlayerHealth PlayerHealth => _playerHealth ??= Player?.GetComponent<PlayerHealth>();
 
         private static PlayerMovement _playerMovement;
-        private static PlayerMovement PlayerMovement => _playerMovement ??= Player?.GetComponent<PlayerMovement>();
+        private static PlayerMovement PlayerMovement => _playerMovement ??= ScheduleOne.PlayerScripts.PlayerSingleton<ScheduleOne.PlayerScripts.PlayerMovement>.Instance;
 
         /// <summary>
         /// Gets the player's current state and information
@@ -490,6 +490,65 @@ namespace ScheduleLua.API
             catch (Exception ex)
             {
                 LuaUtility.LogError("Error setting player health", ex);
+            }
+        }
+
+        /// <summary>
+        /// Gets the player's current movement speed multiplier
+        /// </summary>
+        /// <returns>The current movement speed multiplier</returns>
+        public static float GetMovementSpeed()
+        {
+            try
+            {
+                var playerMovement = PlayerMovement;
+                if (playerMovement == null)
+                {
+                    LuaUtility.LogWarning("Player movement component not found, returning 1");
+                    return 1.0f;
+                }
+                
+                return playerMovement.MoveSpeedMultiplier;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error getting player movement speed", ex);
+                return 1.0f;
+            }
+        }
+
+        /// <summary>
+        /// Sets the player's movement speed multiplier
+        /// </summary>
+        /// <param name="speedMultiplier">The speed multiplier to set (1.0 is normal speed)</param>
+        /// <returns>True if successful, false otherwise</returns>
+        public static bool SetMovementSpeed(float speedMultiplier)
+        {
+            try
+            {
+                var playerMovement = PlayerMovement;
+                if (playerMovement == null)
+                {
+                    LuaUtility.LogWarning("Player movement component not found, speed not set");
+                    return false;
+                }
+                
+                // Clamp values to reasonable range to prevent game-breaking issues
+                // Adjust these limits as needed based on game design
+                float clampedSpeed = Mathf.Clamp(speedMultiplier, 0.1f, 5.0f);
+                
+                if (clampedSpeed != speedMultiplier)
+                {
+                    LuaUtility.LogWarning($"Speed multiplier clamped from {speedMultiplier} to {clampedSpeed}");
+                }
+                
+                playerMovement.MoveSpeedMultiplier = clampedSpeed;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error setting player movement speed", ex);
+                return false;
             }
         }
     }

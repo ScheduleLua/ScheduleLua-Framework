@@ -180,6 +180,8 @@ LogScriptErrors = true
 | `SetPlayerHealth(amount)`      | Sets the player's health                                                                     |
 | `GetPlayerRegion()`            | Gets the name of the region the player is currently in                                       |
 | `IsPlayerInRegion(regionName)` | Checks if the player is in the specified region                                              |
+| `GetPlayerMovementSpeed()`     | Gets the player's current movement speed multiplier                                          |
+| `SetPlayerMovementSpeed(speed)`| Sets the player's movement speed multiplier (1.0 is normal speed)                            |
 
 ### Inventory Functions
 
@@ -255,7 +257,7 @@ This checklist tracks the current state of the ScheduleLua API implementation. U
 - [x] Get player movement speed
 - [x] Check if player is grounded
 - [ ] Force player movement
-- [ ] Set player movement speed
+- [x] Set player movement speed
 - [ ] Apply forces to player
 
 ### NPC System

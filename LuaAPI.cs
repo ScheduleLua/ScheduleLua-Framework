@@ -66,6 +66,8 @@ namespace ScheduleLua
             luaEngine.Globals["SetPlayerEnergy"] = (Action<float>)PlayerAPI.SetPlayerEnergy;
             luaEngine.Globals["GetPlayerHealth"] = (Func<float>)PlayerAPI.GetPlayerHealth;
             luaEngine.Globals["SetPlayerHealth"] = (Action<float>)PlayerAPI.SetPlayerHealth;
+            luaEngine.Globals["GetPlayerMovementSpeed"] = (Func<float>)PlayerAPI.GetMovementSpeed;
+            luaEngine.Globals["SetPlayerMovementSpeed"] = (Func<float, bool>)PlayerAPI.SetMovementSpeed;
             
             // Inventory functions
             luaEngine.Globals["GetInventorySlotCount"] = (Func<int>)GetInventorySlotCount;

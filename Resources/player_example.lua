@@ -168,6 +168,64 @@ function OnConsoleReady()
             Log("Teleported to checkpoint: " .. checkpoint.name)
         end
     )
+    
+    -- Movement speed commands
+    RegisterCommand(
+        "speed",
+        "Get or set player movement speed",
+        "speed [multiplier]",
+        function(args)
+            if #args == 0 then
+                -- Get current speed
+                local currentSpeed = GetPlayerMovementSpeed()
+                Log("Current movement speed multiplier: " .. string.format("%.2f", currentSpeed))
+            else
+                -- Set new speed
+                local speed = tonumber(args[1])
+                if not speed then
+                    LogError("Invalid speed value. Please provide a number.")
+                    return
+                end
+                
+                if SetPlayerMovementSpeed(speed) then
+                    Log("Set movement speed multiplier to: " .. string.format("%.2f", speed))
+                else
+                    LogError("Failed to set movement speed")
+                end
+            end
+        end
+    )
+    
+    RegisterCommand(
+        "sprint",
+        "Temporarily boost player movement speed",
+        "sprint [seconds]",
+        function(args)
+            local duration = 10 -- Default duration in seconds
+            if args[1] then
+                duration = tonumber(args[1]) or 10
+            end
+            
+            -- Store current speed
+            local originalSpeed = GetPlayerMovementSpeed()
+            
+            -- Apply sprint boost
+            if SetPlayerMovementSpeed(originalSpeed * 2.0) then
+                Log("Sprint boost activated for " .. duration .. " seconds!")
+                
+                -- Reset speed after duration
+                Wait(duration, function()
+                    if SetPlayerMovementSpeed(originalSpeed) then
+                        Log("Sprint boost ended, returning to normal speed")
+                    else
+                        LogError("Failed to restore original movement speed")
+                    end
+                end)
+            else
+                LogError("Failed to activate sprint boost")
+            end
+        end
+    )
 end
 
 -- Called when the player is fully loaded and ready
