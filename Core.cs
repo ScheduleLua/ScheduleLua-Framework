@@ -1,4 +1,4 @@
-﻿using MelonLoader;
+using MelonLoader;
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -20,7 +20,7 @@ public class Core : MelonMod
 {
     // Version constant that can be used in both the MelonInfo attribute and exposed to Lua
     public const string ModVersion = "0.1.1";
-    
+
     private static Core _instance;
     public static Core Instance => _instance;
 
@@ -112,11 +112,8 @@ public class Core : MelonMod
         // Initialize GUI system
         InitializeGUI();
 
-        // Register game-specific API
+        // Register Lua API
         LuaAPI.RegisterAPI(_luaEngine);
-
-        // Expose mod version to Lua
-        _luaEngine.Globals["SCHEDULELUA_VERSION"] = ModVersion;
     }
 
     /// <summary>

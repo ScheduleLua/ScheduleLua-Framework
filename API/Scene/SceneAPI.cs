@@ -29,8 +29,6 @@ namespace ScheduleLua.API.Scene
 
             // Register scene event handlers if not already done
             RegisterEventHandlers();
-
-            _logger.Msg("Scene API registered");
         }
 
         /// <summary>
