@@ -25,11 +25,11 @@ namespace ScheduleLua.API.NPC
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
 
-            // NPC functions
-            luaEngine.Globals["GetNPCPosition"] = (Func<ScheduleOne.NPCs.NPC, Vector3Proxy>)GetNPCPositionProxy;
-            luaEngine.Globals["SetNPCPosition"] = (Action<ScheduleOne.NPCs.NPC, float, float, float>)SetNPCPosition;
+            // NPC functions - Updated to use NPCProxy
+            luaEngine.Globals["GetNPCPosition"] = (Func<NPCProxy, Vector3Proxy>)GetNPCPositionProxy;
+            luaEngine.Globals["SetNPCPosition"] = (Action<NPCProxy, float, float, float>)SetNPCPosition;
             luaEngine.Globals["GetNPCState"] = (Func<string, Table>)GetNPCState;
-            luaEngine.Globals["GetNPC"] = (Func<string, ScheduleOne.NPCs.NPC>)GetNPC;
+            luaEngine.Globals["GetNPC"] = (Func<string, NPCProxy>)GetNPCProxy;
             luaEngine.Globals["GetNPCRegion"] = (Func<string, string>)GetNPCRegion;
             luaEngine.Globals["GetNPCsInRegion"] = (Func<string, Table>)GetNPCsInRegion;
             luaEngine.Globals["GetAllNPCs"] = (Func<Table>)GetAllNPCs;
@@ -38,11 +38,11 @@ namespace ScheduleLua.API.NPC
         }
 
         /// <summary>
-        /// Gets an NPC by ID
+        /// Gets an NPC by ID - for internal use
         /// </summary>
         /// <param name="npcId">The ID of the NPC to find</param>
         /// <returns>The NPC component or null if not found</returns>
-        public static ScheduleOne.NPCs.NPC GetNPC(string npcId)
+        private static ScheduleOne.NPCs.NPC GetNPC(string npcId)
         {
             try
             {
@@ -60,6 +60,20 @@ namespace ScheduleLua.API.NPC
                 LuaUtility.LogError($"Error finding NPC {npcId}", ex);
                 return null;
             }
+        }
+        
+        /// <summary>
+        /// Gets an NPC by ID and wraps it in an NPCProxy for Lua compatibility
+        /// </summary>
+        /// <param name="npcId">The ID of the NPC to find</param>
+        /// <returns>NPCProxy for the requested NPC or null if not found</returns>
+        public static NPCProxy GetNPCProxy(string npcId)
+        {
+            var npc = GetNPC(npcId);
+            if (npc == null)
+                return null;
+                
+            return new NPCProxy(npc);
         }
 
         /// <summary>
@@ -89,15 +103,22 @@ namespace ScheduleLua.API.NPC
         /// <summary>
         /// Gets an NPC's position as Vector3Proxy for Lua compatibility
         /// </summary>
-        /// <param name="npc">The NPC to get the position of</param>
+        /// <param name="npcProxy">The NPC proxy to get the position of</param>
         /// <returns>The position vector of the NPC as Vector3Proxy</returns>
-        public static API.Core.Vector3Proxy GetNPCPositionProxy(ScheduleOne.NPCs.NPC npc)
+        public static API.Core.Vector3Proxy GetNPCPositionProxy(NPCProxy npcProxy)
         {
             try
             {
-                if (npc == null)
+                if (npcProxy == null)
                 {
                     LuaUtility.LogWarning("Cannot get position of null NPC");
+                    return API.Core.Vector3Proxy.zero;
+                }
+
+                var npc = npcProxy.InternalNPC;
+                if (npc == null)
+                {
+                    LuaUtility.LogWarning("Cannot get position of null NPC reference");
                     return API.Core.Vector3Proxy.zero;
                 }
 
@@ -113,17 +134,24 @@ namespace ScheduleLua.API.NPC
         /// <summary>
         /// Sets an NPC's position
         /// </summary>
-        /// <param name="npc">The NPC to set the position of</param>
+        /// <param name="npcProxy">The NPC proxy to set the position of</param>
         /// <param name="x">X coordinate</param>
         /// <param name="y">Y coordinate</param>
         /// <param name="z">Z coordinate</param>
-        public static void SetNPCPosition(ScheduleOne.NPCs.NPC npc, float x, float y, float z)
+        public static void SetNPCPosition(NPCProxy npcProxy, float x, float y, float z)
         {
             try
             {
-                if (npc == null)
+                if (npcProxy == null)
                 {
                     LuaUtility.LogWarning("Cannot set position of null NPC");
+                    return;
+                }
+
+                var npc = npcProxy.InternalNPC;
+                if (npc == null)
+                {
+                    LuaUtility.LogWarning("Cannot set position of null NPC reference");
                     return;
                 }
 

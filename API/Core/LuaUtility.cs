@@ -43,7 +43,7 @@ namespace ScheduleLua.API.Core
         /// </summary>
         public static void Log(string message)
         {
-            ScheduleLua.Core.Instance.LoggerInstance.Msg($"[ScheduleLua] {message}");
+            ScheduleLua.Core.Instance.LoggerInstance.Msg($"{message}");
         }
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace ScheduleLua.API.Core
         /// </summary>
         public static void LogWarning(string message)
         {
-            ScheduleLua.Core.Instance.LoggerInstance.Warning($"[ScheduleLua] {message}");
+            ScheduleLua.Core.Instance.LoggerInstance.Warning($"{message}");
         }
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace ScheduleLua.API.Core
         /// </summary>
         public static void LogError(string message, Exception ex = null)
         {
-            string errorMessage = $"[ScheduleLua] {message}";
+            string errorMessage = $"{message}";
             if (ex != null)
             {
                 errorMessage += $": {ex.Message}";

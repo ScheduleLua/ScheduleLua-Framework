@@ -125,38 +125,6 @@ namespace ScheduleLua.API
         }
 
         /// <summary>
-        /// Sets the player's health if the PlayerHealth component is available
-        /// </summary>
-        /// <param name="health">The new health value</param>
-        /// <returns>true if successful, false otherwise</returns>
-        public static bool SetHealth(float health)
-        {
-            try
-            {
-                var playerHealth = PlayerHealth;
-                if (playerHealth == null)
-                {
-                    LuaUtility.LogWarning("Player health component not found");
-                    return false;
-                }
-
-                if (health < 0 || health > PlayerHealth.MAX_HEALTH)
-                {
-                    LuaUtility.LogWarning($"Health must be between 0 and {PlayerHealth.MAX_HEALTH}");
-                    return false;
-                }
-
-                playerHealth.SetHealth(health);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                LuaUtility.LogError("Error setting health", ex);
-                return false;
-            }
-        }
-
-        /// <summary>
         /// Teleports the player to a specific position
         /// </summary>
         /// <param name="x">X coordinate</param>

@@ -123,8 +123,8 @@ namespace ScheduleLua.API.Registry
         private class LuaReloadCommand : Console.ConsoleCommand
         {
             public override string CommandWord => "luareload";
-            public override string CommandDescription => "Reloads Lua scripts. Specify a script name to reload a specific script.";
-            public override string ExampleUsage => "luareload [scriptname]";
+            public override string CommandDescription => "Reloads Lua scripts and mods. Specify a script or mod name to reload a specific one.";
+            public override string ExampleUsage => "luareload [scriptname|modname]";
 
             public override void Execute(List<string> args)
             {
@@ -137,51 +137,88 @@ namespace ScheduleLua.API.Registry
                         return;
                     }
 
+                    // If no args given, reload all scripts and mods
                     if (args.Count == 0)
                     {
-                        // Reload all scripts
-                        int reloadedCount = 0;
+                        // Reload all individual scripts
+                        int reloadedScriptCount = 0;
                         foreach (var script in core._loadedScripts.Values.ToList())
                         {
                             if (script.Reload())
                             {
-                                reloadedCount++;
+                                reloadedScriptCount++;
                             }
                         }
-                        Console.Log($"Reloaded {reloadedCount} Lua scripts.");
+                        
+                        // Reload all mods
+                        int reloadedModCount = 0;
+                        if (core._modManager != null)
+                        {
+                            foreach (var mod in core._modManager.LoadedMods.Values.ToList())
+                            {
+                                if (mod.Reload())
+                                {
+                                    reloadedModCount++;
+                                }
+                            }
+                        }
+                        
+                        Console.Log($"Reloaded {reloadedScriptCount} individual Lua scripts and {reloadedModCount} mods.");
                     }
                     else
                     {
-                        // Reload a specific script
-                        string scriptName = args[0];
+                        // Reload a specific script or mod
+                        string name = args[0];
                         bool found = false;
 
-                        foreach (var script in core._loadedScripts.Values.ToList())
+                        // First check if it's a mod name
+                        if (core._modManager != null)
                         {
-                            if (script.Name.Equals(scriptName, StringComparison.OrdinalIgnoreCase))
+                            var mod = core._modManager.GetMod(name);
+                            if (mod != null)
                             {
                                 found = true;
-                                if (script.Reload())
+                                if (mod.Reload())
                                 {
-                                    Console.Log($"Reloaded script: {script.Name}");
+                                    Console.Log($"Reloaded mod: {mod.Manifest.Name}");
                                 }
                                 else
                                 {
-                                    Console.Log($"Failed to reload script: {script.Name}");
+                                    Console.Log($"Failed to reload mod: {mod.Manifest.Name}");
                                 }
-                                break;
+                            }
+                        }
+
+                        // If not a mod, check if it's an individual script
+                        if (!found)
+                        {
+                            foreach (var script in core._loadedScripts.Values.ToList())
+                            {
+                                if (script.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    found = true;
+                                    if (script.Reload())
+                                    {
+                                        Console.Log($"Reloaded script: {script.Name}");
+                                    }
+                                    else
+                                    {
+                                        Console.Log($"Failed to reload script: {script.Name}");
+                                    }
+                                    break;
+                                }
                             }
                         }
 
                         if (!found)
                         {
-                            Console.Log($"Script not found: {scriptName}");
+                            Console.Log($"Script or mod not found: {name}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.Log($"Error reloading scripts: {ex.Message}");
+                    Console.Log($"Error reloading: {ex.Message}");
                 }
             }
         }
@@ -192,8 +229,8 @@ namespace ScheduleLua.API.Registry
         private class LuaEnableCommand : Console.ConsoleCommand
         {
             public override string CommandWord => "luaenable";
-            public override string CommandDescription => "Enables a specific Lua script by reloading and initializing it.";
-            public override string ExampleUsage => "luaenable <scriptname>";
+            public override string CommandDescription => "Enables a specific Lua script or mod by reloading and initializing it.";
+            public override string ExampleUsage => "luaenable <scriptname|modname>";
 
             public override void Execute(List<string> args)
             {
@@ -208,40 +245,61 @@ namespace ScheduleLua.API.Registry
 
                     if (args.Count == 0)
                     {
-                        Console.Log("Please specify a script name to enable.");
+                        Console.Log("Please specify a script or mod name to enable.");
                         return;
                     }
 
-                    string scriptName = args[0];
+                    string name = args[0];
                     bool found = false;
 
-                    foreach (var script in core._loadedScripts.Values.ToList())
+                    // First check if it's a mod name
+                    if (core._modManager != null)
                     {
-                        if (script.Name.Equals(scriptName, StringComparison.OrdinalIgnoreCase))
+                        var mod = core._modManager.GetMod(name);
+                        if (mod != null)
                         {
                             found = true;
-
-                            // Reload and initialize the script
-                            if (script.Reload() && script.Initialize())
+                            if (mod.Reload() && mod.Initialize())
                             {
-                                Console.Log($"Enabled script: {script.Name}");
+                                Console.Log($"Enabled mod: {mod.Manifest.Name}");
                             }
                             else
                             {
-                                Console.Log($"Failed to enable script: {script.Name}");
+                                Console.Log($"Failed to enable mod: {mod.Manifest.Name}");
                             }
-                            break;
+                        }
+                    }
+
+                    // If not a mod, check if it's an individual script
+                    if (!found)
+                    {
+                        foreach (var script in core._loadedScripts.Values.ToList())
+                        {
+                            if (script.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                            {
+                                found = true;
+                                // Reload and initialize the script
+                                if (script.Reload() && script.Initialize())
+                                {
+                                    Console.Log($"Enabled script: {script.Name}");
+                                }
+                                else
+                                {
+                                    Console.Log($"Failed to enable script: {script.Name}");
+                                }
+                                break;
+                            }
                         }
                     }
 
                     if (!found)
                     {
-                        Console.Log($"Script not found: {scriptName}");
+                        Console.Log($"Script or mod not found: {name}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.Log($"Error enabling script: {ex.Message}");
+                    Console.Log($"Error enabling: {ex.Message}");
                 }
             }
         }
@@ -252,8 +310,8 @@ namespace ScheduleLua.API.Registry
         private class LuaDisableCommand : Console.ConsoleCommand
         {
             public override string CommandWord => "luadisable";
-            public override string CommandDescription => "Disables a specific Lua script until it is manually enabled again.";
-            public override string ExampleUsage => "luadisable <scriptname>";
+            public override string CommandDescription => "Disables a specific Lua script or mod until it is manually enabled again.";
+            public override string ExampleUsage => "luadisable <scriptname|modname>";
 
             public override void Execute(List<string> args)
             {
@@ -268,36 +326,53 @@ namespace ScheduleLua.API.Registry
 
                     if (args.Count == 0)
                     {
-                        Console.Log("Please specify a script name to disable.");
+                        Console.Log("Please specify a script or mod name to disable.");
                         return;
                     }
 
-                    string scriptName = args[0];
+                    string name = args[0];
                     bool found = false;
 
-                    foreach (var kvp in core._loadedScripts.ToList())
+                    // First check if it's a mod name
+                    if (core._modManager != null)
                     {
-                        var script = kvp.Value;
-                        if (script.Name.Equals(scriptName, StringComparison.OrdinalIgnoreCase))
+                        var mod = core._modManager.GetMod(name);
+                        if (mod != null)
                         {
                             found = true;
+                            // For mods, we can't fully disable them but we can notify the user
+                            Console.Log($"Note: Mods cannot be fully disabled at runtime. Mod '{mod.Manifest.Name}' will not receive further updates until the game is restarted or the mod is enabled again.");
+                            // We could implement a _disabledMods HashSet in ModManager to prevent updates
+                        }
+                    }
 
-                            // We can't fully unload a script, but we can remove it from the collection
-                            // temporarily to stop it from receiving events and updates
-                            core._loadedScripts.Remove(kvp.Key);
-                            Console.Log($"Disabled script: {script.Name}");
-                            break;
+                    // If not a mod, check if it's an individual script
+                    if (!found)
+                    {
+                        foreach (var kvp in core._loadedScripts.ToList())
+                        {
+                            var script = kvp.Value;
+                            if (script.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                            {
+                                found = true;
+
+                                // We can't fully unload a script, but we can remove it from the collection
+                                // temporarily to stop it from receiving events and updates
+                                core._loadedScripts.Remove(kvp.Key);
+                                Console.Log($"Disabled script: {script.Name}");
+                                break;
+                            }
                         }
                     }
 
                     if (!found)
                     {
-                        Console.Log($"Script not found: {scriptName}");
+                        Console.Log($"Script or mod not found: {name}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.Log($"Error disabling script: {ex.Message}");
+                    Console.Log($"Error disabling: {ex.Message}");
                 }
             }
         }

@@ -4,9 +4,9 @@
 Log("Example script loaded!")
 
 -- Track player state
+local isPlayerReady = false
 local playerLastPosition = nil
 local playerLastRegion = nil
-local playerLastMoney = 0
 local npcPositions = {}
 
 -- Initialize function called when script is first loaded
@@ -18,16 +18,18 @@ end
 function Update()
     -- This function is called frequently, you would want to limit how often you perform actions here
     
-    -- Check if player has moved significantly (more than 5 units)
-    local currentPos = GetPlayerPosition()
-    if playerLastPosition then
-        -- Use Vector3Distance to compare positions
-        local distance = Vector3Distance(currentPos, playerLastPosition)
-        if distance > 5 then
-            Log("Player moved significantly!")
-            Log("Distance moved: " .. distance)
-            playerLastPosition = currentPos
-            OnPlayerMovedSignificantly()
+    if isPlayerReady then
+        -- Check if player has moved significantly (more than 5 units)
+        local currentPos = GetPlayerPosition()
+        if playerLastPosition then
+            -- Use Vector3Distance to compare positions
+            local distance = Vector3Distance(currentPos, playerLastPosition)
+            if distance > 5 then
+                Log("Player moved significantly!")
+                Log("Distance moved: " .. distance)
+                playerLastPosition = currentPos
+                OnPlayerMovedSignificantly()
+            end
         end
     end
 end
@@ -131,12 +133,12 @@ end
 
 -- Called when the player is fully loaded and ready
 function OnPlayerReady()
+    isPlayerReady = true
     Log("Player is ready!")
     
     -- Get initial player state
     playerLastPosition = GetPlayerPosition()
     playerLastRegion = GetPlayerRegion()
-    playerLastMoney = GetPlayerMoney()
     
     -- Log player information
     Log("Player starting in region: " .. (playerLastRegion))
@@ -164,15 +166,21 @@ function OnPlayerReady()
         Log("  - " .. region)
     end
     
-    -- Find NPCs in the same region as player
+    -- Get NPCs in the same region as player
     if playerLastRegion then
         Log("NPCs in player's region:")
         local npcsInRegion = GetNPCsInRegion(playerLastRegion) or {}
         for i, npc in pairs(npcsInRegion) do
             Log("  - " .. npc.fullName)
-            local npcObj = FindNPC(npc.fullName)
+            -- Use GetNPC safely with error handling
+            local npcObj = GetNPC(npc.id)
             if npcObj then
-                npcPositions[npc.id] = GetNPCPosition(npcObj)
+                -- Store position safely
+                local npcPos = GetNPCPosition(npcObj)
+                if npcPos then
+                    npcPositions[npc.id] = npcPos
+                    Log("    Position: " .. npcPos.x .. ", " .. npcPos.y .. ", " .. npcPos.z)
+                end
             end
         end
     end

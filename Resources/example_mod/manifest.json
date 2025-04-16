@@ -1,0 +1,13 @@
+{
+  "name": "Player_Tools",
+  "version": "1.0.0",
+  "description": "A mod that provides helpful gameplay tools and enhancements for Schedule 1",
+  "author": "Bars",
+  "main": "init.lua",
+  "files": [
+    "economy.lua",
+    "player_stats.lua"
+  ],
+  "dependencies": [],
+  "api_version": "0.1.2"
+}

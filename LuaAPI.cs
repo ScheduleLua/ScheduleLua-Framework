@@ -22,6 +22,7 @@ using MelonLoader.Utils;
 using ScheduleLua.API.Windows;
 using ScheduleLua.API.Player;
 using ScheduleLua.API.World;
+using ScheduleLua.API.Mods;
 
 namespace ScheduleLua
 {
@@ -104,6 +105,8 @@ namespace ScheduleLua
             // Register Windows API
             WindowsAPI.RegisterAPI(luaEngine);
 
+            // Note: Mods API is registered in Core.cs after mod manager is initialized
+
             // Use proxy objects instead of direct Unity type registration
             // This improves compatibility across platforms, especially on IL2CPP/AOT
             RegisterProxyTypes(luaEngine);
@@ -124,15 +127,76 @@ namespace ScheduleLua
         /// </summary>
         private static DynValue RequireModule(Script luaEngine, string moduleName)
         {
-            _logger.Msg($"Requiring module: {moduleName}");
-
             // Check if the module is already loaded (caching)
             if (_loadedModules.TryGetValue(moduleName, out DynValue cachedModule))
             {
-                _logger.Msg($"Returning cached module: {moduleName}");
                 return cachedModule;
             }
 
+            // First, check if we're in a mod context
+            string currentModName = null;
+            string currentModPath = null;
+            
+            try
+            {
+                // Get current mod context if available
+                var modNameValue = luaEngine.Globals.Get("__MOD_NAME");
+                var modPathValue = luaEngine.Globals.Get("__MOD_PATH");
+                
+                if (!modNameValue.IsNil() && !modPathValue.IsNil())
+                {
+                    currentModName = modNameValue.String;
+                    currentModPath = modPathValue.String;
+                    
+                    // If in a mod context, first try to load the module from the same mod folder
+                    string modRelativeModulePath = Path.Combine(currentModPath, moduleName + ".lua");
+                    
+                    if (File.Exists(modRelativeModulePath))
+                    {
+                        // Check if the module is already registered in globals
+                        var existingModule = luaEngine.Globals.Get(moduleName + "_module");
+                        if (!existingModule.IsNil())
+                        {
+                            _loadedModules[moduleName] = existingModule;
+                            return existingModule;
+                        }
+                        
+                        // Load the module content
+                        string content = File.ReadAllText(modRelativeModulePath);
+                        
+                        // Execute the module code as a chunk that can return a value
+                        DynValue result = luaEngine.DoString(content, null, moduleName);
+                        
+                        // If the script doesn't return anything, try to get any registered module
+                        if (result.IsNil() || result.IsVoid())
+                        {
+                            existingModule = luaEngine.Globals.Get(moduleName + "_module");
+                            if (!existingModule.IsNil())
+                            {
+                                result = existingModule;
+                            }
+                            else
+                            {
+                                // Create empty table as fallback
+                                result = DynValue.NewTable(luaEngine);
+                                luaEngine.Globals[moduleName + "_module"] = result;
+                            }
+                        }
+                        
+                        // Store for reuse
+                        _loadedModules[moduleName] = result;
+                        luaEngine.Globals[moduleName + "_module"] = result;
+                        
+                        return result;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in mod-relative module loading for {moduleName}: {ex.Message}");
+            }
+            
+            // Check in already loaded scripts
             foreach (var scriptEntry in Core.Instance._loadedScripts)
             {
                 string scriptName = Path.GetFileNameWithoutExtension(scriptEntry.Value.Name);
@@ -145,7 +209,6 @@ namespace ScheduleLua
                         {
                             DynValue scriptResult = luaEngine.Globals.Get(scriptName + "_module");
                             _loadedModules[moduleName] = scriptResult;
-                            _logger.Msg($"Requiring already loaded module: {moduleName}");
                             return scriptResult;
                         }
 
@@ -160,8 +223,8 @@ namespace ScheduleLua
                         }
 
                         _loadedModules[moduleName] = result;
+                        luaEngine.Globals[moduleName + "_module"] = result;
 
-                        _logger.Msg($"Successfully loaded module from script: {scriptName}");
                         return result;
                     }
                     catch (Exception ex)
@@ -198,8 +261,8 @@ namespace ScheduleLua
 
                         // Cache the result
                         _loadedModules[moduleName] = result;
+                        luaEngine.Globals[moduleName + "_module"] = result;
 
-                        _logger.Msg($"Successfully loaded module from file: {fileName}");
                         return result;
                     }
                     catch (Exception ex)
@@ -211,7 +274,7 @@ namespace ScheduleLua
             }
 
             // Module not found
-            _logger.Error($"Module not found: {moduleName}");
+            _logger.Error($"Module not found: {moduleName}" + (currentModName != null ? $" in mod {currentModName}" : ""));
             throw new ScriptRuntimeException($"Module '{moduleName}' not found");
         }
 

@@ -195,28 +195,56 @@ namespace ScheduleLua
             if (!IsLoaded)
                 return false;
                 
+            // Already initialized, don't re-initialize
+            if (_isInitialized)
+                return true;
+                
+            // Static flag to prevent recursive initialization
+            string key = $"__initializing_{_name}";
+            
             try
             {
+                // Check if this script is already being initialized
+                DynValue initializingFlag = _scriptEngine.Globals.Get(key);
+                if (initializingFlag.Type != DataType.Nil && initializingFlag.Boolean)
+                {
+                    // Already in initialization process, prevent recursion
+                    return true;
+                }
+                
+                // Set flag to indicate initialization in progress
+                _scriptEngine.Globals[key] = true;
+                
                 DynValue initFunction = _scriptEngine.Globals.Get("Initialize");
                 
                 if (initFunction.Type == DataType.Function)
                 {
                     _scriptEngine.Call(initFunction);
                     _isInitialized = true;
-                    return true;
+                }
+                else
+                {
+                    // No initialization function is still a success
+                    _isInitialized = true;
                 }
                 
-                // No initialization function is still a success
-                _isInitialized = true;
+                // Clear the flag
+                _scriptEngine.Globals[key] = false;
                 return true;
             }
             catch (InterpreterException luaEx)
             {
+                // Clear the flag on error
+                try { _scriptEngine.Globals[key] = false; } catch { }
+                
                 LogDetailedError(luaEx, $"Error initializing script {_name}");
                 return false;
             }
             catch (Exception ex)
             {
+                // Clear the flag on error
+                try { _scriptEngine.Globals[key] = false; } catch { }
+                
                 _logger.Error($"Error initializing script {_name}: {ex.Message}");
                 return false;
             }
@@ -390,6 +418,34 @@ namespace ScheduleLua
                 _logger.Error($"Error calling function {functionName} in script {_name}: {ex.Message}");
                 return DynValue.Nil;
             }
+        }
+        
+        /// <summary>
+        /// Gets the module export from this script if it exists
+        /// </summary>
+        public DynValue GetModuleExport()
+        {
+            if (_scriptEngine == null)
+                return DynValue.Nil;
+                
+            try
+            {
+                string moduleName = _name;
+                return _scriptEngine.Globals.Get(moduleName + "_module");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error getting module export for {_name}: {ex.Message}");
+                return DynValue.Nil;
+            }
+        }
+        
+        /// <summary>
+        /// Gets the script engine associated with this script
+        /// </summary>
+        public Script GetScriptEngine()
+        {
+            return _scriptEngine;
         }
         
         private void CheckForUpdateFunction()

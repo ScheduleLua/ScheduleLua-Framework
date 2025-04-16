@@ -254,8 +254,6 @@ namespace ScheduleLua.API.Law
                 HookCurfewDisabledEvent("OnCurfewDisabled");
                 HookCurfewWarningEvent("OnCurfewWarning");
                 HookCurfewHintEvent("OnCurfewHint");
-
-                LuaUtility.Log($"Registered all curfew events: enabled, disabled, warning, hint");
             }
             catch (Exception ex)
             {
@@ -271,8 +269,6 @@ namespace ScheduleLua.API.Law
             ScheduleOne.Law.CurfewManager.Instance.onCurfewEnabled.AddListener(() => {
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
-            
-            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew enabled event");
         }
 
         private static void HookCurfewDisabledEvent(string functionName)
@@ -283,8 +279,6 @@ namespace ScheduleLua.API.Law
             ScheduleOne.Law.CurfewManager.Instance.onCurfewDisabled.AddListener(() => {
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
-            
-            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew disabled event");
         }
 
         private static void HookCurfewWarningEvent(string functionName)
@@ -295,8 +289,6 @@ namespace ScheduleLua.API.Law
             ScheduleOne.Law.CurfewManager.Instance.onCurfewWarning.AddListener(() => {
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
-            
-            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew warning event");
         }
 
         private static void HookCurfewHintEvent(string functionName)
@@ -307,8 +299,6 @@ namespace ScheduleLua.API.Law
             ScheduleOne.Law.CurfewManager.Instance.onCurfewHint.AddListener(() => {
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
-            
-            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew hint event");
         }
 
         #endregion

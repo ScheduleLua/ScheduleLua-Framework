@@ -19,7 +19,7 @@ namespace ScheduleLua;
 public class Core : MelonMod
 {
     // Version constant that can be used in both the MelonInfo attribute and exposed to Lua
-    public const string ModVersion = "0.1.1";
+    public const string ModVersion = "0.1.2";
 
     private static Core _instance;
     public static Core Instance => _instance;
@@ -55,14 +55,17 @@ public class Core : MelonMod
     private Queue<string> _pendingScriptReloads = new Queue<string>();
     private object _queueLock = new object(); // Lock for thread safety
 
+    // Add ModManager to class variables
+    public API.Mods.ModManager _modManager;
+
     public override void OnInitializeMelon()
     {
         _instance = this;
         LoggerInstance.Msg("Initializing ScheduleLua...");
 
         SetupPreferences();
-        InitializeLuaEngine();
         SetupScriptsDirectory();
+        InitializeLuaEngine();
         LoadScripts();
 
         // Only setup file watcher if hot reload is enabled
@@ -114,6 +117,10 @@ public class Core : MelonMod
 
         // Register Lua API
         LuaAPI.RegisterAPI(_luaEngine);
+
+        // Initialize Mod Manager and register Mods API
+        _modManager = new API.Mods.ModManager(LoggerInstance, _luaEngine, _scriptsDirectory);
+        API.Mods.ModsAPI.RegisterAPI(_luaEngine, _modManager);
     }
 
     /// <summary>
@@ -148,7 +155,6 @@ public class Core : MelonMod
                     if (!scripts.ContainsKey(scriptName))
                     {
                         scripts.Add(scriptName, scriptText);
-                        LoggerInstance.Msg($"Registered script from file system: {scriptName}");
                     }
                 }
             }
@@ -185,21 +191,51 @@ public class Core : MelonMod
 
         LoggerInstance.Msg("Loading Lua scripts...");
 
-        foreach (string file in Directory.GetFiles(_scriptsDirectory, "*.lua", SearchOption.AllDirectories))
+        // First, discover and load mods
+        _modManager.DiscoverAndLoadMods();
+
+        // Then load individual scripts (excluding those in mod folders with manifest.json)
+        int individualScriptsCount = 0;
+        foreach (string file in Directory.GetFiles(_scriptsDirectory, "*.lua", SearchOption.TopDirectoryOnly))
         {
-            LoadScript(file);
+            if (LoadScript(file))
+                individualScriptsCount++;
         }
 
-        LoggerInstance.Msg($"Loaded {_loadedScripts.Count} Lua scripts.");
+        // Load scripts from subdirectories that don't contain manifest.json
+        foreach (string dir in Directory.GetDirectories(_scriptsDirectory))
+        {
+            // Skip directories with manifest.json (they are mods and already loaded)
+            if (File.Exists(Path.Combine(dir, "manifest.json")))
+                continue;
 
-        // Initialize all loaded scripts
+            // Load all Lua files from this subdirectory
+            foreach (string file in Directory.GetFiles(dir, "*.lua", SearchOption.AllDirectories))
+            {
+                if (LoadScript(file))
+                    individualScriptsCount++;
+            }
+        }
+
+        LoggerInstance.Msg($"Loaded {individualScriptsCount} individual Lua scripts.");
+
+        // Initialize all loaded individual scripts
         InitializeScripts();
+
+        // Initialize all loaded mods
+        _modManager.InitializeMods();
     }
 
-    private void LoadScript(string filePath)
+    private bool LoadScript(string filePath)
     {
         try
         {
+            // Check if this script is already handled by the mod system
+            if (_modManager.IsScriptPathProcessed(filePath))
+            {
+                return false;
+            }
+
             string relativePath = filePath.Replace(_scriptsDirectory, "").TrimStart('\\', '/');
             LoggerInstance.Msg($"Loading script: {relativePath}");
 
@@ -208,6 +244,7 @@ public class Core : MelonMod
             {
                 _loadedScripts[filePath] = script;
                 LoggerInstance.Msg($"Successfully loaded script: {script.Name}");
+                return true;
             }
         }
         catch (MoonSharp.Interpreter.InterpreterException luaEx)
@@ -220,9 +257,9 @@ public class Core : MelonMod
             if (_prefLogScriptErrors.Value)
             {
                 LoggerInstance.Error($"Error loading script {filePath}: {ex.Message}");
-                LoggerInstance.Error(ex.StackTrace);
             }
         }
+        return false;
     }
 
     /// <summary>
@@ -443,19 +480,44 @@ public class Core : MelonMod
 
     private void SetupFileWatcher()
     {
-        _fileWatcher = new FileSystemWatcher
+        try
         {
-            Path = _scriptsDirectory,
-            Filter = "*.lua",
-            NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
-            IncludeSubdirectories = true,
-            EnableRaisingEvents = true
-        };
+            // Create a file watcher for the scripts directory
+            _fileWatcher = new FileSystemWatcher
+            {
+                Path = _scriptsDirectory,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+                Filter = "*.lua",
+                IncludeSubdirectories = true
+            };
 
-        _fileWatcher.Changed += OnScriptFileChanged;
-        _fileWatcher.Created += OnScriptFileChanged;
+            // Hook up events
+            _fileWatcher.Changed += OnScriptFileChanged;
+            _fileWatcher.Created += OnScriptFileChanged;
+            _fileWatcher.Renamed += OnScriptFileChanged;
 
-        LoggerInstance.Msg("File watcher initialized for hot reloading.");
+            // Also watch for changes to manifest.json files
+            var manifestWatcher = new FileSystemWatcher
+            {
+                Path = _scriptsDirectory,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
+                Filter = "manifest.json",
+                IncludeSubdirectories = true
+            };
+
+            manifestWatcher.Changed += OnManifestFileChanged;
+            manifestWatcher.Created += OnManifestFileChanged;
+
+            // Start watching
+            _fileWatcher.EnableRaisingEvents = true;
+            manifestWatcher.EnableRaisingEvents = true;
+
+            LoggerInstance.Msg("Hot reload enabled: Script changes will be automatically applied");
+        }
+        catch (Exception ex)
+        {
+            LoggerInstance.Error($"Error setting up file watcher: {ex.Message}");
+        }
     }
 
     private void OnScriptFileChanged(object sender, FileSystemEventArgs e)
@@ -486,33 +548,72 @@ public class Core : MelonMod
         }
     }
 
+    private void OnManifestFileChanged(object sender, FileSystemEventArgs e)
+    {
+        try
+        {
+            // Wait to ensure file is not locked
+            System.Threading.Thread.Sleep(100);
+
+            string modFolder = Path.GetDirectoryName(e.FullPath);
+            string modName = Path.GetFileName(modFolder);
+
+            LoggerInstance.Msg($"Manifest changed for mod: {modName}, queuing full mod reload");
+
+            // Currently we'll just tell the user that the mod needs to be reloaded
+            // A more sophisticated approach would reload the entire mod
+            LoggerInstance.Warning($"Changes to manifest.json require a game restart to take effect fully.");
+        }
+        catch (Exception ex)
+        {
+            if (_prefLogScriptErrors.Value)
+            {
+                LoggerInstance.Error($"Error handling manifest change: {ex.Message}");
+            }
+        }
+    }
+
     public override void OnUpdate()
     {
-        // Process any pending script reloads on the main thread
-        if (_pendingScriptReloads.Count > 0)
+        // Process queued script reloads
+        lock (_queueLock)
         {
-            string filePath = null;
-
-            lock (_queueLock)
+            while (_pendingScriptReloads.Count > 0)
             {
-                if (_pendingScriptReloads.Count > 0)
-                {
-                    filePath = _pendingScriptReloads.Dequeue();
-                }
-            }
-
-            if (filePath != null)
-            {
+                string filePath = _pendingScriptReloads.Dequeue();
                 ReloadScript(filePath);
             }
         }
 
-        // Call Update on all initialized scripts
+        // Call Update on all loaded scripts
         foreach (var script in _loadedScripts.Values)
         {
-            if (script.IsInitialized)
+            if (script.IsLoaded && script.IsInitialized)
             {
                 script.Update();
+            }
+        }
+
+        // Call Update on all loaded mods
+        _modManager.UpdateMods();
+
+        // Only monitor player health and energy if the flag is set
+        if (_isMonitoring)
+        {
+            // Check health
+            float currentHealth = API.PlayerAPI.GetPlayerHealth();
+            if (currentHealth != _lastHealthValue)
+            {
+                TriggerEvent("OnPlayerHealthChanged", currentHealth);
+                _lastHealthValue = currentHealth;
+            }
+
+            // Check energy
+            float currentEnergy = API.PlayerAPI.GetPlayerEnergy();
+            if (currentEnergy != _lastEnergyValue)
+            {
+                TriggerEvent("OnPlayerEnergyChanged", currentEnergy);
+                _lastEnergyValue = currentEnergy;
             }
         }
     }
@@ -730,6 +831,12 @@ public class Core : MelonMod
                 script.TriggerEvent(eventName, args);
             }
         }
+
+        // Also trigger the event for all mods
+        if (_modManager != null)
+        {
+            _modManager.TriggerEvent(eventName, args);
+        }
     }
 
     public override void OnDeinitializeMelon()
@@ -740,6 +847,7 @@ public class Core : MelonMod
             _fileWatcher.EnableRaisingEvents = false;
             _fileWatcher.Changed -= OnScriptFileChanged;
             _fileWatcher.Created -= OnScriptFileChanged;
+            _fileWatcher.Renamed -= OnScriptFileChanged;
             _fileWatcher.Dispose();
         }
 
