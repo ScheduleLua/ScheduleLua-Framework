@@ -140,8 +140,8 @@ namespace ScheduleLua
             try
             {
                 // Get current mod context if available
-                var modNameValue = luaEngine.Globals.Get("__MOD_NAME");
-                var modPathValue = luaEngine.Globals.Get("__MOD_PATH");
+                var modNameValue = luaEngine.Globals.Get("MOD_NAME");
+                var modPathValue = luaEngine.Globals.Get("MOD_PATH");
                 
                 if (!modNameValue.IsNil() && !modPathValue.IsNil())
                 {

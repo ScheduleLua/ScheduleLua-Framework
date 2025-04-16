@@ -22,9 +22,8 @@ The ScheduleLua Mod System extends the existing script loading system to support
 
 1. Folder-based mods with manifest.json for metadata
 2. Dependency management between mods
-3. Load ordering
-4. Function exports/imports between mods
-5. Hot reloading of mod scripts
+3. Function exports/imports between mods
+4. Hot reloading of mod scripts
 
 ## Folder Structure
 
@@ -93,13 +92,13 @@ farming_mod/
 
 When your mod is loaded, two special variables are set in the Lua environment:
 
-- `__MOD_NAME`: The folder name of your mod
-- `__MOD_PATH`: The full path to your mod folder
+- `MOD_NAME`: The folder name of your mod
+- `MOD_PATH`: The full path to your mod folder
 
 These can be used to reference files within your mod:
 
 ```lua
-local imagePath = __MOD_PATH .. "/images/icon.png"
+local imagePath = MOD_PATH .. "/images/icon.png"
 ```
 
 ### Exporting and Importing Functions
@@ -133,11 +132,10 @@ Available functions:
 
 Mods are loaded in this order:
 
-1. Mods with lower `load_order` values are loaded first
-2. Dependencies are loaded before the mods that depend on them
-3. The `init.lua` file is loaded first, then additional files listed in the manifest
-4. The `Initialize()` function is called if it exists
-5. The `Update()` function is called every frame if it exists
+1. Dependencies are loaded before the mods that depend on them
+2. The `init.lua` file is loaded first, then additional files listed in the manifest
+3. The `Initialize()` function is called if it exists
+4. The `Update()` function is called every frame if it exists
 
 ## Best Practices
 

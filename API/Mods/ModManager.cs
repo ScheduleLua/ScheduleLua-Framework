@@ -152,8 +152,8 @@ namespace ScheduleLua.API.Mods
                 }
 
                 // Set mod context in globals for this script execution
-                _luaEngine.Globals["__MOD_NAME"] = modFolderName;
-                _luaEngine.Globals["__MOD_PATH"] = folderPath;
+                _luaEngine.Globals["MOD_NAME"] = modFolderName;
+                _luaEngine.Globals["MOD_PATH"] = folderPath;
 
                 // Track all script paths in this mod to avoid duplicates
                 HashSet<string> modScriptPaths = new HashSet<string> { mainScriptPath };
@@ -222,9 +222,9 @@ namespace ScheduleLua.API.Mods
                 string modFolderName = Path.GetFileName(modFolder);
 
                 // Set Lua context for this mod/script
-                _luaEngine.Globals["__MOD_NAME"] = modFolderName;
-                _luaEngine.Globals["__MOD_PATH"] = modFolder;
-                _luaEngine.Globals["__SCRIPT_PATH"] = scriptPath;
+                _luaEngine.Globals["MOD_NAME"] = modFolderName;
+                _luaEngine.Globals["MOD_PATH"] = modFolder;
+                _luaEngine.Globals["SCRIPT_PATH"] = scriptPath;
 
                 // Create and load the script
                 var script = new LuaScript(scriptPath, _luaEngine, _logger);

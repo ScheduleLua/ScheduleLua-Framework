@@ -93,7 +93,7 @@ namespace ScheduleLua.API.Mods
                 return;
             }
             
-            string modName = script.Globals.Get("__MOD_NAME").String;
+            string modName = script.Globals.Get("MOD_NAME").String;
             if (string.IsNullOrEmpty(modName))
             {
                 LuaUtility.LogError("Failed to export function: not in a mod context.");
