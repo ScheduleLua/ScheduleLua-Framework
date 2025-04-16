@@ -157,18 +157,9 @@ if not IsModLoaded("required_mod") then
 end
 ```
 
-3. **Use OnRegistryReady** for initialization that requires the game registry:
+3. **Organize your code** by splitting it into multiple files by functionality.
 
-```lua
-OnRegistryReady(function()
-    -- Safe to access registry functions here
-    InitializeItems()
-end)
-```
-
-4. **Organize your code** by splitting it into multiple files by functionality.
-
-5. **Document your exports** so other mod authors know what functions are available.
+4. **Document your exports** so other mod authors know what functions are available.
 
 ## Example Mod
 

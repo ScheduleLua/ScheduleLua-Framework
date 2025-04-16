@@ -17,42 +17,42 @@ namespace ScheduleLua
         private readonly string _name;
         private readonly Script _scriptEngine;
         private readonly MelonLogger.Instance _logger;
-        
+
         private DynValue _scriptInstance;
         private bool _isInitialized = false;
         private bool _hasUpdateFunction = false;
-        
+
         // Dictionary of event handlers
         private Dictionary<string, DynValue> _eventHandlers = new Dictionary<string, DynValue>();
-        
+
         // Track commands registered by this script
         private HashSet<string> _registeredCommands = new HashSet<string>();
-        
+
         public string FilePath => _filePath;
         public string Name => _name;
         public bool IsLoaded => _scriptInstance != null;
         public bool IsInitialized => _isInitialized;
-        
+
         // Allow accessing the script's registered commands
         public IReadOnlyCollection<string> RegisteredCommands => _registeredCommands;
-        
+
         public LuaScript(string filePath, Script scriptEngine, MelonLogger.Instance logger)
         {
             _filePath = filePath;
             _name = Path.GetFileNameWithoutExtension(filePath);
             _scriptEngine = scriptEngine;
             _logger = logger;
-            
+
             // Ensure the debugger is enabled for better error reporting
             if (_scriptEngine != null && !_scriptEngine.DebuggerEnabled)
             {
                 _scriptEngine.DebuggerEnabled = true;
             }
-            
+
             // Register the script instance with the command registry
             CommandRegistry.RegisterScriptInstance(this);
         }
-        
+
         /// <summary>
         /// Registers a command as belonging to this script
         /// </summary>
@@ -63,7 +63,7 @@ namespace ScheduleLua
                 _registeredCommands.Add(commandName);
             }
         }
-        
+
         /// <summary>
         /// Loads the script from file
         /// </summary>
@@ -76,18 +76,18 @@ namespace ScheduleLua
                     _logger.Error($"Script file not found: {_filePath}");
                     return false;
                 }
-                
+
                 string scriptContent = File.ReadAllText(_filePath);
                 _scriptInstance = _scriptEngine.DoString(scriptContent, null, _name);
-                
+
                 if (!_scriptInstance.IsNil() && !_scriptInstance.IsVoid())
                 {
                     _scriptEngine.Globals[_name + "_module"] = _scriptInstance;
                 }
-                
+
                 CheckForUpdateFunction();
                 RegisterEventHandlers();
-                
+
                 return true;
             }
             catch (InterpreterException luaEx)
@@ -101,7 +101,7 @@ namespace ScheduleLua
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Logs detailed error information for Lua script errors including stack traces
         /// </summary>
@@ -109,15 +109,18 @@ namespace ScheduleLua
         {
             string errorMessage = luaEx.DecoratedMessage;
             string scriptContent = string.Empty;
-            
-            try {
+
+            try
+            {
                 scriptContent = File.ReadAllText(_filePath);
-            } catch {
+            }
+            catch
+            {
                 // Ignore errors when trying to read the file
             }
-            
+
             _logger.Error($"{context}: {errorMessage}");
-            
+
             // Extract line number if available
             int lineNumber = -1;
             foreach (var part in errorMessage.Split(':'))
@@ -128,7 +131,7 @@ namespace ScheduleLua
                     break;
                 }
             }
-            
+
             // Print problematic code section if available
             if (lineNumber > 0 && !string.IsNullOrEmpty(scriptContent))
             {
@@ -136,10 +139,10 @@ namespace ScheduleLua
                 if (lineNumber <= lines.Length)
                 {
                     _logger.Error($"Error on line {lineNumber}:");
-                    
+
                     int startLine = Math.Max(0, lineNumber - 3);
                     int endLine = Math.Min(lines.Length - 1, lineNumber + 2);
-                    
+
                     for (int i = startLine; i <= endLine; i++)
                     {
                         string linePrefix = (i + 1 == lineNumber) ? ">>>" : "   ";
@@ -147,7 +150,7 @@ namespace ScheduleLua
                     }
                 }
             }
-            
+
             // Print stack trace
             _logger.Error("Stack trace:");
             if (luaEx.CallStack != null && luaEx.CallStack.Count > 0)
@@ -162,7 +165,7 @@ namespace ScheduleLua
             {
                 _logger.Error($"  at {_name}:{lineNumber}");
             }
-            
+
             // Provide additional context for nil value errors
             if (errorMessage.Contains("attempt to call a nil value"))
             {
@@ -171,7 +174,7 @@ namespace ScheduleLua
                 _logger.Error("1. Misspelled function names");
                 _logger.Error("2. Functions defined in the wrong scope");
                 _logger.Error("3. Missing API functions or libraries");
-                
+
                 // Try to extract the variable name from the error
                 string varName = null;
                 if (errorMessage.Contains("global '"))
@@ -186,7 +189,7 @@ namespace ScheduleLua
                 }
             }
         }
-        
+
         /// <summary>
         /// Initializes the script by calling its Initialize function if it exists
         /// </summary>
@@ -194,14 +197,14 @@ namespace ScheduleLua
         {
             if (!IsLoaded)
                 return false;
-                
+
             // Already initialized, don't re-initialize
             if (_isInitialized)
                 return true;
-                
+
             // Static flag to prevent recursive initialization
             string key = $"__initializing_{_name}";
-            
+
             try
             {
                 // Check if this script is already being initialized
@@ -211,12 +214,12 @@ namespace ScheduleLua
                     // Already in initialization process, prevent recursion
                     return true;
                 }
-                
+
                 // Set flag to indicate initialization in progress
                 _scriptEngine.Globals[key] = true;
-                
+
                 DynValue initFunction = _scriptEngine.Globals.Get("Initialize");
-                
+
                 if (initFunction.Type == DataType.Function)
                 {
                     _scriptEngine.Call(initFunction);
@@ -227,7 +230,7 @@ namespace ScheduleLua
                     // No initialization function is still a success
                     _isInitialized = true;
                 }
-                
+
                 // Clear the flag
                 _scriptEngine.Globals[key] = false;
                 return true;
@@ -236,7 +239,7 @@ namespace ScheduleLua
             {
                 // Clear the flag on error
                 try { _scriptEngine.Globals[key] = false; } catch { }
-                
+
                 LogDetailedError(luaEx, $"Error initializing script {_name}");
                 return false;
             }
@@ -244,12 +247,12 @@ namespace ScheduleLua
             {
                 // Clear the flag on error
                 try { _scriptEngine.Globals[key] = false; } catch { }
-                
+
                 _logger.Error($"Error initializing script {_name}: {ex.Message}");
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Calls the script's Update function if it exists
         /// </summary>
@@ -257,7 +260,7 @@ namespace ScheduleLua
         {
             if (!IsInitialized || !_hasUpdateFunction)
                 return;
-                
+
             try
             {
                 DynValue updateFunction = _scriptEngine.Globals.Get("Update");
@@ -274,39 +277,39 @@ namespace ScheduleLua
                 _hasUpdateFunction = false; // Prevent further update calls if there's an error
             }
         }
-        
+
         /// <summary>
         /// Reloads the script from its file, preserving and restoring its registered commands
         /// </summary>
         public bool Reload()
         {
             bool wasInitialized = _isInitialized;
-            
+
             // Store current registered commands
             HashSet<string> previousCommands = new HashSet<string>(_registeredCommands);
-            
+
             // Unregister only this script's commands
             _logger.Msg($"Unregistering {_registeredCommands.Count} commands from script {_name} before reload");
             foreach (var command in _registeredCommands)
             {
                 CommandRegistry.UnregisterCommand(command);
             }
-            
+
             // Clear command list but don't forget which ones we had
             _registeredCommands.Clear();
-            
+
             // Clear event handlers
             _eventHandlers.Clear();
-            
+
             // Load script again
             if (!Load())
                 return false;
-                
+
             // Re-initialize if it was initialized before
             if (wasInitialized)
             {
                 bool initResult = Initialize();
-                
+
                 // Now trigger the OnConsoleReady event to ensure commands get re-registered
                 // Note: Re-registering commands is the script's responsibility during OnConsoleReady
                 if (initResult && _eventHandlers.ContainsKey("OnConsoleReady"))
@@ -314,13 +317,13 @@ namespace ScheduleLua
                     _logger.Msg($"Triggering OnConsoleReady to re-register commands for script {_name}");
                     TriggerEvent("OnConsoleReady");
                 }
-                
+
                 return initResult;
             }
-                
+
             return true;
         }
-        
+
         /// <summary>
         /// Triggers an event in this script
         /// </summary>
@@ -328,7 +331,7 @@ namespace ScheduleLua
         {
             if (!IsInitialized || !_eventHandlers.ContainsKey(eventName))
                 return;
-                
+
             try
             {
                 DynValue handler = _eventHandlers[eventName];
@@ -343,17 +346,14 @@ namespace ScheduleLua
                 _logger.Error($"Error in script {_name} event handler for {eventName}: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Registers event handlers from the script
         /// </summary>
         private void RegisterEventHandlers()
         {
             _eventHandlers.Clear();
-            
-            // Check for OnCommand event handler
-            CheckAndRegisterEvent("OnCommand");
-            
+
             // Game-specific events
             CheckAndRegisterEvent("OnDayChanged");
             CheckAndRegisterEvent("OnTimeChanged");
@@ -375,7 +375,7 @@ namespace ScheduleLua
             CheckAndRegisterEvent("OnCurfewWarning");
             CheckAndRegisterEvent("OnCurfewHint");
         }
-        
+
         /// <summary>
         /// Check for a function and register it as an event handler if it exists
         /// </summary>
@@ -388,7 +388,7 @@ namespace ScheduleLua
                 // _logger.Msg($"Script {_name} registered handler for {eventName}");
             }
         }
-        
+
         /// <summary>
         /// Calls a function in the script if it exists and returns the result
         /// </summary>
@@ -396,16 +396,16 @@ namespace ScheduleLua
         {
             if (!IsInitialized)
                 return DynValue.Nil;
-                
+
             try
             {
                 DynValue function = _scriptEngine.Globals.Get(functionName);
-                
+
                 if (function != null && function.Type == DataType.Function)
                 {
                     return _scriptEngine.Call(function, args);
                 }
-                
+
                 return DynValue.Nil;
             }
             catch (InterpreterException luaEx)
@@ -419,7 +419,7 @@ namespace ScheduleLua
                 return DynValue.Nil;
             }
         }
-        
+
         /// <summary>
         /// Gets the module export from this script if it exists
         /// </summary>
@@ -427,7 +427,7 @@ namespace ScheduleLua
         {
             if (_scriptEngine == null)
                 return DynValue.Nil;
-                
+
             try
             {
                 string moduleName = _name;
@@ -439,7 +439,7 @@ namespace ScheduleLua
                 return DynValue.Nil;
             }
         }
-        
+
         /// <summary>
         /// Gets the script engine associated with this script
         /// </summary>
@@ -447,11 +447,11 @@ namespace ScheduleLua
         {
             return _scriptEngine;
         }
-        
+
         private void CheckForUpdateFunction()
         {
             DynValue updateFunction = _scriptEngine.Globals.Get("Update");
             _hasUpdateFunction = updateFunction != null && updateFunction.Type == DataType.Function;
         }
     }
-} 
+}
