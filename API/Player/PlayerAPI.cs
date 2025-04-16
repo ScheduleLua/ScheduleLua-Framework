@@ -19,14 +19,35 @@ namespace ScheduleLua.API
         private static GameObject _player;
         private static GameObject Player => _player ??= (ScheduleOne.PlayerScripts.Player.Local != null ? ScheduleOne.PlayerScripts.Player.Local.gameObject : GameObject.FindGameObjectWithTag("Player"));
 
-        private static Player _playerInstance;
-        private static Player PlayerInstance => _playerInstance ??= ScheduleOne.PlayerScripts.Player.Local ?? Player?.GetComponent<Player>();
+        private static ScheduleOne.PlayerScripts.Player _playerInstance;
+        private static ScheduleOne.PlayerScripts.Player PlayerInstance => _playerInstance ??= ScheduleOne.PlayerScripts.Player.Local ?? Player?.GetComponent<ScheduleOne.PlayerScripts.Player>();
 
         private static PlayerHealth _playerHealth;
         private static PlayerHealth PlayerHealth => _playerHealth ??= Player?.GetComponent<PlayerHealth>();
 
         private static PlayerMovement _playerMovement;
         private static PlayerMovement PlayerMovement => _playerMovement ??= PlayerSingleton<PlayerMovement>.Instance;
+
+        /// <summary>
+        /// Registers all player-related API functions with the Lua engine
+        /// </summary>
+        public static void RegisterAPI(Script luaEngine)
+        {
+            if (luaEngine == null)
+                throw new ArgumentNullException(nameof(luaEngine));
+
+            // Player functions
+            luaEngine.Globals["GetPlayerState"] = (Func<Table>)GetPlayerState;
+            luaEngine.Globals["GetPlayerPosition"] = (Func<Vector3Proxy>)GetPlayerPositionProxy;
+            luaEngine.Globals["GetPlayerRegion"] = (Func<string>)GetPlayerRegion;
+            luaEngine.Globals["SetPlayerPosition"] = (Action<float, float, float>)SetPlayerPosition;
+            luaEngine.Globals["GetPlayerEnergy"] = (Func<float>)GetPlayerEnergy;
+            luaEngine.Globals["SetPlayerEnergy"] = (Action<float>)SetPlayerEnergy;
+            luaEngine.Globals["GetPlayerHealth"] = (Func<float>)GetPlayerHealth;
+            luaEngine.Globals["SetPlayerHealth"] = (Action<float>)SetPlayerHealth;
+            luaEngine.Globals["GetPlayerMovementSpeed"] = (Func<float>)GetMovementSpeed;
+            luaEngine.Globals["SetPlayerMovementSpeed"] = (Func<float, bool>)SetMovementSpeed;
+        }
 
         /// <summary>
         /// Gets the player's current state and information
@@ -310,7 +331,7 @@ namespace ScheduleLua.API
         /// Gets the player instance
         /// </summary>
         /// <returns>The player instance</returns>
-        public static Player GetPlayer()
+        public static ScheduleOne.PlayerScripts.Player GetPlayer()
         {
             return PlayerInstance;
         }

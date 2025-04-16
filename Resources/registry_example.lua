@@ -6,7 +6,7 @@ local pendingOperations = {}
 
 -- Mod information
 local MOD_NAME = "Registry Example"
-local MOD_VERSION = "1.0"
+local MOD_VERSION = "1.1"
 local isRegistered = false
 
 -- Called when the script is first loaded
@@ -238,7 +238,6 @@ function OnConsoleReady()
         function(args)
             Log("Registry Example Menu:")
             Log("  reganalyze - Analyze inventory")
-            Log("  regstrains - List strains")
         end
     )
     
@@ -254,19 +253,6 @@ function OnConsoleReady()
             end
         end
     )
-    
-    RegisterCommand(
-        "regstrains",
-        "List strains",
-        "regstrains",
-        function(args)
-            if IsRegistryReady() then
-                ListAllStrains()
-            else
-                Log("Registry not ready, cannot list strains")
-            end
-        end
-    )
 
     isRegistered = true
     Log("Registry Example commands registered")
@@ -278,7 +264,6 @@ function Shutdown()
     if isRegistered then
         UnregisterCommand("regmenu")
         UnregisterCommand("reganalyze")
-        UnregisterCommand("regstrains")
         Log("Registry Example commands unregistered")
     end
     

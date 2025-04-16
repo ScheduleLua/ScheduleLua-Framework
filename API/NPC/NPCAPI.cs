@@ -18,6 +18,26 @@ namespace ScheduleLua.API.NPC
         private static ScheduleOne.NPCs.NPCManager NPCManager => _npcManager ??= ScheduleOne.NPCs.NPCManager.Instance;
 
         /// <summary>
+        /// Registers all NPC-related API functions with the Lua engine
+        /// </summary>
+        public static void RegisterAPI(Script luaEngine)
+        {
+            if (luaEngine == null)
+                throw new ArgumentNullException(nameof(luaEngine));
+
+            // NPC functions
+            luaEngine.Globals["GetNPCPosition"] = (Func<ScheduleOne.NPCs.NPC, Vector3Proxy>)GetNPCPositionProxy;
+            luaEngine.Globals["SetNPCPosition"] = (Action<ScheduleOne.NPCs.NPC, float, float, float>)SetNPCPosition;
+            luaEngine.Globals["GetNPCState"] = (Func<string, Table>)GetNPCState;
+            luaEngine.Globals["GetNPC"] = (Func<string, ScheduleOne.NPCs.NPC>)GetNPC;
+            luaEngine.Globals["GetNPCRegion"] = (Func<string, string>)GetNPCRegion;
+            luaEngine.Globals["GetNPCsInRegion"] = (Func<string, Table>)GetNPCsInRegion;
+            luaEngine.Globals["GetAllNPCs"] = (Func<Table>)GetAllNPCs;
+            luaEngine.Globals["GetAllNPCRegions"] = (Func<Table>)GetAllNPCRegions;
+            luaEngine.Globals["IsNPCInRegion"] = (Func<string, string, bool>)IsNPCInRegion;
+        }
+
+        /// <summary>
         /// Gets an NPC by ID
         /// </summary>
         /// <param name="npcId">The ID of the NPC to find</param>

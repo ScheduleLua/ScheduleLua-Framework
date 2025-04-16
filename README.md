@@ -2,13 +2,13 @@
 
 <img src="logo.png" alt="ScheduleLua Logo" width="333">
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/ifBars/ScheduleLua/releases)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://thunderstore.io/c/schedule-i/p/ScheduleLua/ScheduleLua/versions/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-beta-orange.svg)]()
+[![Status](https://img.shields.io/badge/status-beta-orange.svg)](https://ifbars.github.io/ScheduleLua-Docs/guide/development-status.html)
 [![MelonLoader](https://img.shields.io/badge/requires-MelonLoader-red.svg)](https://melonwiki.xyz/)
 [![Lua](https://img.shields.io/badge/language-Lua-blue.svg)](https://www.lua.org/)
 [![C#](https://img.shields.io/badge/language-C%23-darkgreen.svg)](https://docs.microsoft.com/en-us/dotnet/csharp/)
-[![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)]()
+[![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](https://ifbars.github.io/ScheduleLua-Docs/guide/contributing.html)
 
 A Lua modding framework for Schedule I that aims to expose the game's functionality to Lua scripts, enabling custom gameplay mechanics, automation, and new features. ScheduleLua is currently in beta development, and the only features that are known to be working properly are the ones in the example scripts. I and or other contributors cannot guarantee that everything will work or be available, especially after the game updates.
 
