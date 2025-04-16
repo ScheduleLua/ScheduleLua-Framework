@@ -19,6 +19,7 @@ using ScheduleLua.API;
 using System.Collections;
 using System.IO;
 using MelonLoader.Utils;
+using ScheduleLua.API.Windows;
 
 namespace ScheduleLua
 {
@@ -42,6 +43,7 @@ namespace ScheduleLua
 
             // Expose mod version to Lua
             luaEngine.Globals["SCHEDULELUA_VERSION"] = Core.ModVersion;
+            luaEngine.Globals["GAME_VERSION"] = Application.version;
 
             // Register basic API functions
             luaEngine.Globals["Log"] = (Action<string>)Log;
@@ -68,7 +70,7 @@ namespace ScheduleLua
             luaEngine.Globals["SetPlayerHealth"] = (Action<float>)PlayerAPI.SetPlayerHealth;
             luaEngine.Globals["GetPlayerMovementSpeed"] = (Func<float>)PlayerAPI.GetMovementSpeed;
             luaEngine.Globals["SetPlayerMovementSpeed"] = (Func<float, bool>)PlayerAPI.SetMovementSpeed;
-            
+
             // Inventory functions
             luaEngine.Globals["GetInventorySlotCount"] = (Func<int>)GetInventorySlotCount;
             luaEngine.Globals["GetInventoryItemAt"] = (Func<int, string>)GetInventoryItemAt;
@@ -121,6 +123,9 @@ namespace ScheduleLua
 
             // Register Scene API
             SceneAPI.RegisterAPI(luaEngine);
+
+            // Register Windows API
+            WindowsAPI.RegisterAPI(luaEngine);
 
             // Use proxy objects instead of direct Unity type registration
             // This improves compatibility across platforms, especially on IL2CPP/AOT

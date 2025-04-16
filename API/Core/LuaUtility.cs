@@ -15,7 +15,7 @@ namespace ScheduleLua.API.Core
         {
             // Register proxy types instead of structs
             UserData.RegisterType<Vector3Proxy>();
-            
+
             // Register other needed types
             UserData.RegisterType<GameObject>();
         }
@@ -89,12 +89,12 @@ namespace ScheduleLua.API.Core
             {
                 var regionValues = Enum.GetValues(typeof(ScheduleOne.Map.EMapRegion));
                 string[] regions = new string[regionValues.Length];
-                
+
                 for (int i = 0; i < regionValues.Length; i++)
                 {
                     regions[i] = regionValues.GetValue(i).ToString();
                 }
-                
+
                 return regions;
             }
             catch (Exception ex)
@@ -112,13 +112,13 @@ namespace ScheduleLua.API.Core
         public static Table StringArrayToTable(string[] array)
         {
             var table = CreateTable();
-            
+
             for (int i = 0; i < array.Length; i++)
             {
                 table[i + 1] = array[i];
             }
-            
+
             return table;
         }
     }
-} 
+}

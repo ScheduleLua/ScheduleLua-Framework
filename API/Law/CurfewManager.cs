@@ -1,5 +1,6 @@
 using MelonLoader;
 using MoonSharp.Interpreter;
+using ScheduleLua.API.Core;
 using ScheduleOne.Law;
 using System;
 using UnityEngine;
@@ -12,7 +13,6 @@ namespace ScheduleLua.API.Law
     /// </summary>
     public static class CurfewManagerAPI
     {
-        private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
         private static bool _eventsHooked = false;
 
         /// <summary>
@@ -31,7 +31,8 @@ namespace ScheduleLua.API.Law
             luaEngine.Globals["GetCurfewEndTime"] = (Func<int>)GetCurfewEndTime;
             luaEngine.Globals["GetCurfewWarningTime"] = (Func<int>)GetCurfewWarningTime;
             luaEngine.Globals["GetTimeUntilCurfew"] = (Func<int>)GetTimeUntilCurfew;
-            luaEngine.Globals["RegisterCurfewCallback"] = (Action<string, string>)RegisterCurfewCallback;
+
+            RegisterAllCurfewEvents();
             
             // Hook into scene changes to detect when we enter the main game
             SceneManager.sceneLoaded += OnSceneLoaded;
@@ -55,7 +56,7 @@ namespace ScheduleLua.API.Law
             // Don't attempt to hook events if we're in the Menu scene
             if (SceneManager.GetActiveScene().name == "Menu")
             {
-                _logger.Msg("Currently in Menu scene, skipping curfew event hooks");
+                LuaUtility.Log("Currently in Menu scene, skipping curfew event hooks");
                 return;
             }
             
@@ -93,7 +94,7 @@ namespace ScheduleLua.API.Law
             }
             
             // Still not available after waiting
-            _logger.Warning("CurfewManager not available after waiting. Events will be hooked when the CurfewManager becomes available.");
+            LuaUtility.LogWarning("CurfewManager not available after waiting. Events will be hooked when the CurfewManager becomes available.");
         }
         
         private static void HookCurfewEvents()
@@ -142,7 +143,7 @@ namespace ScheduleLua.API.Law
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error checking if curfew is enabled: {ex.Message}");
+                LuaUtility.LogError($"Error checking if curfew is enabled: {ex.Message}");
                 return false;
             }
         }
@@ -161,7 +162,7 @@ namespace ScheduleLua.API.Law
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error checking if curfew is active: {ex.Message}");
+                LuaUtility.LogError($"Error checking if curfew is active: {ex.Message}");
                 return false;
             }
         }
@@ -180,7 +181,7 @@ namespace ScheduleLua.API.Law
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error checking if curfew is active with tolerance: {ex.Message}");
+                LuaUtility.LogError($"Error checking if curfew is active with tolerance: {ex.Message}");
                 return false;
             }
         }
@@ -236,47 +237,29 @@ namespace ScheduleLua.API.Law
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error calculating time until curfew: {ex.Message}");
+                LuaUtility.LogError($"Error calculating time until curfew: {ex.Message}");
                 return 0;
             }
         }
 
         /// <summary>
-        /// Registers a Lua function as a callback for curfew events (Deprecated - use event functions like OnCurfewEnabled instead)
+        /// Registers all curfew events
         /// </summary>
-        public static void RegisterCurfewCallback(string eventType, string functionName)
+        public static void RegisterAllCurfewEvents()
         {
-            _logger.Warning($"RegisterCurfewCallback is deprecated. Use direct event functions (OnCurfewEnabled, OnCurfewDisabled, OnCurfewWarning, OnCurfewHint) instead.");
             try
             {
-                if (string.IsNullOrEmpty(eventType) || string.IsNullOrEmpty(functionName))
-                {
-                    _logger.Error("Cannot register curfew callback: Event type or function name is empty");
-                    return;
-                }
-                
-                switch (eventType.ToLower())
-                {
-                    case "enabled":
-                        HookCurfewEnabledEvent(functionName);
-                        break;
-                    case "disabled":
-                        HookCurfewDisabledEvent(functionName);
-                        break;
-                    case "warning":
-                        HookCurfewWarningEvent(functionName);
-                        break;
-                    case "hint":
-                        HookCurfewHintEvent(functionName);
-                        break;
-                    default:
-                        _logger.Error($"Unknown curfew event type: {eventType}. Valid types are: enabled, disabled, warning, hint");
-                        break;
-                }
+                // Register all curfew event types
+                HookCurfewEnabledEvent("OnCurfewEnabled");
+                HookCurfewDisabledEvent("OnCurfewDisabled");
+                HookCurfewWarningEvent("OnCurfewWarning");
+                HookCurfewHintEvent("OnCurfewHint");
+
+                LuaUtility.Log($"Registered all curfew events: enabled, disabled, warning, hint");
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error registering curfew callback: {ex.Message}");
+                LuaUtility.LogError($"Error registering curfew events: {ex.Message}");
             }
         }
 
@@ -289,7 +272,7 @@ namespace ScheduleLua.API.Law
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
             
-            _logger.Msg($"Registered Lua function '{functionName}' for curfew enabled event");
+            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew enabled event");
         }
 
         private static void HookCurfewDisabledEvent(string functionName)
@@ -301,7 +284,7 @@ namespace ScheduleLua.API.Law
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
             
-            _logger.Msg($"Registered Lua function '{functionName}' for curfew disabled event");
+            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew disabled event");
         }
 
         private static void HookCurfewWarningEvent(string functionName)
@@ -313,7 +296,7 @@ namespace ScheduleLua.API.Law
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
             
-            _logger.Msg($"Registered Lua function '{functionName}' for curfew warning event");
+            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew warning event");
         }
 
         private static void HookCurfewHintEvent(string functionName)
@@ -325,7 +308,7 @@ namespace ScheduleLua.API.Law
                 ScheduleLua.Core.Instance.TriggerEvent(functionName);
             });
             
-            _logger.Msg($"Registered Lua function '{functionName}' for curfew hint event");
+            LuaUtility.Log($"Registered Lua function '{functionName}' for curfew hint event");
         }
 
         #endregion
