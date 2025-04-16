@@ -297,7 +297,12 @@ namespace ScheduleLua.API.Mods
         /// </summary>
         public bool IsScriptPathProcessed(string scriptPath)
         {
-            return _processedScriptPaths.Contains(scriptPath);
+            bool isProcessed = _processedScriptPaths.Contains(scriptPath);
+            if (isProcessed)
+            {
+                LuaUtility.Log($"Script {Path.GetFileName(scriptPath)} is already managed by a mod");
+            }
+            return isProcessed;
         }
 
         /// <summary>

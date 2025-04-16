@@ -23,6 +23,7 @@ using ScheduleLua.API.Windows;
 using ScheduleLua.API.Player;
 using ScheduleLua.API.World;
 using ScheduleLua.API.Mods;
+using System.Linq;
 
 namespace ScheduleLua
 {
@@ -127,32 +128,46 @@ namespace ScheduleLua
         /// </summary>
         private static DynValue RequireModule(Script luaEngine, string moduleName)
         {
-            // Check if the module is already loaded (caching)
-            if (_loadedModules.TryGetValue(moduleName, out DynValue cachedModule))
-            {
-                return cachedModule;
-            }
+            // Declare variables outside the try block so they're accessible in the finally block
+            DynValue origModName = DynValue.Nil;
+            DynValue origModPath = DynValue.Nil;
+            DynValue origScriptPath = DynValue.Nil;
+            Table origCallingEnv = null;
 
-            // First, check if we're in a mod context
-            string currentModName = null;
-            string currentModPath = null;
-            
             try
             {
-                // Get current mod context if available
-                var modNameValue = luaEngine.Globals.Get("MOD_NAME");
-                var modPathValue = luaEngine.Globals.Get("MOD_PATH");
-                
-                if (!modNameValue.IsNil() && !modPathValue.IsNil())
+                // Save original script context
+                origModName = luaEngine.Globals.Get("MOD_NAME");
+                origModPath = luaEngine.Globals.Get("MOD_PATH");
+                origScriptPath = luaEngine.Globals.Get("SCRIPT_PATH");
+
+                // If the calling script has its own environment, get it
+                var scriptInstance = FindScriptInstanceForCurrentExecution(luaEngine);
+                if (scriptInstance != null)
                 {
-                    currentModName = modNameValue.String;
-                    currentModPath = modPathValue.String;
-                    
-                    // If in a mod context, first try to load the module from the same mod folder
-                    string modRelativeModulePath = Path.Combine(currentModPath, moduleName + ".lua");
-                    
+                    origCallingEnv = scriptInstance.ScriptEnvironment;
+                }
+
+                // Check if module is already loaded and cached
+                if (_loadedModules.TryGetValue(moduleName, out DynValue cachedModule))
+                {
+                    return cachedModule;
+                }
+
+                // First look for modules in the current mod
+                string currentModName = luaEngine.Globals.Get("MOD_NAME").String;
+                string currentModPath = luaEngine.Globals.Get("MOD_PATH").String;
+
+                if (!string.IsNullOrEmpty(currentModName) && !string.IsNullOrEmpty(currentModPath))
+                {
+                    string moduleFileName = moduleName + ".lua";
+                    string modRelativeModulePath = Path.Combine(currentModPath, moduleFileName);
+
                     if (File.Exists(modRelativeModulePath))
                     {
+                        // Update script context to point to this module
+                        luaEngine.Globals["SCRIPT_PATH"] = modRelativeModulePath;
+
                         // Check if the module is already registered in globals
                         var existingModule = luaEngine.Globals.Get(moduleName + "_module");
                         if (!existingModule.IsNil())
@@ -160,122 +175,220 @@ namespace ScheduleLua
                             _loadedModules[moduleName] = existingModule;
                             return existingModule;
                         }
-                        
+
                         // Load the module content
                         string content = File.ReadAllText(modRelativeModulePath);
-                        
+
+                        // _logger.Msg($"Requiring module {moduleName} from mod {currentModName}");
+
+                        // Create a separate environment for this module
+                        DynValue envTable = DynValue.NewTable(luaEngine);
+                        Table moduleEnv = envTable.Table;
+
+                        // Copy globals from the main environment
+                        Table globals = luaEngine.Globals;
+                        foreach (var pair in globals.Pairs)
+                        {
+                            moduleEnv[pair.Key] = pair.Value;
+                        }
+
+                        // Set up metatable for environment
+                        Table mt = new Table(luaEngine);
+                        mt["__index"] = luaEngine.Globals;
+                        moduleEnv.MetaTable = mt;
+
+                        // Set module-specific context
+                        moduleEnv["SCRIPT_PATH"] = modRelativeModulePath;
+                        moduleEnv["SCRIPT_NAME"] = moduleName;
+                        moduleEnv["MOD_NAME"] = currentModName;
+                        moduleEnv["MOD_PATH"] = currentModPath;
+
                         // Execute the module code as a chunk that can return a value
-                        DynValue result = luaEngine.DoString(content, null, moduleName);
-                        
+                        DynValue result = luaEngine.DoString(content, moduleEnv, moduleName);
+
                         // If the script doesn't return anything, try to get any registered module
                         if (result.IsNil() || result.IsVoid())
                         {
-                            existingModule = luaEngine.Globals.Get(moduleName + "_module");
-                            if (!existingModule.IsNil())
+                            result = moduleEnv.Get(moduleName + "_module");
+
+                            // If still nil, return an empty table
+                            if (result.IsNil())
                             {
-                                result = existingModule;
-                            }
-                            else
-                            {
-                                // Create empty table as fallback
                                 result = DynValue.NewTable(luaEngine);
-                                luaEngine.Globals[moduleName + "_module"] = result;
                             }
-                        }
-                        
-                        // Store for reuse
-                        _loadedModules[moduleName] = result;
-                        luaEngine.Globals[moduleName + "_module"] = result;
-                        
-                        return result;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"Error in mod-relative module loading for {moduleName}: {ex.Message}");
-            }
-            
-            // Check in already loaded scripts
-            foreach (var scriptEntry in Core.Instance._loadedScripts)
-            {
-                string scriptName = Path.GetFileNameWithoutExtension(scriptEntry.Value.Name);
-
-                if (string.Equals(scriptName, moduleName, StringComparison.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        if (luaEngine.Globals.Get(scriptName + "_module") != DynValue.Nil)
-                        {
-                            DynValue scriptResult = luaEngine.Globals.Get(scriptName + "_module");
-                            _loadedModules[moduleName] = scriptResult;
-                            return scriptResult;
-                        }
-
-                        string scriptPath = scriptEntry.Value.FilePath;
-                        string content = File.ReadAllText(scriptPath);
-
-                        DynValue result = luaEngine.DoString(content, null, moduleName);
-
-                        if (result.IsNil())
-                        {
-                            result = DynValue.NewTable(luaEngine);
-                        }
-
-                        _loadedModules[moduleName] = result;
-                        luaEngine.Globals[moduleName + "_module"] = result;
-
-                        return result;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error($"Error loading module {moduleName} from script {scriptName}: {ex.Message}");
-                        throw new ScriptRuntimeException($"Error loading module '{moduleName}' from script {scriptName}: {ex.Message}");
-                    }
-                }
-            }
-
-            // If no matching loaded script, look for the file on disk
-            string scriptsDirectory = Path.Combine(MelonEnvironment.ModsDirectory, "ScheduleLua", "Scripts");
-
-            // Look for .lua files that match the module name
-            foreach (string filePath in Directory.GetFiles(scriptsDirectory, "*.lua", SearchOption.AllDirectories))
-            {
-                string fileName = Path.GetFileNameWithoutExtension(filePath);
-
-                if (string.Equals(fileName, moduleName, StringComparison.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        // Load the module content
-                        string content = File.ReadAllText(filePath);
-
-                        // Execute the module code as a chunk that can return a value
-                        DynValue result = luaEngine.DoString(content, null, moduleName);
-
-                        // If the script doesn't return anything, create an empty table
-                        if (result.IsNil())
-                        {
-                            result = DynValue.NewTable(luaEngine);
                         }
 
                         // Cache the result
                         _loadedModules[moduleName] = result;
+
+                        // Also make it available in both global and module environments for compatibility
                         luaEngine.Globals[moduleName + "_module"] = result;
+                        moduleEnv[moduleName + "_module"] = result;
+
+                        // Restore original script context
+                        luaEngine.Globals["MOD_NAME"] = origModName;
+                        luaEngine.Globals["MOD_PATH"] = origModPath;
+                        luaEngine.Globals["SCRIPT_PATH"] = origScriptPath;
 
                         return result;
                     }
-                    catch (Exception ex)
+                }
+
+                // Check in already loaded scripts
+                foreach (var scriptEntry in Core.Instance._loadedScripts)
+                {
+                    string scriptName = Path.GetFileNameWithoutExtension(scriptEntry.Value.Name);
+
+                    if (string.Equals(scriptName, moduleName, StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.Error($"Error loading module {moduleName}: {ex.Message}");
-                        throw new ScriptRuntimeException($"Error loading module '{moduleName}': {ex.Message}");
+                        try
+                        {
+                            // Update script context to point to this module
+                            luaEngine.Globals["SCRIPT_PATH"] = scriptEntry.Value.FilePath;
+
+                            if (luaEngine.Globals.Get(scriptName + "_module") != DynValue.Nil)
+                            {
+                                DynValue scriptResult = luaEngine.Globals.Get(scriptName + "_module");
+                                _loadedModules[moduleName] = scriptResult;
+                                return scriptResult;
+                            }
+
+                            string scriptPath = scriptEntry.Value.FilePath;
+                            string content = File.ReadAllText(scriptPath);
+
+                            // Create a separate environment for this module
+                            DynValue envTable = DynValue.NewTable(luaEngine);
+                            Table moduleEnv = envTable.Table;
+
+                            // Copy globals from the main environment
+                            Table globals = luaEngine.Globals;
+                            foreach (var pair in globals.Pairs)
+                            {
+                                moduleEnv[pair.Key] = pair.Value;
+                            }
+
+                            // Set up metatable for environment
+                            Table mt = new Table(luaEngine);
+                            mt["__index"] = luaEngine.Globals;
+                            moduleEnv.MetaTable = mt;
+
+                            // Set module-specific context
+                            moduleEnv["SCRIPT_PATH"] = scriptPath;
+                            moduleEnv["SCRIPT_NAME"] = moduleName;
+
+                            // Execute the module code with the isolated environment
+                            DynValue result = luaEngine.DoString(content, moduleEnv, moduleName);
+
+                            if (result.IsNil())
+                            {
+                                // Check if the module registered itself in its environment
+                                result = moduleEnv.Get(moduleName + "_module");
+
+                                // If still nil, create an empty table
+                                if (result.IsNil())
+                                {
+                                    result = DynValue.NewTable(luaEngine);
+                                }
+                            }
+
+                            // Cache the result
+                            _loadedModules[moduleName] = result;
+
+                            // Make the module available in global space for backward compatibility
+                            luaEngine.Globals[moduleName + "_module"] = result;
+                            moduleEnv[moduleName + "_module"] = result;
+
+                            return result;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"Error loading module {moduleName} from script {scriptName}: {ex.Message}");
+                            throw new ScriptRuntimeException($"Error loading module '{moduleName}' from script {scriptName}: {ex.Message}");
+                        }
                     }
                 }
-            }
 
-            // Module not found
-            _logger.Error($"Module not found: {moduleName}" + (currentModName != null ? $" in mod {currentModName}" : ""));
-            throw new ScriptRuntimeException($"Module '{moduleName}' not found");
+                // If no matching loaded script, look for the file on disk
+                string scriptsDirectory = Path.Combine(MelonEnvironment.ModsDirectory, "ScheduleLua", "Scripts");
+
+                // Look for .lua files that match the module name
+                foreach (string filePath in Directory.GetFiles(scriptsDirectory, "*.lua", SearchOption.AllDirectories))
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(filePath);
+
+                    if (string.Equals(fileName, moduleName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            // Update script context to point to this module
+                            luaEngine.Globals["SCRIPT_PATH"] = filePath;
+
+                            // Load the module content
+                            string content = File.ReadAllText(filePath);
+
+                            // Create a separate environment for this module
+                            DynValue envTable = DynValue.NewTable(luaEngine);
+                            Table moduleEnv = envTable.Table;
+
+                            // Copy globals from the main environment
+                            Table globals = luaEngine.Globals;
+                            foreach (var pair in globals.Pairs)
+                            {
+                                moduleEnv[pair.Key] = pair.Value;
+                            }
+
+                            // Set up metatable for environment
+                            Table mt = new Table(luaEngine);
+                            mt["__index"] = luaEngine.Globals;
+                            moduleEnv.MetaTable = mt;
+
+                            // Set module-specific context
+                            moduleEnv["SCRIPT_PATH"] = filePath;
+                            moduleEnv["SCRIPT_NAME"] = moduleName;
+
+                            // Execute the module code with the isolated environment
+                            DynValue result = luaEngine.DoString(content, moduleEnv, moduleName);
+
+                            // If the script doesn't return anything, check for module in environment
+                            if (result.IsNil())
+                            {
+                                result = moduleEnv.Get(moduleName + "_module");
+
+                                // If still nil, create an empty table
+                                if (result.IsNil())
+                                {
+                                    result = DynValue.NewTable(luaEngine);
+                                }
+                            }
+
+                            // Cache the result
+                            _loadedModules[moduleName] = result;
+
+                            // Make available in both environments for compatibility
+                            luaEngine.Globals[moduleName + "_module"] = result;
+                            moduleEnv[moduleName + "_module"] = result;
+
+                            return result;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Error($"Error loading module {moduleName}: {ex.Message}");
+                            throw new ScriptRuntimeException($"Error loading module '{moduleName}': {ex.Message}");
+                        }
+                    }
+                }
+
+                // Module not found
+                _logger.Error($"Module not found: {moduleName}" + (currentModName != null ? $" in mod {currentModName}" : ""));
+                throw new ScriptRuntimeException($"Module '{moduleName}' not found");
+            }
+            finally
+            {
+                // Restore original script context
+                luaEngine.Globals["MOD_NAME"] = origModName;
+                luaEngine.Globals["MOD_PATH"] = origModPath;
+                luaEngine.Globals["SCRIPT_PATH"] = origScriptPath;
+            }
         }
 
         #region Logging Functions
@@ -413,6 +526,36 @@ namespace ScheduleLua
             // Add additional proxy methods for any Unity types you need to expose
 
             // Add more proxy registration here as needed
+        }
+
+        /// <summary>
+        /// Find the LuaScript instance that is currently executing
+        /// This is useful for getting the script's private environment
+        /// </summary>
+        private static LuaScript FindScriptInstanceForCurrentExecution(Script luaEngine)
+        {
+            try
+            {
+                // Try to find by SCRIPT_PATH if available
+                DynValue scriptPath = luaEngine.Globals.Get("SCRIPT_PATH");
+                if (scriptPath.Type != DataType.Nil && !string.IsNullOrEmpty(scriptPath.String))
+                {
+                    var script = Core.Instance._loadedScripts.Values
+                        .FirstOrDefault(s => s.FilePath == scriptPath.String);
+
+                    if (script != null)
+                        return script;
+                }
+
+                // Try to find by current call stack (more complex but more reliable)
+                // This would require deeper MoonSharp integration
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

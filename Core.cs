@@ -233,11 +233,14 @@ public class Core : MelonMod
             // Check if this script is already handled by the mod system
             if (_modManager.IsScriptPathProcessed(filePath))
             {
+                // Script is already managed by the mod system, don't load it again
                 return false;
             }
 
             string relativePath = filePath.Replace(_scriptsDirectory, "").TrimStart('\\', '/');
-            LoggerInstance.Msg($"Loading script: {relativePath}");
+
+            // Set the correct script path in global context before loading
+            _luaEngine.Globals["SCRIPT_PATH"] = filePath;
 
             var script = new LuaScript(filePath, _luaEngine, LoggerInstance);
             if (script.Load())
@@ -419,13 +422,28 @@ public class Core : MelonMod
 
     private void InitializeScripts()
     {
+        // Track how many scripts were initialized
+        int initializedCount = 0;
+
         foreach (var script in _loadedScripts.Values)
         {
+            // Skip scripts that are handled by the mod system
+            string scriptPath = script.FilePath;
+            if (_modManager.IsScriptPathProcessed(scriptPath))
+            {
+                // LoggerInstance.Msg($"Skipping initialization of mod-managed script: {script.Name}");
+                continue;
+            }
+
             try
             {
+                // Set the correct script path in global context before initializing
+                _luaEngine.Globals["SCRIPT_PATH"] = scriptPath;
+
                 if (script.Initialize())
                 {
-                    LoggerInstance.Msg($"Initialized script: {script.Name}");
+                    initializedCount++;
+                    // LoggerInstance.Msg($"Initialized script: {script.Name}");
                 }
                 else
                 {
@@ -440,6 +458,8 @@ public class Core : MelonMod
                 }
             }
         }
+
+        LoggerInstance.Msg($"Initialized {initializedCount} individual scripts.");
     }
 
     private void ReloadScript(string filePath)
@@ -454,6 +474,9 @@ public class Core : MelonMod
             // If script is already loaded, reload it
             if (_loadedScripts.TryGetValue(filePath, out LuaScript script))
             {
+                // Set the correct script path in global context before reloading
+                _luaEngine.Globals["SCRIPT_PATH"] = filePath;
+
                 if (script.Reload())
                 {
                     LoggerInstance.Msg($"Reloaded script: {script.Name}");

@@ -118,7 +118,10 @@ namespace ScheduleLua.API.Mods
         {
             // Prevent double initialization
             if (_initialized)
+            {
+                LuaUtility.Log($"Mod {Manifest.Name} already initialized, skipping");
                 return true;
+            }
 
             // Prevent recursive initialization
             if (_initializing)
@@ -129,50 +132,91 @@ namespace ScheduleLua.API.Mods
 
             bool success = true;
             
-            // First, find and initialize the main script
-            var mainScript = Scripts.Find(s => Path.GetFileName(s.FilePath) == Manifest.Main);
-            if (mainScript != null)
+            // Save current Lua context
+            Script scriptEngine = Scripts.FirstOrDefault()?.GetScriptEngine();
+            if (scriptEngine == null)
             {
-                _mainScript = mainScript;
-                if (!mainScript.Initialize())
-                {
-                    LuaUtility.LogError($"Failed to initialize main script {mainScript.Name} in mod {Manifest.Name}");
-                    success = false;
-                }
-            }
-            else
-            {
-                LuaUtility.LogError($"Could not find main script {Manifest.Main} in mod {Manifest.Name}");
-                success = false;
+                LuaUtility.LogError($"No script engine available for mod {Manifest.Name}");
+                _initializing = false;
+                return false;
             }
             
-            // Only initialize other scripts if they don't have the same name as modules required by the main script
-            if (success)
+            // Store original global values
+            DynValue origModName = scriptEngine.Globals.Get("MOD_NAME");
+            DynValue origModPath = scriptEngine.Globals.Get("MOD_PATH");
+            DynValue origScriptPath = scriptEngine.Globals.Get("SCRIPT_PATH");
+            
+            try
             {
-                foreach (var script in Scripts)
+                // First, find and initialize the main script
+                var mainScript = Scripts.Find(s => Path.GetFileName(s.FilePath) == Manifest.Main);
+                if (mainScript != null)
                 {
-                    // Skip the main script (already initialized)
-                    if (script == mainScript)
-                        continue;
-                        
-                    // Skip scripts that are likely loaded via require() from the main script
-                    string scriptName = Path.GetFileNameWithoutExtension(script.FilePath);
-                    if (Manifest.Files.Contains(scriptName + ".lua"))
-                    {
-                        // These scripts are initialized when required, not needed here
-                        continue;
-                    }
+                    _mainScript = mainScript;
                     
-                    if (!script.Initialize())
+                    // Set correct context for main script
+                    scriptEngine.Globals["MOD_NAME"] = FolderName;
+                    scriptEngine.Globals["MOD_PATH"] = FolderPath;
+                    scriptEngine.Globals["SCRIPT_PATH"] = mainScript.FilePath;
+                    
+                    if (!mainScript.Initialize())
                     {
-                        LuaUtility.LogError($"Failed to initialize script {script.Name} in mod {Manifest.Name}");
+                        LuaUtility.LogError($"Failed to initialize main script {mainScript.Name} in mod {Manifest.Name}");
                         success = false;
                     }
                 }
+                else
+                {
+                    LuaUtility.LogError($"Could not find main script {Manifest.Main} in mod {Manifest.Name}");
+                    success = false;
+                }
+                
+                // Only initialize other scripts if they don't have the same name as modules required by the main script
+                if (success)
+                {
+                    foreach (var script in Scripts)
+                    {
+                        // Skip the main script (already initialized)
+                        if (script == mainScript)
+                            continue;
+                            
+                        // Skip scripts that are likely loaded via require() from the main script
+                        string scriptName = Path.GetFileNameWithoutExtension(script.FilePath);
+                        if (Manifest.Files.Contains(scriptName + ".lua"))
+                        {
+                            // These scripts are initialized when required, not needed here
+                            continue;
+                        }
+                        
+                        // Set correct context for this script
+                        scriptEngine.Globals["MOD_NAME"] = FolderName;
+                        scriptEngine.Globals["MOD_PATH"] = FolderPath;
+                        scriptEngine.Globals["SCRIPT_PATH"] = script.FilePath;
+                        
+                        if (!script.Initialize())
+                        {
+                            LuaUtility.LogError($"Failed to initialize script {script.Name} in mod {Manifest.Name}");
+                            success = false;
+                        }
+                    }
+                }
             }
-
-            _initialized = success;
-            _initializing = false;
+            finally
+            {
+                // Restore original global values
+                scriptEngine.Globals["MOD_NAME"] = origModName;
+                scriptEngine.Globals["MOD_PATH"] = origModPath;
+                scriptEngine.Globals["SCRIPT_PATH"] = origScriptPath;
+                
+                _initialized = success;
+                _initializing = false;
+            }
+            
+            if (success)
+            {
+                LuaUtility.Log($"Successfully initialized mod: {Manifest.Name}");
+            }
+            
             return success;
         }
 

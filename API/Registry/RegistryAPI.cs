@@ -13,6 +13,7 @@ using UnityEngine.SceneManagement;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.DevUtilities;
 using System.Collections;
+using System.Reflection;
 
 namespace ScheduleLua.API.Registry
 {
@@ -293,7 +294,50 @@ namespace ScheduleLua.API.Registry
                 return new List<ItemDefinition>();
             }
 
-            // TODO
+            try
+            {
+                // Use reflection to access the private ItemRegistry field
+                var itemRegistryField = registry.GetType().GetField("ItemRegistry", 
+                    System.Reflection.BindingFlags.NonPublic | 
+                    System.Reflection.BindingFlags.Instance);
+                
+                if (itemRegistryField != null)
+                {
+                    var itemRegistry = itemRegistryField.GetValue(registry) as System.Collections.Generic.Dictionary<string, ItemDefinition>;
+                    
+                    if (itemRegistry != null)
+                    {
+                        foreach (var item in itemRegistry.Values)
+                        {
+                            if (item != null)
+                            {
+                                items.Add(item);
+                            }
+                        }
+                        
+                        _logger.Msg($"Successfully retrieved {items.Count} items from ItemRegistry via reflection");
+                    }
+                    else
+                    {
+                        _logger.Error("ItemRegistry field is not a Dictionary<string, ItemDefinition>");
+                    }
+                }
+                else
+                {
+                    _logger.Error("Failed to find ItemRegistry field via reflection");
+                    
+                    // Fallback method - try to get at least some known items
+                    var cashItem = ScheduleOne.Registry.GetItem("cash");
+                    if (cashItem != null)
+                    {
+                        items.Add(cashItem);
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error($"Reflection error accessing ItemRegistry: {ex.Message}");
+            }
 
             _logger.Msg($"Found {items.Count} total items");
 

@@ -21,6 +21,7 @@ namespace ScheduleLua
         private DynValue _scriptInstance;
         private bool _isInitialized = false;
         private bool _hasUpdateFunction = false;
+        private Table _scriptEnvironment; // Store the script's private environment
 
         // Dictionary of event handlers
         private Dictionary<string, DynValue> _eventHandlers = new Dictionary<string, DynValue>();
@@ -35,6 +36,9 @@ namespace ScheduleLua
 
         // Allow accessing the script's registered commands
         public IReadOnlyCollection<string> RegisteredCommands => _registeredCommands;
+
+        // Allow access to the script's environment
+        public Table ScriptEnvironment => _scriptEnvironment;
 
         public LuaScript(string filePath, Script scriptEngine, MelonLogger.Instance logger)
         {
@@ -78,15 +82,39 @@ namespace ScheduleLua
                 }
 
                 string scriptContent = File.ReadAllText(_filePath);
-                _scriptInstance = _scriptEngine.DoString(scriptContent, null, _name);
+
+                // Create script isolation by using a private environment table
+                DynValue envTable = DynValue.NewTable(_scriptEngine);
+                _scriptEnvironment = envTable.Table;
+
+                // Copy globals from the main environment to our private one
+                Table globals = _scriptEngine.Globals;
+                foreach (var pair in globals.Pairs)
+                {
+                    _scriptEnvironment[pair.Key] = pair.Value;
+                }
+
+                // Set up proper environment metatable that falls back to global for undefined values
+                Table mt = new Table(_scriptEngine);
+                mt["__index"] = _scriptEngine.Globals;
+                _scriptEnvironment.MetaTable = mt;
+
+                // Set this script's specific context variables
+                _scriptEnvironment["SCRIPT_PATH"] = _filePath;
+                _scriptEnvironment["SCRIPT_NAME"] = _name;
+
+                // Execute the script with the isolated environment
+                _scriptInstance = _scriptEngine.DoString(scriptContent, _scriptEnvironment, _name);
 
                 if (!_scriptInstance.IsNil() && !_scriptInstance.IsVoid())
                 {
+                    // Store module export in both script environment and global space
+                    _scriptEnvironment[_name + "_module"] = _scriptInstance;
                     _scriptEngine.Globals[_name + "_module"] = _scriptInstance;
                 }
 
-                CheckForUpdateFunction();
-                RegisterEventHandlers();
+                CheckForUpdateFunction(_scriptEnvironment);
+                RegisterEventHandlers(_scriptEnvironment);
 
                 return true;
             }
@@ -200,7 +228,10 @@ namespace ScheduleLua
 
             // Already initialized, don't re-initialize
             if (_isInitialized)
+            {
+                _logger.Msg($"Script {_name} already initialized, skipping duplicate initialization");
                 return true;
+            }
 
             // Static flag to prevent recursive initialization
             string key = $"__initializing_{_name}";
@@ -208,17 +239,19 @@ namespace ScheduleLua
             try
             {
                 // Check if this script is already being initialized
-                DynValue initializingFlag = _scriptEngine.Globals.Get(key);
+                DynValue initializingFlag = _scriptEnvironment.Get(key);
                 if (initializingFlag.Type != DataType.Nil && initializingFlag.Boolean)
                 {
                     // Already in initialization process, prevent recursion
+                    _logger.Msg($"Script {_name} is currently initializing, preventing recursive initialization");
                     return true;
                 }
 
                 // Set flag to indicate initialization in progress
-                _scriptEngine.Globals[key] = true;
+                _scriptEnvironment[key] = true;
+                // _logger.Msg($"Initializing script: {_name} (path: {Path.GetFileName(_filePath)})");
 
-                DynValue initFunction = _scriptEngine.Globals.Get("Initialize");
+                DynValue initFunction = _scriptEnvironment.Get("Initialize");
 
                 if (initFunction.Type == DataType.Function)
                 {
@@ -229,16 +262,17 @@ namespace ScheduleLua
                 {
                     // No initialization function is still a success
                     _isInitialized = true;
+                    // _logger.Msg($"No Initialize() function found for script: {_name}, marking as initialized");
                 }
 
                 // Clear the flag
-                _scriptEngine.Globals[key] = false;
+                _scriptEnvironment[key] = false;
                 return true;
             }
             catch (InterpreterException luaEx)
             {
                 // Clear the flag on error
-                try { _scriptEngine.Globals[key] = false; } catch { }
+                try { _scriptEnvironment[key] = false; } catch { }
 
                 LogDetailedError(luaEx, $"Error initializing script {_name}");
                 return false;
@@ -246,7 +280,7 @@ namespace ScheduleLua
             catch (Exception ex)
             {
                 // Clear the flag on error
-                try { _scriptEngine.Globals[key] = false; } catch { }
+                try { _scriptEnvironment[key] = false; } catch { }
 
                 _logger.Error($"Error initializing script {_name}: {ex.Message}");
                 return false;
@@ -263,7 +297,7 @@ namespace ScheduleLua
 
             try
             {
-                DynValue updateFunction = _scriptEngine.Globals.Get("Update");
+                DynValue updateFunction = _scriptEnvironment.Get("Update");
                 _scriptEngine.Call(updateFunction);
             }
             catch (InterpreterException luaEx)
@@ -301,7 +335,10 @@ namespace ScheduleLua
             // Clear event handlers
             _eventHandlers.Clear();
 
-            // Load script again
+            // Reset state
+            _isInitialized = false;
+
+            // Load script again with a fresh environment
             if (!Load())
                 return false;
 
@@ -350,38 +387,38 @@ namespace ScheduleLua
         /// <summary>
         /// Registers event handlers from the script
         /// </summary>
-        private void RegisterEventHandlers()
+        private void RegisterEventHandlers(Table env)
         {
             _eventHandlers.Clear();
 
             // Game-specific events
-            CheckAndRegisterEvent("OnDayChanged");
-            CheckAndRegisterEvent("OnTimeChanged");
-            CheckAndRegisterEvent("OnSleepStart");
-            CheckAndRegisterEvent("OnSleepEnd");
-            CheckAndRegisterEvent("OnPlayerMoneyChanged");
-            CheckAndRegisterEvent("OnPlayerHealthChanged");
-            CheckAndRegisterEvent("OnPlayerEnergyChanged");
-            CheckAndRegisterEvent("OnItemAdded");
-            CheckAndRegisterEvent("OnItemRemoved");
-            CheckAndRegisterEvent("OnPlayerMovedSignificantly");
-            CheckAndRegisterEvent("OnNPCInteraction");
-            CheckAndRegisterEvent("OnSceneLoaded");
-            CheckAndRegisterEvent("OnPlayerReady");
-            CheckAndRegisterEvent("OnConsoleReady");
-            CheckAndRegisterEvent("OnRegistryReady");
-            CheckAndRegisterEvent("OnCurfewEnabled");
-            CheckAndRegisterEvent("OnCurfewDisabled");
-            CheckAndRegisterEvent("OnCurfewWarning");
-            CheckAndRegisterEvent("OnCurfewHint");
+            CheckAndRegisterEvent("OnDayChanged", env);
+            CheckAndRegisterEvent("OnTimeChanged", env);
+            CheckAndRegisterEvent("OnSleepStart", env);
+            CheckAndRegisterEvent("OnSleepEnd", env);
+            CheckAndRegisterEvent("OnPlayerMoneyChanged", env);
+            CheckAndRegisterEvent("OnPlayerHealthChanged", env);
+            CheckAndRegisterEvent("OnPlayerEnergyChanged", env);
+            CheckAndRegisterEvent("OnItemAdded", env);
+            CheckAndRegisterEvent("OnItemRemoved", env);
+            CheckAndRegisterEvent("OnPlayerMovedSignificantly", env);
+            CheckAndRegisterEvent("OnNPCInteraction", env);
+            CheckAndRegisterEvent("OnSceneLoaded", env);
+            CheckAndRegisterEvent("OnPlayerReady", env);
+            CheckAndRegisterEvent("OnConsoleReady", env);
+            CheckAndRegisterEvent("OnRegistryReady", env);
+            CheckAndRegisterEvent("OnCurfewEnabled", env);
+            CheckAndRegisterEvent("OnCurfewDisabled", env);
+            CheckAndRegisterEvent("OnCurfewWarning", env);
+            CheckAndRegisterEvent("OnCurfewHint", env);
         }
 
         /// <summary>
         /// Check for a function and register it as an event handler if it exists
         /// </summary>
-        private void CheckAndRegisterEvent(string eventName)
+        private void CheckAndRegisterEvent(string eventName, Table env)
         {
-            DynValue handler = _scriptEngine.Globals.Get(eventName);
+            DynValue handler = env.Get(eventName);
             if (handler != null && handler.Type == DataType.Function)
             {
                 _eventHandlers[eventName] = handler;
@@ -399,7 +436,7 @@ namespace ScheduleLua
 
             try
             {
-                DynValue function = _scriptEngine.Globals.Get(functionName);
+                DynValue function = _scriptEnvironment.Get(functionName);
 
                 if (function != null && function.Type == DataType.Function)
                 {
@@ -425,13 +462,22 @@ namespace ScheduleLua
         /// </summary>
         public DynValue GetModuleExport()
         {
-            if (_scriptEngine == null)
+            if (_scriptEngine == null || _scriptEnvironment == null)
                 return DynValue.Nil;
 
             try
             {
                 string moduleName = _name;
-                return _scriptEngine.Globals.Get(moduleName + "_module");
+                // First try to get from the script's own environment
+                DynValue result = _scriptEnvironment.Get(moduleName + "_module");
+
+                // If not found in script environment, check global (for backward compatibility)
+                if (result.IsNil())
+                {
+                    result = _scriptEngine.Globals.Get(moduleName + "_module");
+                }
+
+                return result;
             }
             catch (Exception ex)
             {
@@ -448,9 +494,9 @@ namespace ScheduleLua
             return _scriptEngine;
         }
 
-        private void CheckForUpdateFunction()
+        private void CheckForUpdateFunction(Table env)
         {
-            DynValue updateFunction = _scriptEngine.Globals.Get("Update");
+            DynValue updateFunction = env.Get("Update");
             _hasUpdateFunction = updateFunction != null && updateFunction.Type == DataType.Function;
         }
     }
