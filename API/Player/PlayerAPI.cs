@@ -8,6 +8,7 @@ using ScheduleOne.PlayerScripts.Health;
 using System.Linq;
 using System.Collections.Generic;
 using ScheduleOne.DevUtilities;
+using UnityEngine.SceneManagement;
 
 namespace ScheduleLua.API
 {
@@ -28,6 +29,8 @@ namespace ScheduleLua.API
         private static PlayerMovement _playerMovement;
         private static PlayerMovement PlayerMovement => _playerMovement ??= PlayerSingleton<PlayerMovement>.Instance;
 
+        private static bool _sceneChangeListenerAdded = false;
+
         /// <summary>
         /// Registers all player-related API functions with the Lua engine
         /// </summary>
@@ -35,6 +38,13 @@ namespace ScheduleLua.API
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
+
+            // Set up scene change listener if not already done
+            if (!_sceneChangeListenerAdded)
+            {
+                SceneManager.sceneLoaded += OnSceneLoaded;
+                _sceneChangeListenerAdded = true;
+            }
 
             // Player functions
             luaEngine.Globals["GetPlayerState"] = (Func<Table>)GetPlayerState;
@@ -47,6 +57,29 @@ namespace ScheduleLua.API
             luaEngine.Globals["SetPlayerHealth"] = (Action<float>)SetPlayerHealth;
             luaEngine.Globals["GetPlayerMovementSpeed"] = (Func<float>)GetMovementSpeed;
             luaEngine.Globals["SetPlayerMovementSpeed"] = (Func<float, bool>)SetMovementSpeed;
+        }
+
+        /// <summary>
+        /// Handles scene change events and resets player references when necessary
+        /// </summary>
+        private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, LoadSceneMode mode)
+        {
+            // Reset cached references when returning to menu or changing scenes
+            if (scene.name == "Menu" || !Player || !PlayerInstance)
+            {
+                ResetPlayerReferences();
+            }
+        }
+
+        /// <summary>
+        /// Resets all cached player references
+        /// </summary>
+        public static void ResetPlayerReferences()
+        {
+            _player = null;
+            _playerInstance = null;
+            _playerHealth = null;
+            _playerMovement = null;
         }
 
         /// <summary>
@@ -385,9 +418,20 @@ namespace ScheduleLua.API
         {
             try
             {
+                // Check if we're in a scene where the player should exist
+                if (SceneManager.GetActiveScene().name == "Menu")
+                {
+                    return 0f;
+                }
+
                 var player = PlayerInstance;
                 if (player == null)
                 {
+                    // Silent fail in menu scene to avoid console spam
+                    if (SceneManager.GetActiveScene().name != "Main")
+                    {
+                        return 0f;
+                    }
                     LuaUtility.LogWarning("Player not found, returning 0");
                     return 0f;
                 }
@@ -444,9 +488,20 @@ namespace ScheduleLua.API
         {
             try
             {
+                // Check if we're in a scene where the player should exist
+                if (SceneManager.GetActiveScene().name == "Menu")
+                {
+                    return 0f;
+                }
+
                 var playerHealth = PlayerHealth;
                 if (playerHealth == null)
                 {
+                    // Silent fail in menu scene to avoid console spam
+                    if (SceneManager.GetActiveScene().name != "Main")
+                    {
+                        return 0f;
+                    }
                     LuaUtility.LogWarning("Player health component not found, returning 0");
                     return 0f;
                 }
