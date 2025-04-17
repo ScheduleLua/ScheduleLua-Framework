@@ -10,6 +10,7 @@ using ScheduleOne.PlayerScripts;
 using UnityEngine.Events;
 using MelonLoader.Utils;
 using ScheduleLua.API.Registry;
+using ScheduleLua.API.Core;
 
 // Define version constant
 [assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", ScheduleLua.Core.ModVersion, "Bars", null)]
@@ -253,7 +254,7 @@ public class Core : MelonMod
         catch (MoonSharp.Interpreter.InterpreterException luaEx)
         {
             string scriptName = Path.GetFileName(filePath);
-            LogDetailedError(luaEx, $"Error loading script {scriptName}", filePath);
+            LuaUtility.LogError($"Error loading script {scriptName}", luaEx);
         }
         catch (Exception ex)
         {
@@ -263,161 +264,6 @@ public class Core : MelonMod
             }
         }
         return false;
-    }
-
-    /// <summary>
-    /// Log detailed error information for Lua script errors
-    /// </summary>
-    private void LogDetailedError(MoonSharp.Interpreter.InterpreterException luaEx, string context, string filePath)
-    {
-        if (!_prefLogScriptErrors.Value)
-            return;
-
-        try
-        {
-            string scriptName = Path.GetFileName(filePath);
-            string scriptContent = null;
-
-            try
-            {
-                scriptContent = File.ReadAllText(filePath);
-            }
-            catch
-            {
-                // Ignore errors reading the file
-            }
-
-            string errorMessage = luaEx.DecoratedMessage;
-            LoggerInstance.Error($"{context}: {errorMessage}");
-
-            // Extract line number if possible
-            int lineNumber = -1;
-            foreach (var part in errorMessage.Split(':'))
-            {
-                if (int.TryParse(part.Trim(), out int line))
-                {
-                    lineNumber = line;
-                    break;
-                }
-            }
-
-            // Output code snippet
-            if (lineNumber > 0 && scriptContent != null)
-            {
-                string[] lines = scriptContent.Split('\n');
-                if (lineNumber <= lines.Length)
-                {
-                    LoggerInstance.Error($"Error on line {lineNumber}:");
-
-                    int startLine = Math.Max(0, lineNumber - 3);
-                    int endLine = Math.Min(lines.Length - 1, lineNumber + 2);
-
-                    for (int i = startLine; i <= endLine; i++)
-                    {
-                        string prefix = (i + 1 == lineNumber) ? ">>>" : "   ";
-                        LoggerInstance.Error($"{prefix} {i + 1}: {lines[i].TrimEnd()}");
-                    }
-                }
-            }
-
-            // Output stack trace
-            LoggerInstance.Error("Stack trace:");
-            if (luaEx.CallStack != null && luaEx.CallStack.Count > 0)
-            {
-                foreach (var frame in luaEx.CallStack)
-                {
-                    string funcName = !string.IsNullOrEmpty(frame.Name) ? frame.Name : "<anonymous>";
-                    LoggerInstance.Error($"  at {funcName} in {frame.Location}");
-                }
-            }
-            else
-            {
-                LoggerInstance.Error($"  at {scriptName}:{lineNumber}");
-            }
-
-            // Special handling for nil value errors
-            if (errorMessage.Contains("attempt to call a nil value"))
-            {
-                LoggerInstance.Error("This error occurs when trying to call a function that doesn't exist.");
-                LoggerInstance.Error("Check for:");
-                LoggerInstance.Error("1. Misspelled function names");
-                LoggerInstance.Error("2. Functions defined in the wrong scope");
-                LoggerInstance.Error("3. Missing API functions or libraries");
-
-                // Try to extract variable name
-                if (errorMessage.Contains("global '"))
-                {
-                    int start = errorMessage.IndexOf("global '") + 8;
-                    int end = errorMessage.IndexOf("'", start);
-                    if (end > start)
-                    {
-                        string varName = errorMessage.Substring(start, end - start);
-                        LoggerInstance.Error($"The undefined function appears to be: '{varName}'");
-
-                        // List available API functions that might be similar
-                        LoggerInstance.Error("Available global functions with similar names:");
-                        int matchesFound = 0;
-                        foreach (var key in _luaEngine.Globals.Keys)
-                        {
-                            string keyStr = key.ToString();
-                            if (keyStr.Contains(varName) || (varName.Length > 3 &&
-                                LevenshteinDistance(keyStr, varName) <= 3))
-                            {
-                                DynValue val = _luaEngine.Globals.Get(keyStr);
-                                LoggerInstance.Error($"  {keyStr} (type: {val.Type})");
-                                matchesFound++;
-
-                                if (matchesFound >= 5)
-                                    break;
-                            }
-                        }
-
-                        if (matchesFound == 0)
-                        {
-                            LoggerInstance.Error("  No similar function names found.");
-                        }
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            // Fallback if detailed error reporting fails
-            LoggerInstance.Error($"{context}: {luaEx.Message}");
-            LoggerInstance.Error($"Error while generating detailed error report: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Calculate Levenshtein distance between two strings (for finding similar names)
-    /// </summary>
-    private int LevenshteinDistance(string s, string t)
-    {
-        if (string.IsNullOrEmpty(s))
-            return string.IsNullOrEmpty(t) ? 0 : t.Length;
-        if (string.IsNullOrEmpty(t))
-            return s.Length;
-
-        int[] v0 = new int[t.Length + 1];
-        int[] v1 = new int[t.Length + 1];
-
-        for (int i = 0; i < v0.Length; i++)
-            v0[i] = i;
-
-        for (int i = 0; i < s.Length; i++)
-        {
-            v1[0] = i + 1;
-            for (int j = 0; j < t.Length; j++)
-            {
-                int cost = s[i] == t[j] ? 0 : 1;
-                v1[j + 1] = Math.Min(Math.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
-            }
-
-            for (int j = 0; j < v0.Length; j++)
-                v0[j] = v1[j];
-        }
-
-        return v1[t.Length];
     }
 
     private void InitializeScripts()

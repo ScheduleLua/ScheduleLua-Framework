@@ -6,6 +6,7 @@ using MoonSharp.Interpreter;
 using Console = ScheduleOne.Console;
 using UnityEngine.SceneManagement;
 using ScheduleOne.PlayerScripts;
+using ScheduleLua.API.Core;
 
 namespace ScheduleLua.API.Registry
 {
@@ -64,20 +65,20 @@ namespace ScheduleLua.API.Registry
         {
             if (string.IsNullOrWhiteSpace(commandName))
             {
-                _logger.Error("Cannot register command: Command name is empty");
+                LuaUtility.LogError("Cannot register command: Command name is empty");
                 return;
             }
 
             if (callback == null)
             {
-                _logger.Error($"Cannot register command '{commandName}': Callback is null");
+                LuaUtility.LogError($"Cannot register command '{commandName}': Callback is null");
                 return;
             }
 
             // Check if the console is ready by checking Core's _consoleReadyTriggered flag
             if (!ScheduleLua.Core.Instance._consoleReadyTriggered)
             {
-                _logger.Error($"Cannot register command '{commandName}' because Console is not yet ready. " +
+                LuaUtility.LogError($"Cannot register command '{commandName}' because Console is not yet ready. " +
                              "Please register commands only after the OnConsoleReady event fires to avoid conflicts with native game commands.");
                 return;
             }
@@ -85,7 +86,7 @@ namespace ScheduleLua.API.Registry
             // Check if we're in the Menu scene or if the player isn't ready yet
             if (SceneManager.GetActiveScene().name == "Menu")
             {
-                _logger.Error($"Cannot register command '{commandName}' during Menu scene. " +
+                LuaUtility.LogError($"Cannot register command '{commandName}' during Menu scene. " +
                              "Please register commands after OnConsoleReady to avoid conflicts.");
                 return;
             }
@@ -98,7 +99,7 @@ namespace ScheduleLua.API.Registry
             }
             else
             {
-                _logger.Error($"Failed to access Console commands dictionary. Command '{commandName}' may not function properly.");
+                LuaUtility.LogError($"Failed to access Console commands dictionary. Command '{commandName}' may not function properly.");
                 return;
             }
 
@@ -220,7 +221,7 @@ namespace ScheduleLua.API.Registry
         {
             if (string.IsNullOrWhiteSpace(commandName))
             {
-                _logger.Error("Cannot unregister command: Command name is empty");
+                LuaUtility.LogError("Cannot unregister command: Command name is empty");
                 return;
             }
 
@@ -317,14 +318,14 @@ namespace ScheduleLua.API.Registry
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Error executing Lua command '{_commandWord}': {ex.Message}");
+                    LuaUtility.LogError($"Error executing Lua command '{_commandWord}': {ex.Message}");
                     if (ex is InterpreterException luaEx)
                     {
-                        _logger.Error(luaEx.DecoratedMessage);
+                        LuaUtility.LogError(luaEx.DecoratedMessage);
                     }
                     else
                     {
-                        _logger.Error(ex.StackTrace);
+                        LuaUtility.LogError(ex.StackTrace);
                     }
                 }
             }

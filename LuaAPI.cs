@@ -33,6 +33,9 @@ namespace ScheduleLua
     public class LuaAPI
     {
         private static MelonLogger.Instance _logger => Core.Instance.LoggerInstance;
+        
+        // Store a reference to the Lua engine
+        private static Script _luaEngine;
 
         // Dictionary to cache loaded modules
         private static Dictionary<string, DynValue> _loadedModules = new Dictionary<string, DynValue>();
@@ -44,6 +47,9 @@ namespace ScheduleLua
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
+                
+            // Store the engine reference for later use
+            _luaEngine = luaEngine;
 
             // Expose mod version to Lua
             luaEngine.Globals["SCHEDULELUA_VERSION"] = Core.ModVersion;
@@ -405,6 +411,20 @@ namespace ScheduleLua
 
         public static void LogError(string message)
         {
+            // Forward to the enhanced error logging method in LuaUtility
+            // This will get the current exception if we're in an error handler
+            try {
+                var currentError = _luaEngine.GetDebugger().GetErrorSource();
+                if (currentError != null && currentError is MoonSharp.Interpreter.InterpreterException luaEx)
+                {
+                    API.Core.LuaUtility.LogError(message, luaEx);
+                    return;
+                }
+            } catch {
+                // Ignore any errors trying to get the current exception
+            }
+            
+            // Fall back to basic error logging
             _logger.Error($"[Lua] {message}");
         }
 

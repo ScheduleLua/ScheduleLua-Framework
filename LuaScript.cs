@@ -179,14 +179,18 @@ namespace ScheduleLua
                 }
             }
 
-            // Print stack trace
+            // Print stack trace with function names
             _logger.Error("Stack trace:");
             if (luaEx.CallStack != null && luaEx.CallStack.Count > 0)
             {
+                bool firstFrame = true;
                 foreach (var frame in luaEx.CallStack)
                 {
                     string funcName = !string.IsNullOrEmpty(frame.Name) ? frame.Name : "<anonymous>";
-                    _logger.Error($"  at {funcName} in {frame.Location}");
+                    string location = frame.Location != null ? frame.Location.ToString() : "<unknown location>";
+                    string highlight = firstFrame ? "[ERROR HERE] " : "";
+                    _logger.Error($"  {highlight}at {funcName} in {location}");
+                    firstFrame = false;
                 }
             }
             else
@@ -194,7 +198,7 @@ namespace ScheduleLua
                 _logger.Error($"  at {_name}:{lineNumber}");
             }
 
-            // Provide additional context for nil value errors
+            // Provide additional context for different error types
             if (errorMessage.Contains("attempt to call a nil value"))
             {
                 _logger.Error("This error occurs when trying to call a function that doesn't exist.");
@@ -216,6 +220,117 @@ namespace ScheduleLua
                     }
                 }
             }
+            else if (errorMessage.Contains("attempt to index a nil value"))
+            {
+                _logger.Error("This error occurs when trying to access a field or method on a variable that is nil (undefined).");
+                _logger.Error("Check for:");
+                _logger.Error("1. Misspelled variable or table names");
+                _logger.Error("2. Variables that were never assigned a value");
+                _logger.Error("3. API objects that failed to initialize");
+                _logger.Error("4. Using a variable before it's defined or assigned");
+                
+                // Try to extract the variable name from the error
+                if (errorMessage.Contains("'"))
+                {
+                    int startIndex = errorMessage.IndexOf("'") + 1;
+                    int endIndex = errorMessage.IndexOf("'", startIndex);
+                    if (endIndex > startIndex)
+                    {
+                        string varName = errorMessage.Substring(startIndex, endIndex - startIndex);
+                        _logger.Error($"The nil variable appears to be: '{varName}'");
+                    }
+                }
+            }
+            else if (errorMessage.Contains("attempt to perform arithmetic on"))
+            {
+                _logger.Error("This error occurs when trying to use a nil or non-number value in a math operation.");
+                _logger.Error("Check for:");
+                _logger.Error("1. Variables that were never assigned a value");
+                _logger.Error("2. Functions that may return nil instead of a number");
+                _logger.Error("3. String values being used in arithmetic (use tonumber() to convert)");
+                
+                // Try to extract the problematic type
+                if (errorMessage.Contains("on a"))
+                {
+                    int startIndex = errorMessage.IndexOf("on a") + 4;
+                    int endIndex = errorMessage.IndexOf(" value", startIndex);
+                    if (endIndex > startIndex)
+                    {
+                        string typeName = errorMessage.Substring(startIndex, endIndex - startIndex);
+                        _logger.Error($"The problematic type is: '{typeName}'");
+                    }
+                }
+            }
+            else if (errorMessage.Contains("attempt to concatenate"))
+            {
+                _logger.Error("This error occurs when trying to concatenate (join) strings with invalid value types.");
+                _logger.Error("Check for:");
+                _logger.Error("1. Using nil values in string concatenation");
+                _logger.Error("2. Using non-string/non-number values in concatenation");
+                _logger.Error("3. Use tostring() to safely convert values to strings before concatenation");
+                
+                // Try to extract the problematic type
+                if (errorMessage.Contains("a"))
+                {
+                    int startIndex = errorMessage.IndexOf("a") + 1;
+                    int endIndex = errorMessage.IndexOf(" value", startIndex);
+                    if (endIndex > startIndex)
+                    {
+                        string typeName = errorMessage.Substring(startIndex, endIndex - startIndex);
+                        _logger.Error($"Attempted to concatenate with a'{typeName}' value");
+                    }
+                }
+            }
+            else if (errorMessage.Contains("bad argument"))
+            {
+                _logger.Error("This error occurs when a function receives an argument of the wrong type.");
+                _logger.Error("Check for:");
+                _logger.Error("1. Incorrect parameter order in function calls");
+                _logger.Error("2. Missing required parameters");
+                _logger.Error("3. Passing wrong data types to function parameters");
+                
+                // Try to extract expected type
+                if (errorMessage.Contains("expected"))
+                {
+                    int startIndex = errorMessage.IndexOf("expected") + 9;
+                    int endIndex = errorMessage.IndexOf(" ", startIndex);
+                    if (endIndex > startIndex)
+                    {
+                        string expectedType = errorMessage.Substring(startIndex, endIndex - startIndex);
+                        _logger.Error($"The function expected a '{expectedType}' type argument");
+                        
+                        if (expectedType == "number")
+                        {
+                            _logger.Error("Tip: Use tonumber() to convert strings to numbers");
+                        }
+                        else if (expectedType == "string")
+                        {
+                            _logger.Error("Tip: Use tostring() to convert values to strings");
+                        }
+                    }
+                }
+            }
+            else if (errorMessage.Contains("attempt to call a"))
+            {
+                _logger.Error("This error occurs when trying to call something that is not a function.");
+                _logger.Error("Check for:");
+                _logger.Error("1. Variable containing a value that is not a function");
+                _logger.Error("2. Syntax errors in function definitions");
+                _logger.Error("3. Table access instead of method call (use : instead of .)");
+                
+                // Try to extract the problematic type
+                if (errorMessage.Contains("call a"))
+                {
+                    int startIndex = errorMessage.IndexOf("call a") + 6;
+                    int endIndex = errorMessage.IndexOf(" value", startIndex);
+                    if (endIndex > startIndex)
+                    {
+                        string typeName = errorMessage.Substring(startIndex, endIndex - startIndex);
+                        _logger.Error($"Attempted to call a '{typeName}' value, which is not a function");
+                    }
+                }
+            }
+            // Add more error type handlers here for other common Lua errors
         }
 
         /// <summary>

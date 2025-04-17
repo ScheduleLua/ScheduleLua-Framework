@@ -942,4 +942,5 @@ This project is licensed under the GPL-3.0 License - see the LICENSE file for de
 - [MelonLoader](https://melonwiki.xyz/#/) for the mod loader
 - [MoonSharp](https://www.moonsharp.org/) for the Lua interpreter
 - [TVGS](https://scheduleonegame.com/) for making Schedule 1
+- nica.0355 For their contributions to adding more lua bindings
 - All contributors and the modding community
