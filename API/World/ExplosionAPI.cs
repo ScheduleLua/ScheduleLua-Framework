@@ -18,8 +18,6 @@ namespace ScheduleLua.API.World
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
 
-            LuaUtility.Log("✅ Registering Explosion API");
-
             luaEngine.Globals["TriggerExplosion"] = (Action<DynValue, float>)((pos, seconds) =>
             {
                 if (pos.Type != DataType.Table)
@@ -36,23 +34,20 @@ namespace ScheduleLua.API.World
 
                 MelonLoader.MelonCoroutines.Start(DelayedExplosion(position, seconds));
             });
-
-            LuaUtility.Log("✅ Explosion API registered.");
         }
 
         private static IEnumerator DelayedExplosion(Vector3 position, float seconds)
         {
-            LuaUtility.Log($"⏳ Delayed explosion in {seconds} seconds at {position}");
             yield return new WaitForSeconds(seconds);
 
             if (InstanceFinder.IsServer)
             {
-                LuaUtility.Log($"💥 Explosion triggered at {position}");
+                LuaUtility.Log($"Explosion triggered at {position}");
                 NetworkSingleton<CombatManager>.Instance.CreateExplosion(position, ExplosionData.DefaultSmall);
             }
             else
             {
-                LuaUtility.LogWarning("⚠️ Not on server — cannot trigger explosion");
+                LuaUtility.LogWarning("Not on server — cannot trigger explosion");
             }
         }
     }
