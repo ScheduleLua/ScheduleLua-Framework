@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using MoonSharp.Interpreter;
-using ScheduleOne;
 using ScheduleOne.Map;
 using ScheduleLua.API.Core;
 using ScheduleOne.NPCs;
@@ -14,8 +11,8 @@ namespace ScheduleLua.API.NPC
     /// </summary>
     public static class NPCAPI
     {
-        private static ScheduleOne.NPCs.NPCManager _npcManager;
-        private static ScheduleOne.NPCs.NPCManager NPCManager => _npcManager ??= ScheduleOne.NPCs.NPCManager.Instance;
+        private static NPCManager _npcManager;
+        private static NPCManager NPCManager => _npcManager ??= NPCManager.Instance;
 
         /// <summary>
         /// Registers all NPC-related API functions with the Lua engine
@@ -35,6 +32,9 @@ namespace ScheduleLua.API.NPC
             luaEngine.Globals["GetAllNPCs"] = (Func<Table>)GetAllNPCs;
             luaEngine.Globals["GetAllNPCRegions"] = (Func<Table>)GetAllNPCRegions;
             luaEngine.Globals["IsNPCInRegion"] = (Func<string, string, bool>)IsNPCInRegion;
+
+            // NPC Type functions
+            luaEngine.Globals["GetNPCType"] = (Func<string, string>)GetNPCType;
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace ScheduleLua.API.NPC
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Gets an NPC by ID and wraps it in an NPCProxy for Lua compatibility
         /// </summary>
@@ -72,7 +72,7 @@ namespace ScheduleLua.API.NPC
             var npc = GetNPC(npcId);
             if (npc == null)
                 return null;
-                
+
             return new NPCProxy(npc);
         }
 
@@ -362,6 +362,31 @@ namespace ScheduleLua.API.NPC
             {
                 LuaUtility.LogError("Error getting NPC regions", ex);
                 return LuaUtility.CreateTable();
+            }
+        }
+
+        /// <summary>
+        /// Returns the type name of an NPC
+        /// </summary>
+        /// <param name="npcId">The ID of the NPC</param>
+        /// <returns>The NPC type name or empty string if not found</returns>
+        public static string GetNPCType(string npcId)
+        {
+            try
+            {
+                var npc = NPCManager.GetNPC(npcId);
+                if (npc == null)
+                {
+                    LuaUtility.LogError($"❌ NPC '{npcId}' not found.");
+                    return string.Empty;
+                }
+
+                return npc.GetType().Name;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError($"❌ Error getting NPC type: {ex.Message}");
+                return string.Empty;
             }
         }
     }

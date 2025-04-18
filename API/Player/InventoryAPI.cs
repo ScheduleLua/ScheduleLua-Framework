@@ -1,10 +1,13 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using MoonSharp.Interpreter;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.ItemFramework;
 using ScheduleLua.API.Core;
+using ScheduleOne.Storage;
+using ScheduleOne;
+using ScheduleOne.Product;
 
 namespace ScheduleLua.API.Player
 {
@@ -21,8 +24,15 @@ namespace ScheduleLua.API.Player
             // Inventory functions
             luaEngine.Globals["GetInventorySlotCount"] = (Func<int>)GetInventorySlotCount;
             luaEngine.Globals["GetInventoryItemAt"] = (Func<int, string>)GetInventoryItemAt;
-            luaEngine.Globals["AddItemToInventory"] = (Func<string, int, bool>)AddItemToInventory;
+            luaEngine.Globals["AddItemToInventory"] = (Action<string, int>)AddItemToInventory;
             luaEngine.Globals["RemoveItemFromInventory"] = (Func<string, int, bool>)RemoveItemFromInventory;
+
+            // Equipped item functions
+            luaEngine.Globals["IsItemEquipped"] = (Func<bool>)IsItemEquipped;
+            luaEngine.Globals["GetEquippedItemName"] = (Func<string>)GetEquippedItemName;
+            luaEngine.Globals["GetEquippedItemAmount"] = (Func<int>)GetEquippedItemAmount;
+            luaEngine.Globals["GetEquippedWeaponAmmo"] = (Func<int>)GetEquippedWeaponAmmo;
+            luaEngine.Globals["SetEquippedWeaponAmmo"] = (Func<int, bool>)SetEquippedWeaponAmmo;
         }
 
         /// <summary>
@@ -61,20 +71,42 @@ namespace ScheduleLua.API.Player
         /// </summary>
         /// <param name="itemName">The name of the item to add</param>
         /// <param name="amount">The amount of the item to add</param>
-        /// <returns>True if the item was added successfully, false otherwise</returns>
-        public static bool AddItemToInventory(string itemName, int amount = 1)
+        public static void AddItemToInventory(string itemName, int amount = 1)
         {
+            if (string.IsNullOrEmpty(itemName))
+            {
+                LuaUtility.LogError($"❌ Invalid or unknown item: '{itemName}'.");
+                return;
+            }
+
+            if (amount <= 0) amount = 1;
+
             try
             {
-                // This is a simplified implementation - would need to be expanded
-                // to find the item definition by name and add it properly
-                LuaUtility.LogWarning("AddItemToInventory not fully implemented yet");
-                return false;
+                var itemDef = ScheduleOne.Registry.GetItem(itemName);
+                if (itemDef == null)
+                {
+                    LuaUtility.LogError($"❌ Item definition for '{itemName}' could not be found.");
+                    return;
+                }
+
+                ItemInstance itemInstance;
+
+                if (itemDef is ProductDefinition productDef)
+                {
+                    itemInstance = new ProductItemInstance(productDef, amount, EQuality.Standard);
+                }
+                else
+                {
+                    itemInstance = new StorableItemInstance(itemDef, amount);
+                }
+
+                PlayerInventory.Instance.AddItemToInventory(itemInstance);
+                LuaUtility.Log($"🎁 Added {amount}x {itemName} to inventory.");
             }
             catch (Exception ex)
             {
                 LuaUtility.LogError("Error adding item to inventory", ex);
-                return false;
             }
         }
 
@@ -97,6 +129,50 @@ namespace ScheduleLua.API.Player
                 LuaUtility.LogError("Error removing item from inventory", ex);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Checks if the player has an item equipped
+        /// </summary>
+        /// <returns>True if any item is equipped, false otherwise</returns>
+        public static bool IsItemEquipped() => PlayerInventory.Instance?.isAnythingEquipped ?? false;
+
+        /// <summary>
+        /// Gets the name of the currently equipped item
+        /// </summary>
+        /// <returns>The name of the equipped item or an empty string if no item is equipped</returns>
+        public static string GetEquippedItemName() => PlayerInventory.Instance?.equippedSlot?.ItemInstance?.Name ?? string.Empty;
+
+        /// <summary>
+        /// Gets the quantity of the currently equipped item
+        /// </summary>
+        /// <returns>The quantity of the equipped item or 0 if no item is equipped</returns>
+        public static int GetEquippedItemAmount() => PlayerInventory.Instance?.equippedSlot?.ItemInstance?.Quantity ?? 0;
+
+        /// <summary>
+        /// Gets the ammo count of the currently equipped weapon
+        /// </summary>
+        /// <returns>The ammo count for the equipped weapon or 0 if no weapon is equipped</returns>
+        public static int GetEquippedWeaponAmmo()
+        {
+            var equipped = PlayerInventory.Instance?.equippedSlot?.ItemInstance;
+            return equipped is IntegerItemInstance rangedWeapon ? rangedWeapon.Value : 0;
+        }
+
+        /// <summary>
+        /// Sets the ammo count for the currently equipped weapon
+        /// </summary>
+        /// <param name="amount">The amount of ammo to set</param>
+        /// <returns>True if the ammo was set successfully, false if no ranged weapon is equipped</returns>
+        public static bool SetEquippedWeaponAmmo(int amount)
+        {
+            var equipped = PlayerInventory.Instance?.equippedSlot?.ItemInstance;
+            if (equipped is IntegerItemInstance rangedWeapon)
+            {
+                rangedWeapon.Value = amount;
+                return true;
+            }
+            return false;
         }
     }
 }

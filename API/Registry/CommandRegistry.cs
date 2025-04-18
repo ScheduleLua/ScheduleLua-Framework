@@ -318,15 +318,7 @@ namespace ScheduleLua.API.Registry
                 }
                 catch (Exception ex)
                 {
-                    LuaUtility.LogError($"Error executing Lua command '{_commandWord}': {ex.Message}");
-                    if (ex is InterpreterException luaEx)
-                    {
-                        LuaUtility.LogError(luaEx.DecoratedMessage);
-                    }
-                    else
-                    {
-                        LuaUtility.LogError(ex.StackTrace);
-                    }
+                    LuaUtility.LogError($"Error executing Lua command '{_commandWord}'", ex);
                 }
             }
         }

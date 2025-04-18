@@ -228,7 +228,7 @@ namespace ScheduleLua
                 _logger.Error("2. Variables that were never assigned a value");
                 _logger.Error("3. API objects that failed to initialize");
                 _logger.Error("4. Using a variable before it's defined or assigned");
-                
+
                 // Try to extract the variable name from the error
                 if (errorMessage.Contains("'"))
                 {
@@ -248,7 +248,7 @@ namespace ScheduleLua
                 _logger.Error("1. Variables that were never assigned a value");
                 _logger.Error("2. Functions that may return nil instead of a number");
                 _logger.Error("3. String values being used in arithmetic (use tonumber() to convert)");
-                
+
                 // Try to extract the problematic type
                 if (errorMessage.Contains("on a"))
                 {
@@ -268,7 +268,7 @@ namespace ScheduleLua
                 _logger.Error("1. Using nil values in string concatenation");
                 _logger.Error("2. Using non-string/non-number values in concatenation");
                 _logger.Error("3. Use tostring() to safely convert values to strings before concatenation");
-                
+
                 // Try to extract the problematic type
                 if (errorMessage.Contains("a"))
                 {
@@ -288,7 +288,7 @@ namespace ScheduleLua
                 _logger.Error("1. Incorrect parameter order in function calls");
                 _logger.Error("2. Missing required parameters");
                 _logger.Error("3. Passing wrong data types to function parameters");
-                
+
                 // Try to extract expected type
                 if (errorMessage.Contains("expected"))
                 {
@@ -298,7 +298,7 @@ namespace ScheduleLua
                     {
                         string expectedType = errorMessage.Substring(startIndex, endIndex - startIndex);
                         _logger.Error($"The function expected a '{expectedType}' type argument");
-                        
+
                         if (expectedType == "number")
                         {
                             _logger.Error("Tip: Use tonumber() to convert strings to numbers");
@@ -317,7 +317,7 @@ namespace ScheduleLua
                 _logger.Error("1. Variable containing a value that is not a function");
                 _logger.Error("2. Syntax errors in function definitions");
                 _logger.Error("3. Table access instead of method call (use : instead of .)");
-                
+
                 // Try to extract the problematic type
                 if (errorMessage.Contains("call a"))
                 {

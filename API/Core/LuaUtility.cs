@@ -182,7 +182,7 @@ namespace ScheduleLua.API.Core
                             {
                                 string keyStr = key.ToString();
                                 if (keyStr.Contains(varName) || (varName.Length > 3 &&
-                                    SMT.Calculate(keyStr, varName) <= 3))
+                                    SMT.Check(keyStr, varName, false) <= 3))
                                 {
                                     DynValue val = _luaEngine.Globals.Get(keyStr);
                                     LoggerInstance.Error($"  {keyStr} (type: {val.Type})");

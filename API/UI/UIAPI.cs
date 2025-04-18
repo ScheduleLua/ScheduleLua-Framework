@@ -1,6 +1,4 @@
 using MelonLoader;
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 using MoonSharp.Interpreter;
 using ScheduleOne.UI;
@@ -8,8 +6,8 @@ using ScheduleOne.UI.Tooltips;
 using ScheduleOne.UI.Phone;
 using ScheduleOne.UI.Items;
 using ScheduleOne.Dialogue;
-using ScheduleLua.API.Core;
-using System.Linq;
+using System.Reflection;
+using ScheduleOne.NPCs;
 
 namespace ScheduleLua.API.UI
 {
@@ -90,6 +88,9 @@ namespace ScheduleLua.API.UI
             luaEngine.Globals["ShowDialogueWithTimeout"] = (Action<string, string, float>)ShowDialogueWithTimeout;
             luaEngine.Globals["ShowChoiceDialogue"] = (Action<string, string, Table, DynValue>)ShowChoiceDialogue;
             luaEngine.Globals["CloseDialogue"] = (Action)CloseDialogue;
+            luaEngine.Globals["SetCustomerDialogue"] = (Action<string, string>)SetCustomerDialogue;
+            luaEngine.Globals["SetDealerDialogue"] = (Action<string, string>)SetDealerDialogue;
+            luaEngine.Globals["SetShopDialogue"] = (Action<string, string>)SetShopDialogue;
 
             // Register UI Style functions
             luaEngine.Globals["SetWindowStyle"] = (Action<string, float, float, float, float>)SetWindowStyle;
@@ -1321,6 +1322,149 @@ namespace ScheduleLua.API.UI
             {
                 _logger.Error($"Error in CloseDialogue: {ex.Message}");
                 _logger.Error(ex.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// Sets dialogue text for a Customer NPC
+        /// </summary>
+        /// <param name="npcId">The ID of the NPC</param>
+        /// <param name="newText">The new dialogue text</param>
+        public static void SetCustomerDialogue(string npcId, string newText)
+        {
+            try
+            {
+                var npc = NPCManager.GetNPC(npcId);
+                if (npc == null)
+                {
+                    _logger.Error($"❌ NPC '{npcId}' not found.");
+                    return;
+                }
+
+                // Check if the NPC is a Customer
+                if (npc.GetType().Name == "Customer")
+                {
+                    var sampleChoiceField = npc.GetType().GetField("sampleChoice", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (sampleChoiceField == null)
+                    {
+                        _logger.Error($"❌ '{npcId}' has no sampleChoice field (not a Customer?).");
+                        return;
+                    }
+
+                    var sampleChoice = sampleChoiceField.GetValue(npc);
+                    if (sampleChoice != null)
+                    {
+                        var choiceTextProp = sampleChoice.GetType().GetProperty("ChoiceText");
+                        choiceTextProp?.SetValue(sampleChoice, newText);
+                        _logger.Msg($"✅ Updated customer dialogue for '{npcId}' to '{newText}'");
+                    }
+                }
+                else
+                {
+                    _logger.Error($"❌ '{npcId}' is not a Customer. Unable to set customer dialogue.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"❌ Error setting customer dialogue: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets dialogue text for a Dealer NPC
+        /// </summary>
+        /// <param name="npcId">The ID of the NPC</param>
+        /// <param name="newText">The new dialogue text</param>
+        public static void SetDealerDialogue(string npcId, string newText)
+        {
+            try
+            {
+                var npc = NPCManager.GetNPC(npcId);
+                if (npc == null)
+                {
+                    _logger.Error($"❌ NPC '{npcId}' not found.");
+                    return;
+                }
+
+                // Check if the NPC is a Dealer
+                if (npc.GetType().Name == "Dealer")
+                {
+                    var recruitField = npc.GetType().GetField("recruitChoice", BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (recruitField == null)
+                    {
+                        _logger.Error($"❌ '{npcId}' has no recruitChoice field (not a Dealer?).");
+                        return;
+                    }
+
+                    var recruitChoice = recruitField.GetValue(npc);
+                    if (recruitChoice != null)
+                    {
+                        var choiceTextProp = recruitChoice.GetType().GetProperty("ChoiceText");
+                        choiceTextProp?.SetValue(recruitChoice, newText);
+                        _logger.Msg($"✅ Updated dealer dialogue for '{npcId}' to '{newText}'");
+                    }
+                }
+                else
+                {
+                    _logger.Error($"❌ '{npcId}' is not a Dealer. Unable to set dealer dialogue.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"❌ Error setting dealer dialogue: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets dialogue text for a ShopWorker NPC
+        /// </summary>
+        /// <param name="npcId">The ID of the NPC</param>
+        /// <param name="newText">The new dialogue text</param>
+        public static void SetShopDialogue(string npcId, string newText)
+        {
+            try
+            {
+                var npc = NPCManager.GetNPC(npcId);
+                if (npc == null)
+                {
+                    _logger.Error($"❌ NPC '{npcId}' not found.");
+                    return;
+                }
+
+                // Check if the NPC is a Shop Worker
+                if (npc.GetType().Name == "ShopWorker")
+                {
+                    var controller = npc.GetComponent<DialogueController>();
+                    if (controller != null)
+                    {
+                        var field = controller.GetType().GetField("dialogueChoices", BindingFlags.Instance | BindingFlags.NonPublic);
+                        if (field != null)
+                        {
+                            var choices = (List<DialogueChoiceData>)field.GetValue(controller);
+                            if (choices != null && choices.Count > 0)
+                            {
+                                choices[0].ChoiceText = newText;
+                                _logger.Msg($"✅ Updated shop dialogue for '{npcId}' to '{newText}'");
+                            }
+                        }
+                        else
+                        {
+                            _logger.Error($"❌ Could not locate shop choice list for '{npcId}'.");
+                        }
+                    }
+                    else
+                    {
+                        _logger.Error($"❌ DialogueController not found for '{npcId}'.");
+                    }
+                }
+                else
+                {
+                    _logger.Error($"❌ '{npcId}' is not a Shop Worker. Unable to set shop dialogue.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"❌ Error setting shop dialogue: {ex.Message}");
             }
         }
 

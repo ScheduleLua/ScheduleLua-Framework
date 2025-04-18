@@ -1,13 +1,6 @@
 using MelonLoader;
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 using MoonSharp.Interpreter;
-using ScheduleOne.PlayerScripts;
-using ScheduleOne.GameTime;
-using ScheduleOne.ItemFramework;
-using ScheduleOne.Management;
-using ScheduleOne.NPCs;
 using ScheduleLua.API.Core;
 using ScheduleLua.API.Scene;
 using ScheduleLua.API.NPC;
@@ -17,13 +10,10 @@ using ScheduleLua.API.UI;
 using ScheduleLua.API.Economy;
 using ScheduleLua.API;
 using System.Collections;
-using System.IO;
 using MelonLoader.Utils;
 using ScheduleLua.API.Windows;
 using ScheduleLua.API.Player;
 using ScheduleLua.API.World;
-using ScheduleLua.API.Mods;
-using System.Linq;
 
 namespace ScheduleLua
 {
@@ -33,9 +23,6 @@ namespace ScheduleLua
     public class LuaAPI
     {
         private static MelonLogger.Instance _logger => Core.Instance.LoggerInstance;
-        
-        // Store a reference to the Lua engine
-        private static Script _luaEngine;
 
         // Dictionary to cache loaded modules
         private static Dictionary<string, DynValue> _loadedModules = new Dictionary<string, DynValue>();
@@ -47,9 +34,6 @@ namespace ScheduleLua
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
-                
-            // Store the engine reference for later use
-            _luaEngine = luaEngine;
 
             // Expose mod version to Lua
             luaEngine.Globals["SCHEDULELUA_VERSION"] = Core.ModVersion;
@@ -84,6 +68,7 @@ namespace ScheduleLua
 
             // Register Law/Curfew API
             CurfewManagerAPI.RegisterAPI(luaEngine);
+            LawAPI.RegisterAPI(luaEngine);
 
             // Register UI API
             UIAPI.RegisterAPI(luaEngine);
@@ -111,6 +96,9 @@ namespace ScheduleLua
 
             // Register Windows API
             WindowsAPI.RegisterAPI(luaEngine);
+
+            // Register Explosion API
+            ExplosionAPI.RegisterAPI(luaEngine);
 
             // Note: Mods API is registered in Core.cs after mod manager is initialized
 
@@ -411,20 +399,6 @@ namespace ScheduleLua
 
         public static void LogError(string message)
         {
-            // Forward to the enhanced error logging method in LuaUtility
-            // This will get the current exception if we're in an error handler
-            try {
-                var currentError = _luaEngine.GetDebugger().GetErrorSource();
-                if (currentError != null && currentError is MoonSharp.Interpreter.InterpreterException luaEx)
-                {
-                    API.Core.LuaUtility.LogError(message, luaEx);
-                    return;
-                }
-            } catch {
-                // Ignore any errors trying to get the current exception
-            }
-            
-            // Fall back to basic error logging
             _logger.Error($"[Lua] {message}");
         }
 
