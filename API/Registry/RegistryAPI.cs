@@ -297,35 +297,59 @@ namespace ScheduleLua.API.Registry
             try
             {
                 // Use reflection to access the private ItemRegistry field
-                var itemRegistryField = registry.GetType().GetField("ItemRegistry", 
-                    System.Reflection.BindingFlags.NonPublic | 
+                var itemRegistryField = registry.GetType().GetField("ItemRegistry",
+                    System.Reflection.BindingFlags.NonPublic |
                     System.Reflection.BindingFlags.Instance);
-                
+
                 if (itemRegistryField != null)
                 {
-                    var itemRegistry = itemRegistryField.GetValue(registry) as System.Collections.Generic.Dictionary<string, ItemDefinition>;
-                    
+                    // ItemRegistry is a List<ItemRegister>, not a Dictionary
+                    var itemRegistry = itemRegistryField.GetValue(registry);
+
                     if (itemRegistry != null)
                     {
-                        foreach (var item in itemRegistry.Values)
+                        // Get the type of the List
+                        Type listType = itemRegistry.GetType();
+
+                        // Get Count property
+                        var countProperty = listType.GetProperty("Count");
+                        int count = (int)countProperty.GetValue(itemRegistry);
+
+                        _logger.Msg($"Found {count} items in ItemRegistry");
+
+                        // Iterate through the list
+                        for (int i = 0; i < count; i++)
                         {
-                            if (item != null)
+                            // Get item at index i
+                            var indexer = listType.GetMethod("get_Item");
+                            var itemRegister = indexer.Invoke(itemRegistry, new object[] { i });
+
+                            // Get Definition property from ItemRegister
+                            var itemRegisterType = itemRegister.GetType();
+                            var definitionField = itemRegisterType.GetField("Definition");
+
+                            if (definitionField != null)
                             {
-                                items.Add(item);
+                                var itemDefinition = definitionField.GetValue(itemRegister) as ItemDefinition;
+
+                                if (itemDefinition != null)
+                                {
+                                    items.Add(itemDefinition);
+                                }
                             }
                         }
-                        
+
                         _logger.Msg($"Successfully retrieved {items.Count} items from ItemRegistry via reflection");
                     }
                     else
                     {
-                        _logger.Error("ItemRegistry field is not a Dictionary<string, ItemDefinition>");
+                        _logger.Error("ItemRegistry field value is null");
                     }
                 }
                 else
                 {
                     _logger.Error("Failed to find ItemRegistry field via reflection");
-                    
+
                     // Fallback method - try to get at least some known items
                     var cashItem = ScheduleOne.Registry.GetItem("cash");
                     if (cashItem != null)

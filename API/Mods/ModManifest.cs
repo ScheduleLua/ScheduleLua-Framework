@@ -39,7 +39,7 @@ namespace ScheduleLua.API.Mods
         public string Main { get; set; } = "init.lua";
 
         /// <summary>
-        /// List of additional script files to load
+        /// List of additional script files to register events on
         /// </summary>
         [JsonProperty("files")]
         public List<string> Files { get; set; } = new List<string>();
@@ -62,4 +62,4 @@ namespace ScheduleLua.API.Mods
         [JsonProperty("api_version")]
         public string ApiVersion { get; set; }
     }
-} 
+}

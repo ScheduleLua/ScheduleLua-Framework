@@ -160,6 +160,11 @@ namespace ScheduleLua.API.Windows
             // Register key press functions
             luaEngine.Globals["IsKeyDown"] = (Func<string, bool>)IsKeyDown;
             luaEngine.Globals["IsKeyPressed"] = (Func<string, bool>)IsKeyPressed;
+
+            // Register screen functions
+            luaEngine.Globals["GetScreenWidth"] = (Func<int>)GetScreenWidth;
+            luaEngine.Globals["GetScreenHeight"] = (Func<int>)GetScreenHeight;
+            luaEngine.Globals["GetScreenResolution"] = (Func<Tuple<int, int>>)GetScreenResolution;
         }
 
         // ---------------------------
@@ -225,6 +230,58 @@ namespace ScheduleLua.API.Windows
             {
                 LuaUtility.LogError("Error in IsKeyPressed", ex);
                 return false;
+            }
+        }
+
+        // ---------------------------
+        // Screen Resolution Functions
+        // ---------------------------
+
+        /// <summary>
+        /// Gets the screen width in pixels
+        /// </summary>
+        public static int GetScreenWidth()
+        {
+            try
+            {
+                return Screen.width;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error in GetScreenWidth", ex);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets the screen height in pixels
+        /// </summary>
+        public static int GetScreenHeight()
+        {
+            try
+            {
+                return Screen.height;
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error in GetScreenHeight", ex);
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets both screen width and height as a tuple
+        /// </summary>
+        public static Tuple<int, int> GetScreenResolution()
+        {
+            try
+            {
+                return new Tuple<int, int>(Screen.width, Screen.height);
+            }
+            catch (Exception ex)
+            {
+                LuaUtility.LogError("Error in GetScreenResolution", ex);
+                return new Tuple<int, int>(0, 0);
             }
         }
     }

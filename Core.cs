@@ -467,7 +467,7 @@ public class Core : MelonMod
         _modManager.UpdateMods();
 
         // Only monitor player health and energy if the flag is set
-        if (_isMonitoring)
+        if (_isMonitoring && _playerReadyTriggered && Player.Local != null)
         {
             // Check health
             float currentHealth = API.PlayerAPI.GetPlayerHealth();

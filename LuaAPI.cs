@@ -100,6 +100,9 @@ namespace ScheduleLua
             // Register Explosion API
             ExplosionAPI.RegisterAPI(luaEngine);
 
+            // Register AppsAPI
+            // AppsAPI.RegisterAPI(luaEngine);
+
             // Note: Mods API is registered in Core.cs after mod manager is initialized
 
             // Use proxy objects instead of direct Unity type registration
@@ -125,6 +128,7 @@ namespace ScheduleLua
             // Declare variables outside the try block so they're accessible in the finally block
             DynValue origModName = DynValue.Nil;
             DynValue origModPath = DynValue.Nil;
+            DynValue origModVersion = DynValue.Nil;
             DynValue origScriptPath = DynValue.Nil;
             Table origCallingEnv = null;
 
@@ -133,6 +137,7 @@ namespace ScheduleLua
                 // Save original script context
                 origModName = luaEngine.Globals.Get("MOD_NAME");
                 origModPath = luaEngine.Globals.Get("MOD_PATH");
+                origModVersion = luaEngine.Globals.Get("MOD_VERSION");
                 origScriptPath = luaEngine.Globals.Get("SCRIPT_PATH");
 
                 // If the calling script has its own environment, get it
@@ -196,6 +201,7 @@ namespace ScheduleLua
                         moduleEnv["SCRIPT_NAME"] = moduleName;
                         moduleEnv["MOD_NAME"] = currentModName;
                         moduleEnv["MOD_PATH"] = currentModPath;
+                        moduleEnv["MOD_VERSION"] = origModVersion;
 
                         // Execute the module code as a chunk that can return a value
                         DynValue result = luaEngine.DoString(content, moduleEnv, moduleName);
@@ -222,6 +228,7 @@ namespace ScheduleLua
                         // Restore original script context
                         luaEngine.Globals["MOD_NAME"] = origModName;
                         luaEngine.Globals["MOD_PATH"] = origModPath;
+                        luaEngine.Globals["MOD_VERSION"] = origModVersion;
                         luaEngine.Globals["SCRIPT_PATH"] = origScriptPath;
 
                         return result;
@@ -381,6 +388,7 @@ namespace ScheduleLua
                 // Restore original script context
                 luaEngine.Globals["MOD_NAME"] = origModName;
                 luaEngine.Globals["MOD_PATH"] = origModPath;
+                luaEngine.Globals["MOD_VERSION"] = origModVersion;
                 luaEngine.Globals["SCRIPT_PATH"] = origScriptPath;
             }
         }

@@ -81,8 +81,7 @@ namespace ScheduleLua.API.Core
                 }
                 else
                 {
-                    // For other exceptions, just append the message
-                    errorMessage += $": {ex.Message}";
+                    errorMessage += $":: {ex.Message}: {ex.StackTrace}";
                 }
             }
 

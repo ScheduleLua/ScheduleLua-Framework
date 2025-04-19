@@ -67,7 +67,7 @@ namespace ScheduleLua.API.Mods
         public void AddScript(LuaScript script)
         {
             Scripts.Add(script);
-            
+
             // If this is the main script, store a reference to it
             if (Path.GetFileName(script.FilePath) == Manifest.Main)
             {
@@ -131,7 +131,7 @@ namespace ScheduleLua.API.Mods
             LuaUtility.Log($"Initializing mod: {Manifest.Name} v{Manifest.Version} by {Manifest.Author}");
 
             bool success = true;
-            
+
             // Save current Lua context
             Script scriptEngine = Scripts.FirstOrDefault()?.GetScriptEngine();
             if (scriptEngine == null)
@@ -140,12 +140,13 @@ namespace ScheduleLua.API.Mods
                 _initializing = false;
                 return false;
             }
-            
+
             // Store original global values
             DynValue origModName = scriptEngine.Globals.Get("MOD_NAME");
             DynValue origModPath = scriptEngine.Globals.Get("MOD_PATH");
+            DynValue origModVersion = scriptEngine.Globals.Get("MOD_VERSION");
             DynValue origScriptPath = scriptEngine.Globals.Get("SCRIPT_PATH");
-            
+
             try
             {
                 // First, find and initialize the main script
@@ -153,12 +154,13 @@ namespace ScheduleLua.API.Mods
                 if (mainScript != null)
                 {
                     _mainScript = mainScript;
-                    
+
                     // Set correct context for main script
                     scriptEngine.Globals["MOD_NAME"] = FolderName;
                     scriptEngine.Globals["MOD_PATH"] = FolderPath;
+                    scriptEngine.Globals["MOD_VERSION"] = Manifest.Version;
                     scriptEngine.Globals["SCRIPT_PATH"] = mainScript.FilePath;
-                    
+
                     if (!mainScript.Initialize())
                     {
                         LuaUtility.LogError($"Failed to initialize main script {mainScript.Name} in mod {Manifest.Name}");
@@ -170,7 +172,7 @@ namespace ScheduleLua.API.Mods
                     LuaUtility.LogError($"Could not find main script {Manifest.Main} in mod {Manifest.Name}");
                     success = false;
                 }
-                
+
                 // Only initialize other scripts if they don't have the same name as modules required by the main script
                 if (success)
                 {
@@ -179,7 +181,7 @@ namespace ScheduleLua.API.Mods
                         // Skip the main script (already initialized)
                         if (script == mainScript)
                             continue;
-                            
+
                         // Skip scripts that are likely loaded via require() from the main script
                         string scriptName = Path.GetFileNameWithoutExtension(script.FilePath);
                         if (Manifest.Files.Contains(scriptName + ".lua"))
@@ -187,12 +189,13 @@ namespace ScheduleLua.API.Mods
                             // These scripts are initialized when required, not needed here
                             continue;
                         }
-                        
+
                         // Set correct context for this script
                         scriptEngine.Globals["MOD_NAME"] = FolderName;
                         scriptEngine.Globals["MOD_PATH"] = FolderPath;
+                        scriptEngine.Globals["MOD_VERSION"] = Manifest.Version;
                         scriptEngine.Globals["SCRIPT_PATH"] = script.FilePath;
-                        
+
                         if (!script.Initialize())
                         {
                             LuaUtility.LogError($"Failed to initialize script {script.Name} in mod {Manifest.Name}");
@@ -206,17 +209,18 @@ namespace ScheduleLua.API.Mods
                 // Restore original global values
                 scriptEngine.Globals["MOD_NAME"] = origModName;
                 scriptEngine.Globals["MOD_PATH"] = origModPath;
+                scriptEngine.Globals["MOD_VERSION"] = origModVersion;
                 scriptEngine.Globals["SCRIPT_PATH"] = origScriptPath;
-                
+
                 _initialized = success;
                 _initializing = false;
             }
-            
+
             if (success)
             {
                 LuaUtility.Log($"Successfully initialized mod: {Manifest.Name}");
             }
-            
+
             return success;
         }
 
@@ -235,14 +239,29 @@ namespace ScheduleLua.API.Mods
         }
 
         /// <summary>
-        /// Trigger an event on the main script of this mod
+        /// Trigger an event on all scripts of this mod
         /// </summary>
         public void TriggerEvent(string eventName, params object[] args)
         {
-            if (!_initialized || _mainScript == null)
+            if (!_initialized)
                 return;
-                
-            _mainScript.TriggerEvent(eventName, args);
+
+            // First, trigger on main script to maintain compatibility
+            if (_mainScript != null)
+            {
+                _mainScript.TriggerEvent(eventName, args);
+            }
+
+            // Then trigger on all other scripts
+            foreach (var script in Scripts)
+            {
+                // Skip main script as we already triggered it
+                if (script == _mainScript)
+                    continue;
+
+                // Trigger the event on this script
+                script.TriggerEvent(eventName, args);
+            }
         }
 
         /// <summary>
@@ -308,14 +327,14 @@ namespace ScheduleLua.API.Mods
                 return false;
 
             LuaUtility.Log($"Reloading mod: {Manifest.Name}");
-            
+
             _initialized = false;
             _initializing = false;
-            
+
             // Clear event handlers and reset state
             var oldScripts = new List<LuaScript>(Scripts);
             Scripts.Clear();
-            
+
             // Reload main script first
             string mainScriptPath = Path.Combine(FolderPath, Manifest.Main);
             if (!File.Exists(mainScriptPath))
@@ -323,7 +342,7 @@ namespace ScheduleLua.API.Mods
                 LuaUtility.LogError($"Main script {Manifest.Main} not found for mod {Manifest.Name}.");
                 return false;
             }
-            
+
             // Load main script
             var script = oldScripts.Find(s => Path.GetFileName(s.FilePath) == Manifest.Main);
             if (script == null || !script.Reload())
@@ -331,10 +350,10 @@ namespace ScheduleLua.API.Mods
                 LuaUtility.LogError($"Failed to reload main script for mod {Manifest.Name}.");
                 return false;
             }
-            
+
             Scripts.Add(script);
             _mainScript = script;
-            
+
             // Reload additional files
             foreach (var file in Manifest.Files)
             {
@@ -344,7 +363,7 @@ namespace ScheduleLua.API.Mods
                     LuaUtility.LogWarning($"Script file {file} not found for mod {Manifest.Name}.");
                     continue;
                 }
-                
+
                 var existingScript = oldScripts.Find(s => s.FilePath == filePath);
                 if (existingScript != null)
                 {
@@ -358,7 +377,7 @@ namespace ScheduleLua.API.Mods
                     }
                 }
             }
-            
+
             // Re-initialize the mod
             return Initialize();
         }

@@ -137,12 +137,6 @@ namespace ScheduleLua.API.Mods
                 // Create the mod instance
                 var mod = new LuaMod(folderPath, manifest, _logger);
 
-                // Check if main script is also in the files list (common error)
-                if (manifest.Files.Contains(manifest.Main))
-                {
-                    LuaUtility.LogWarning($"Mod {manifest.Name}: The main script '{manifest.Main}' should not be included in the 'files' section of manifest.json. It is automatically loaded as the main entry point.");
-                }
-
                 // First load the main script
                 var mainScriptPath = Path.Combine(folderPath, manifest.Main);
                 if (!File.Exists(mainScriptPath))
@@ -154,13 +148,10 @@ namespace ScheduleLua.API.Mods
                 // Set mod context in globals for this script execution
                 _luaEngine.Globals["MOD_NAME"] = modFolderName;
                 _luaEngine.Globals["MOD_PATH"] = folderPath;
+                _luaEngine.Globals["MOD_VERSION"] = manifest.Version;
 
                 // Track all script paths in this mod to avoid duplicates
                 HashSet<string> modScriptPaths = new HashSet<string> { mainScriptPath };
-                foreach (var file in manifest.Files)
-                {
-                    modScriptPaths.Add(Path.Combine(folderPath, file));
-                }
 
                 // Register all script paths with the mod manager to prevent double-loading
                 foreach (var scriptPath in modScriptPaths)
@@ -179,21 +170,21 @@ namespace ScheduleLua.API.Mods
                 mod.AddScript(mainScript);
 
                 // Load all additional files
-                foreach (var file in manifest.Files)
-                {
-                    var filePath = Path.Combine(folderPath, file);
-                    if (!File.Exists(filePath))
-                    {
-                        LuaUtility.LogWarning($"Script file {file} not found for mod {manifest.Name}.");
-                        continue;
-                    }
-
-                    var script = LoadScriptForMod(filePath);
-                    if (script != null)
-                    {
-                        mod.AddScript(script);
-                    }
-                }
+                // foreach (var file in manifest.Files)
+                // {
+                //     var filePath = Path.Combine(folderPath, file);
+                //     if (!File.Exists(filePath))
+                //     {
+                //         LuaUtility.LogWarning($"Script file {file} not found for mod {manifest.Name}.");
+                //         continue;
+                //     }
+                // 
+                //     var script = LoadScriptForMod(filePath);
+                //     if (script != null)
+                //     {
+                //         mod.AddScript(script);
+                //     }
+                // }
 
                 // Add mod to loaded mods
                 _loadedMods[modFolderName] = mod;
@@ -235,8 +226,7 @@ namespace ScheduleLua.API.Mods
 
                 // If this is a module file, ensure it has a global module table to prevent nil errors
                 if (_loadedMods.TryGetValue(modFolderName, out var mod) &&
-                    fileName != mod.Manifest.Main &&
-                    mod.Manifest.Files.Contains(fileName))
+                    fileName != mod.Manifest.Main)
                 {
                     // Pre-create the module table in the globals
                     if (_luaEngine.Globals.Get(moduleName + "_module").IsNil())

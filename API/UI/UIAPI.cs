@@ -8,6 +8,7 @@ using ScheduleOne.UI.Items;
 using ScheduleOne.Dialogue;
 using System.Reflection;
 using ScheduleOne.NPCs;
+using System.IO;
 
 namespace ScheduleLua.API.UI
 {
@@ -24,6 +25,7 @@ namespace ScheduleLua.API.UI
 
         // GUI styles
         public static GUIStyle _windowStyle;
+        public static GUIStyle _titleStyle;
         public static GUIStyle _buttonStyle;
         public static GUIStyle _labelStyle;
         public static GUIStyle _boxStyle;
@@ -76,8 +78,10 @@ namespace ScheduleLua.API.UI
             luaEngine.Globals["IsPhoneFlashlightOn"] = (Func<bool>)IsPhoneFlashlightOn;
 
             // Notification Functions
-            luaEngine.Globals["ShowNotification"] = (Action<string>)ShowNotification;
+            luaEngine.Globals["ShowNotification"] = (Action<string, string>)ShowNotification;
+            luaEngine.Globals["ShowNotificationWithIcon"] = (Action<string, string, string>)ShowNotificationWithIcon;
             luaEngine.Globals["ShowNotificationWithTimeout"] = (Action<string, float>)ShowNotificationWithTimeout;
+            luaEngine.Globals["ShowNotificationWithIconAndTimeout"] = (Action<string, string, string, float>)ShowNotificationWithIconAndTimeout;
 
             // UI Item Functions
             luaEngine.Globals["GetHoveredItemName"] = (Func<string>)GetHoveredItemName;
@@ -98,6 +102,18 @@ namespace ScheduleLua.API.UI
             luaEngine.Globals["SetLabelStyle"] = (Action<string, float, float, float, float>)SetLabelStyle;
             luaEngine.Globals["SetTextFieldStyle"] = (Action<string, float, float, float, float>)SetTextFieldStyle;
             luaEngine.Globals["SetBoxStyle"] = (Action<string, float, float, float, float>)SetBoxStyle;
+
+            // Register Storage Entity functions
+            luaEngine.Globals["CreateStorageEntity"] = (Func<string, int, int, string>)CreateStorageEntity;
+            luaEngine.Globals["OpenStorageEntity"] = (Action<string>)OpenStorageEntity;
+            luaEngine.Globals["CloseStorageEntity"] = (Action<string>)CloseStorageEntity;
+            luaEngine.Globals["AddItemToStorage"] = (Func<string, string, int, bool>)AddItemToStorage;
+            luaEngine.Globals["GetStorageItems"] = (Func<string, Table>)GetStorageItems;
+            luaEngine.Globals["IsStorageOpen"] = (Func<string, bool>)IsStorageOpen;
+            luaEngine.Globals["SetStorageName"] = (Action<string, string>)SetStorageName;
+            luaEngine.Globals["SetStorageSubtitle"] = (Action<string, string>)SetStorageSubtitle;
+            luaEngine.Globals["ClearStorageContents"] = (Action<string>)ClearStorageContents;
+            luaEngine.Globals["GetStorageEntityCount"] = (Func<int>)GetStorageEntityCount;
 
             luaEngine.Globals["SetFontSize"] = (Action<string, int>)SetFontSize;
             luaEngine.Globals["SetFontStyle"] = (Action<string, string>)SetFontStyle;
@@ -158,6 +174,11 @@ namespace ScheduleLua.API.UI
                 _windowStyle.onNormal.textColor = Color.white;
                 _windowStyle.fontStyle = FontStyle.Bold;
                 _windowStyle.fontSize = 16;
+
+                _titleStyle = new GUIStyle(GUI.skin.label);
+                _titleStyle.alignment = TextAnchor.MiddleCenter;
+                _titleStyle.fontSize = 18;
+                _titleStyle.fontStyle = FontStyle.Bold;
 
                 // Create button style
                 _buttonStyle = new GUIStyle(GUI.skin.button);
@@ -934,7 +955,7 @@ namespace ScheduleLua.API.UI
         /// <summary>
         /// Shows a notification to the player
         /// </summary>
-        public static void ShowNotification(string message)
+        public static void ShowNotification(string title, string message)
         {
             try
             {
@@ -951,11 +972,41 @@ namespace ScheduleLua.API.UI
                     return;
                 }
 
-                notificationsManager.SendNotification("Lua Notification", message, null);
+                notificationsManager.SendNotification(title, message, null);
             }
             catch (Exception ex)
             {
                 _logger.Error($"Error in ShowNotification: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Shows a notification to the player with a custom icon
+        /// </summary>
+        public static void ShowNotificationWithIcon(string title, string message, string iconPath)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(message))
+                {
+                    _logger.Warning("ShowNotificationWithIcon: message is null or empty");
+                    return;
+                }
+
+                var notificationsManager = UnityEngine.Object.FindObjectOfType<NotificationsManager>();
+                if (notificationsManager == null)
+                {
+                    _logger.Warning("ShowNotificationWithIcon: NotificationsManager not available");
+                    return;
+                }
+
+                // Load the icon from the file path
+                Sprite icon = LoadSpriteFromFile(iconPath);
+                notificationsManager.SendNotification(title, message, icon);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in ShowNotificationWithIcon: {ex.Message}");
             }
         }
 
@@ -984,6 +1035,112 @@ namespace ScheduleLua.API.UI
             catch (Exception ex)
             {
                 _logger.Error($"Error in ShowNotificationWithTimeout: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Shows a notification to the player with an icon and custom timeout
+        /// </summary>
+        public static void ShowNotificationWithIconAndTimeout(string title, string message, string iconPath, float timeout)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(message))
+                {
+                    _logger.Warning("ShowNotificationWithIconAndTimeout: message is null or empty");
+                    return;
+                }
+
+                var notificationsManager = UnityEngine.Object.FindObjectOfType<NotificationsManager>();
+                if (notificationsManager == null)
+                {
+                    _logger.Warning("ShowNotificationWithIconAndTimeout: NotificationsManager not available");
+                    return;
+                }
+
+                // Load the icon from the file path
+                Sprite icon = LoadSpriteFromFile(iconPath);
+                notificationsManager.SendNotification(title, message, icon, timeout);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error in ShowNotificationWithIconAndTimeout: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Loads a sprite from a file path
+        /// </summary>
+        private static Sprite LoadSpriteFromFile(string filePath)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    _logger.Warning("LoadSpriteFromFile: filePath is null or empty");
+                    return null;
+                }
+
+                // Resolve the path (either absolute or relative to the script directory)
+                string fullPath = filePath;
+                if (!Path.IsPathRooted(filePath))
+                {
+                    // Try to get the current script path from Lua environment
+                    string scriptPath = "unknown";
+                    try
+                    {
+                        var scriptPathValue = ScheduleLua.Core.Instance._luaEngine.Globals.Get("SCRIPT_PATH");
+                        if (scriptPathValue != null && scriptPathValue.Type == DataType.String)
+                        {
+                            scriptPath = scriptPathValue.String;
+                        }
+                    }
+                    catch
+                    {
+                        // If we can't get SCRIPT_PATH, fall back to default behavior
+                    }
+
+                    if (scriptPath != "unknown" && !string.IsNullOrEmpty(scriptPath))
+                    {
+                        // Get the directory of the script and combine with the relative path
+                        string scriptDir = Path.GetDirectoryName(scriptPath);
+                        fullPath = Path.Combine(scriptDir, filePath);
+                        fullPath = Path.GetFullPath(fullPath);
+                    }
+                    else
+                    {
+                        // Fall back to game directory if script path is not available
+                        fullPath = Path.Combine(Application.dataPath, "..", filePath);
+                        fullPath = Path.GetFullPath(fullPath);
+                    }
+                }
+
+                if (!File.Exists(fullPath))
+                {
+                    _logger.Warning($"LoadSpriteFromFile: File not found at path: {fullPath}");
+                    return null;
+                }
+
+                // Load the image as a byte array
+                byte[] fileData = File.ReadAllBytes(fullPath);
+                Texture2D texture = new Texture2D(2, 2);
+                if (texture.LoadImage(fileData))
+                {
+                    // Create a sprite from the texture
+                    Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
+                        new Vector2(0.5f, 0.5f));
+                    return sprite;
+                }
+                else
+                {
+                    _logger.Warning($"LoadSpriteFromFile: Failed to load image data from {filePath}");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error loading sprite from file: {ex.Message}");
+                return null;
             }
         }
 
@@ -1427,7 +1584,7 @@ namespace ScheduleLua.API.UI
                 var npc = NPCManager.GetNPC(npcId);
                 if (npc == null)
                 {
-                    _logger.Error($"❌ NPC '{npcId}' not found.");
+                    _logger.Error($"❌ NPC '{npcId}' not found");
                     return;
                 }
 
@@ -1675,9 +1832,10 @@ namespace ScheduleLua.API.UI
                     GUI.Box(_windowRect, "", boxStyle);
 
                     // Draw title bar
-                    Rect titleRect = new Rect(X, Y, Width, 25);
+                    Rect titleRect = new Rect(X, Y, Width, 35);
                     GUI.backgroundColor = new Color(0.2f, 0.2f, 0.4f, 0.95f);
-                    GUI.Box(titleRect, Title, windowStyle);
+                    GUIStyle currentTitleStyle = _titleStyle ?? windowStyle;
+                    GUI.Box(titleRect, Title, currentTitleStyle);
 
                     // Restore color
                     GUI.backgroundColor = oldColor;
@@ -2085,6 +2243,421 @@ namespace ScheduleLua.API.UI
                     _logger.Warning($"Unknown style name: {styleName}");
                     return null;
             }
+        }
+
+        #endregion
+
+        #region Storage Entity Functions
+
+        // Dictionary to store created storage entities
+        private static Dictionary<string, ScheduleOne.Storage.StorageEntity> _luaStorageEntities = new Dictionary<string, ScheduleOne.Storage.StorageEntity>();
+        private static int _storageEntityCounter = 0;
+
+        /// <summary>
+        /// Creates a storage entity with a specified number of slots
+        /// </summary>
+        /// <param name="name">Name of the storage entity</param>
+        /// <param name="slotCount">Number of slots (1-50)</param>
+        /// <returns>ID of the created storage entity</returns>
+        public static string CreateStorageEntity(string name, int slotCount, int rowCount)
+        {
+            try
+            {
+                // Create a unique ID for this storage entity
+                string entityId = $"lua_storage_{_storageEntityCounter++}";
+
+                // Clamp slot count to valid range
+                slotCount = Mathf.Clamp(slotCount, 1, 50);
+
+                // Try to find an existing StorageEntity to use as a template
+                ScheduleOne.Storage.StorageEntity templateEntity = UnityEngine.Object.FindObjectOfType<ScheduleOne.Storage.StorageEntity>();
+                if (templateEntity == null)
+                {
+                    _logger.Warning("No StorageEntity template found in scene! Using new GameObject approach instead.");
+
+                    // Create storage with manual approach (fallback)
+                    GameObject storageObject = new GameObject($"LuaStorage_{name}");
+                    UnityEngine.Object.DontDestroyOnLoad(storageObject);
+
+                    // Add StorageEntity component
+                    ScheduleOne.Storage.StorageEntity storageEntity = storageObject.AddComponent<ScheduleOne.Storage.StorageEntity>();
+
+                    // Configure storage entity properties
+                    storageEntity.StorageEntityName = name;
+                    storageEntity.SlotCount = slotCount;
+                    storageEntity.DisplayRowCount = rowCount;
+
+                    // Configure for local-only mode
+                    storageEntity.AccessSettings = ScheduleOne.Storage.StorageEntity.EAccessSettings.Full;
+                    storageEntity.MaxAccessDistance = 999f;
+
+                    // Initialize ItemSlots list with proper Il2CppSystem List
+                    var slots = new List<ScheduleOne.ItemFramework.ItemSlot>();
+                    for (int i = 0; i < slotCount; i++)
+                    {
+                        var slot = new ScheduleOne.ItemFramework.ItemSlot();
+                        slot.SetSlotOwner(storageEntity);
+                        slots.Add(slot);
+                    }
+                    storageEntity.ItemSlots = slots;
+
+                    // Store the storage entity in our dictionary
+                    _luaStorageEntities[entityId] = storageEntity;
+                }
+                else
+                {
+                    // Create a storage entity using the template as a base (preferred method)
+                    ScheduleOne.Storage.StorageEntity storageEntity = UnityEngine.Object.Instantiate(templateEntity);
+
+                    // Configure storage entity properties
+                    storageEntity.name = $"LuaStorage_{name}";
+                    storageEntity.StorageEntityName = name;
+                    storageEntity.SlotCount = slotCount;
+                    storageEntity.DisplayRowCount = rowCount;
+
+                    // Configure for local-only mode
+                    storageEntity.AccessSettings = ScheduleOne.Storage.StorageEntity.EAccessSettings.Full;
+                    storageEntity.MaxAccessDistance = 999f;
+
+                    // Initialize ItemSlots list
+                    var slots = new List<ScheduleOne.ItemFramework.ItemSlot>();
+                    for (int i = 0; i < slotCount; i++)
+                    {
+                        var slot = new ScheduleOne.ItemFramework.ItemSlot();
+                        slots.Add(slot);
+                    }
+                    storageEntity.ItemSlots = slots;
+
+                    // Make sure the GameObject persists
+                    UnityEngine.Object.DontDestroyOnLoad(storageEntity.gameObject);
+
+                    // Store the storage entity in our dictionary
+                    _luaStorageEntities[entityId] = storageEntity;
+                }
+
+                CloseStorageEntity(entityId);
+                _logger.Msg($"Created storage entity '{name}' with ID {entityId}, {slotCount} slots, and {rowCount} rows");
+                return entityId;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error creating storage entity: {ex.Message}\n{ex.StackTrace}");
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Opens a storage entity UI (local mode only)
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity to open</param>
+        public static void OpenStorageEntity(string entityId)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return;
+                }
+
+                // Simple direct call to the entity's Open method
+                try
+                {
+                    storageEntity.Open();
+                    _logger.Msg($"Opened storage entity {entityId}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Error calling Open method: {ex.Message}");
+
+                    // Fallback: Try manual opening through the StorageMenu
+                    var storageMenu = ScheduleOne.DevUtilities.Singleton<ScheduleOne.UI.StorageMenu>.Instance;
+                    if (storageMenu != null)
+                    {
+                        storageMenu.Open(storageEntity);
+                        _logger.Msg($"Opened storage entity {entityId} through StorageMenu");
+                    }
+                    else
+                    {
+                        _logger.Error("StorageMenu instance not available");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error opening storage entity: {ex.Message}\n{ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// Adds an item to a storage entity (local mode only)
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity</param>
+        /// <param name="itemId">ID of the item to add</param>
+        /// <param name="quantity">Quantity of the item to add</param>
+        /// <returns>True if item was added successfully</returns>
+        public static bool AddItemToStorage(string entityId, string itemId, int quantity = 1)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return false;
+                }
+
+                // Try to create an item instance from the item ID
+                ScheduleOne.ItemFramework.ItemDefinition itemDef = null;
+
+                // Check if the item exists in the registry first
+                if (!ScheduleLua.API.Registry.RegistryAPI.DoesItemExist(itemId))
+                {
+                    _logger.Error($"Item with ID '{itemId}' not found in registry. Cannot add to storage entity '{entityId}'");
+                    return false;
+                }
+
+                // Get the item definition using the Registry API
+                itemDef = ScheduleLua.API.Registry.RegistryAPI.GetItemDirect(itemId);
+                if (itemDef == null)
+                {
+                    _logger.Error($"Failed to retrieve item definition for '{itemId}' despite item existing in registry");
+                    return false;
+                }
+
+                _logger.Msg($"Found item definition for '{itemId}' ({itemDef.Name}) - attempting to add to storage '{entityId}'");
+
+                // Create an item instance
+                ScheduleOne.ItemFramework.ItemInstance itemInstance = itemDef.GetDefaultInstance();
+                if (itemInstance == null)
+                {
+                    _logger.Error($"Failed to create item instance for {itemId}");
+                    return false;
+                }
+
+                // Set the quantity
+                itemInstance.SetQuantity(quantity);
+
+                // Check if we can fit this item
+                if (!storageEntity.CanItemFit(itemInstance))
+                {
+                    _logger.Warning($"Cannot fit item {itemId} x{quantity} in storage {entityId}");
+                    return false;
+                }
+
+                // Use the built-in method to insert the item
+                try
+                {
+                    storageEntity.InsertItem(itemInstance, false);
+                    _logger.Msg($"Added {quantity}x {itemId} to storage entity {entityId}");
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Error inserting item: {ex.Message}");
+
+                    // Fallback: Try to insert manually to an empty slot
+                    if (storageEntity.ItemSlots != null)
+                    {
+                        for (int i = 0; i < storageEntity.ItemSlots.Count; i++)
+                        {
+                            if (storageEntity.ItemSlots[i] != null && storageEntity.ItemSlots[i].ItemInstance == null)
+                            {
+                                // Use SetStoredItem method instead of direct property assignment (which has a protected setter)
+                                storageEntity.ItemSlots[i].SetStoredItem(itemInstance, true);
+                                _logger.Msg($"Added {quantity}x {itemId} to storage entity {entityId} in slot {i} (manual method)");
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error adding item to storage: {ex.Message}\n{ex.StackTrace}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Closes a storage entity UI
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity to close</param>
+        public static void CloseStorageEntity(string entityId)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return;
+                }
+
+                // Close the storage entity UI
+                storageEntity.Close();
+
+                _logger.Msg($"Closed storage entity {entityId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error closing storage entity: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets all items in a storage entity
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity</param>
+        /// <returns>Table of items with their quantities</returns>
+        public static Table GetStorageItems(string entityId)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return null;
+                }
+
+                // Create a table to hold the items
+                Table itemsTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+
+                // Get all items from storage
+                List<ScheduleOne.ItemFramework.ItemInstance> items = storageEntity.GetAllItems();
+
+                int index = 1;
+                foreach (var item in items)
+                {
+                    if (item != null)
+                    {
+                        Table itemData = new Table(ScheduleLua.Core.Instance._luaEngine);
+                        itemData["id"] = item.ID;
+                        itemData["name"] = item.Name;
+                        itemData["quantity"] = item.Quantity;
+                        itemData["stackLimit"] = item.StackLimit;
+
+                        // Add any other properties you want to expose
+                        if (item is ScheduleOne.ItemFramework.QualityItemInstance qualityItem)
+                        {
+                            itemData["quality"] = qualityItem.Quality.ToString();
+                        }
+
+                        itemsTable[index++] = itemData;
+                    }
+                }
+
+                return itemsTable;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error getting storage items: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a storage entity is currently open
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity</param>
+        /// <returns>True if the storage entity is open</returns>
+        public static bool IsStorageOpen(string entityId)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return false;
+                }
+
+                return storageEntity.IsOpened;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error checking if storage is open: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Sets the name of a storage entity
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity</param>
+        /// <param name="name">New name for the storage entity</param>
+        public static void SetStorageName(string entityId, string name)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return;
+                }
+
+                storageEntity.StorageEntityName = name;
+                _logger.Msg($"Set storage entity {entityId} name to '{name}'");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error setting storage name: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Sets the subtitle of a storage entity
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity</param>
+        /// <param name="subtitle">New subtitle for the storage entity</param>
+        public static void SetStorageSubtitle(string entityId, string subtitle)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return;
+                }
+
+                storageEntity.StorageEntitySubtitle = subtitle;
+                _logger.Msg($"Set storage entity {entityId} subtitle to '{subtitle}'");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error setting storage subtitle: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Clears all items from a storage entity
+        /// </summary>
+        /// <param name="entityId">ID of the storage entity</param>
+        public static void ClearStorageContents(string entityId)
+        {
+            try
+            {
+                if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
+                {
+                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    return;
+                }
+
+                storageEntity.ClearContents();
+                _logger.Msg($"Cleared contents of storage entity {entityId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Error clearing storage contents: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Gets the total number of storage entities created
+        /// </summary>
+        /// <returns>Count of storage entities</returns>
+        public static int GetStorageEntityCount()
+        {
+            return _luaStorageEntities.Count;
         }
 
         #endregion
