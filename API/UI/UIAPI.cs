@@ -9,6 +9,7 @@ using ScheduleOne.Dialogue;
 using System.Reflection;
 using ScheduleOne.NPCs;
 using System.IO;
+using ScheduleLua.API.Core;
 
 namespace ScheduleLua.API.UI
 {
@@ -17,7 +18,6 @@ namespace ScheduleLua.API.UI
     /// </summary>
     public static class UIAPI
     {
-        private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
 
         // Store for registered GUI windows and controls
         private static Dictionary<string, LuaWindow> _windows = new Dictionary<string, LuaWindow>();
@@ -141,13 +141,13 @@ namespace ScheduleLua.API.UI
             }
             else
             {
-                _logger.Error("Cannot register OnGUI callback: Core.Instance is null");
+                LuaUtility.LogError("Cannot register OnGUI callback: Core.Instance is null");
                 return;
             }
 
             _guiInitialized = true;
             _guiEnabled = true;
-            _logger.Msg("Lua GUI system initialized");
+            LuaUtility.Log("Lua GUI system initialized");
         }
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error initializing styles: {ex.Message}");
+                LuaUtility.LogError($"Error initializing styles: {ex.Message}", ex);
                 // Use default styles if custom initialization fails
                 _windowStyle = new GUIStyle(GUI.skin.window);
                 _buttonStyle = new GUIStyle(GUI.skin.button);
@@ -272,7 +272,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error creating texture: {ex.Message}");
+                LuaUtility.LogError($"Error creating texture: {ex.Message}", ex);
                 return null;
             }
         }
@@ -326,7 +326,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in UIAPI.OnGUI: {ex.Message}");
+                LuaUtility.LogError($"Error in UIAPI.OnGUI: {ex.Message}", ex);
             }
         }
 
@@ -366,7 +366,7 @@ namespace ScheduleLua.API.UI
                 // Check if window with this ID already exists
                 if (_windows.ContainsKey(id))
                 {
-                    _logger.Warning($"Window with ID '{id}' already exists. Returning existing window.");
+                    LuaUtility.LogWarning($"Window with ID '{id}' already exists. Returning existing window.");
                     return id;
                 }
 
@@ -374,12 +374,12 @@ namespace ScheduleLua.API.UI
                 var window = new LuaWindow(id, title, x, y, width, height);
                 _windows[id] = window;
 
-                _logger.Msg($"Created window '{id}' ({title}) at ({x},{y}) with size ({width}x{height})");
+                LuaUtility.Log($"Created window '{id}' ({title}) at ({x},{y}) with size ({width}x{height})");
                 return id;
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in CreateWindow: {ex.Message}");
+                LuaUtility.LogError($"Error in CreateWindow: {ex.Message}", ex);
                 return string.Empty;
             }
         }
@@ -398,12 +398,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"SetWindowPosition: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"SetWindowPosition: Window '{windowId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetWindowPosition: {ex.Message}");
+                LuaUtility.LogError($"Error in SetWindowPosition: {ex.Message}", ex);
             }
         }
 
@@ -421,12 +421,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"SetWindowSize: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"SetWindowSize: Window '{windowId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetWindowSize: {ex.Message}");
+                LuaUtility.LogError($"Error in SetWindowSize: {ex.Message}", ex);
             }
         }
 
@@ -443,12 +443,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"ShowWindow: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"ShowWindow: Window '{windowId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowWindow: {ex.Message}");
+                LuaUtility.LogError($"Error in ShowWindow: {ex.Message}", ex);
             }
         }
 
@@ -465,13 +465,13 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"IsWindowVisible: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"IsWindowVisible: Window '{windowId}' not found");
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in IsWindowVisible: {ex.Message}");
+                LuaUtility.LogError($"Error in IsWindowVisible: {ex.Message}", ex);
                 return false;
             }
         }
@@ -502,16 +502,16 @@ namespace ScheduleLua.API.UI
 
                     // Remove window
                     _windows.Remove(windowId);
-                    _logger.Msg($"Destroyed window '{windowId}'");
+                    // LuaUtility.Log($"Destroyed window '{windowId}'");
                 }
                 else
                 {
-                    _logger.Warning($"DestroyWindow: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"DestroyWindow: Window '{windowId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in DestroyWindow: {ex.Message}");
+                LuaUtility.LogError($"Error in DestroyWindow: {ex.Message}", ex);
             }
         }
 
@@ -528,13 +528,13 @@ namespace ScheduleLua.API.UI
             {
                 if (!_windows.TryGetValue(windowId, out var window))
                 {
-                    _logger.Warning($"AddButton: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"AddButton: Window '{windowId}' not found");
                     return string.Empty;
                 }
 
                 if (callback == null || callback.Type != DataType.Function)
                 {
-                    _logger.Warning($"AddButton: Invalid callback function");
+                    LuaUtility.LogWarning($"AddButton: Invalid callback function");
                     return string.Empty;
                 }
 
@@ -547,7 +547,7 @@ namespace ScheduleLua.API.UI
                 // Check if control with this ID already exists
                 if (_controls.ContainsKey(id))
                 {
-                    _logger.Warning($"Control with ID '{id}' already exists. Returning existing control.");
+                    LuaUtility.LogWarning($"Control with ID '{id}' already exists. Returning existing control.");
                     return id;
                 }
 
@@ -560,7 +560,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in AddButton: {ex.Message}");
+                LuaUtility.LogError($"Error in AddButton: {ex.Message}", ex);
                 return string.Empty;
             }
         }
@@ -574,7 +574,7 @@ namespace ScheduleLua.API.UI
             {
                 if (!_windows.TryGetValue(windowId, out var window))
                 {
-                    _logger.Warning($"AddLabel: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"AddLabel: Window '{windowId}' not found");
                     return string.Empty;
                 }
 
@@ -587,7 +587,7 @@ namespace ScheduleLua.API.UI
                 // Check if control with this ID already exists
                 if (_controls.ContainsKey(id))
                 {
-                    _logger.Warning($"Control with ID '{id}' already exists. Returning existing control.");
+                    LuaUtility.LogWarning($"Control with ID '{id}' already exists. Returning existing control.");
                     return id;
                 }
 
@@ -600,7 +600,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in AddLabel: {ex.Message}");
+                LuaUtility.LogError($"Error in AddLabel: {ex.Message}", ex);
                 return string.Empty;
             }
         }
@@ -614,7 +614,7 @@ namespace ScheduleLua.API.UI
             {
                 if (!_windows.TryGetValue(windowId, out var window))
                 {
-                    _logger.Warning($"AddTextField: Window '{windowId}' not found");
+                    LuaUtility.LogWarning($"AddTextField: Window '{windowId}' not found");
                     return string.Empty;
                 }
 
@@ -627,7 +627,7 @@ namespace ScheduleLua.API.UI
                 // Check if control with this ID already exists
                 if (_controls.ContainsKey(id))
                 {
-                    _logger.Warning($"Control with ID '{id}' already exists. Returning existing control.");
+                    LuaUtility.LogWarning($"Control with ID '{id}' already exists. Returning existing control.");
                     return id;
                 }
 
@@ -640,7 +640,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in AddTextField: {ex.Message}");
+                LuaUtility.LogError($"Error in AddTextField: {ex.Message}", ex);
                 return string.Empty;
             }
         }
@@ -658,13 +658,13 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"GetControlText: Control '{controlId}' not found");
+                    LuaUtility.LogWarning($"GetControlText: Control '{controlId}' not found");
                     return string.Empty;
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in GetControlText: {ex.Message}");
+                LuaUtility.LogError($"Error in GetControlText: {ex.Message}", ex);
                 return string.Empty;
             }
         }
@@ -682,12 +682,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"SetControlText: Control '{controlId}' not found");
+                    LuaUtility.LogWarning($"SetControlText: Control '{controlId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetControlText: {ex.Message}");
+                LuaUtility.LogError($"Error in SetControlText: {ex.Message}", ex);
             }
         }
 
@@ -705,12 +705,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"SetControlPosition: Control '{controlId}' not found");
+                    LuaUtility.LogWarning($"SetControlPosition: Control '{controlId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetControlPosition: {ex.Message}");
+                LuaUtility.LogError($"Error in SetControlPosition: {ex.Message}", ex);
             }
         }
 
@@ -728,12 +728,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"SetControlSize: Control '{controlId}' not found");
+                    LuaUtility.LogWarning($"SetControlSize: Control '{controlId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetControlSize: {ex.Message}");
+                LuaUtility.LogError($"Error in SetControlSize: {ex.Message}", ex);
             }
         }
 
@@ -750,12 +750,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"ShowControl: Control '{controlId}' not found");
+                    LuaUtility.LogWarning($"ShowControl: Control '{controlId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowControl: {ex.Message}");
+                LuaUtility.LogError($"Error in ShowControl: {ex.Message}", ex);
             }
         }
 
@@ -776,16 +776,16 @@ namespace ScheduleLua.API.UI
 
                     // Remove from controls dictionary
                     _controls.Remove(controlId);
-                    _logger.Msg($"Destroyed control '{controlId}'");
+                    // LuaUtility.Log($"Destroyed control '{controlId}'");
                 }
                 else
                 {
-                    _logger.Warning($"DestroyControl: Control '{controlId}' not found");
+                    LuaUtility.LogWarning($"DestroyControl: Control '{controlId}' not found");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in DestroyControl: {ex.Message}");
+                LuaUtility.LogError($"Error in DestroyControl: {ex.Message}", ex);
             }
         }
 
@@ -800,7 +800,7 @@ namespace ScheduleLua.API.UI
         {
             if (string.IsNullOrEmpty(text))
             {
-                _logger.Warning("ShowTooltip: text is null or empty");
+                LuaUtility.LogWarning("ShowTooltip: text is null or empty");
                 return;
             }
 
@@ -808,7 +808,7 @@ namespace ScheduleLua.API.UI
             {
                 if (TooltipManager.Instance == null)
                 {
-                    _logger.Warning("ShowTooltip: TooltipManager not available");
+                    LuaUtility.LogWarning("ShowTooltip: TooltipManager not available");
                     return;
                 }
 
@@ -816,7 +816,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowTooltip: {ex.Message}");
+                LuaUtility.LogError($"Error in ShowTooltip: {ex.Message}", ex);
             }
         }
 
@@ -833,7 +833,7 @@ namespace ScheduleLua.API.UI
             {
                 if (Phone.Instance == null)
                 {
-                    _logger.Warning("IsPhoneOpen: Phone not available");
+                    LuaUtility.LogWarning("IsPhoneOpen: Phone not available");
                     return false;
                 }
 
@@ -841,7 +841,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in IsPhoneOpen: {ex.Message}");
+                LuaUtility.LogError($"Error in IsPhoneOpen: {ex.Message}", ex);
                 return false;
             }
         }
@@ -855,7 +855,7 @@ namespace ScheduleLua.API.UI
             {
                 if (Phone.Instance == null)
                 {
-                    _logger.Warning("OpenPhone: Phone not available");
+                    LuaUtility.LogWarning("OpenPhone: Phone not available");
                     return;
                 }
 
@@ -866,7 +866,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in OpenPhone: {ex.Message}");
+                LuaUtility.LogError($"Error in OpenPhone: {ex.Message}", ex);
             }
         }
 
@@ -879,7 +879,7 @@ namespace ScheduleLua.API.UI
             {
                 if (Phone.Instance == null)
                 {
-                    _logger.Warning("ClosePhone: Phone not available");
+                    LuaUtility.LogWarning("ClosePhone: Phone not available");
                     return;
                 }
 
@@ -890,7 +890,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ClosePhone: {ex.Message}");
+                LuaUtility.LogError($"Error in ClosePhone: {ex.Message}", ex);
             }
         }
 
@@ -903,7 +903,7 @@ namespace ScheduleLua.API.UI
             {
                 if (Phone.Instance == null)
                 {
-                    _logger.Warning("TogglePhoneFlashlight: Phone not available");
+                    LuaUtility.LogWarning("TogglePhoneFlashlight: Phone not available");
                     return;
                 }
 
@@ -917,12 +917,12 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning("TogglePhoneFlashlight: Could not find method");
+                    LuaUtility.LogWarning("TogglePhoneFlashlight: Could not find method");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in TogglePhoneFlashlight: {ex.Message}");
+                LuaUtility.LogError($"Error in TogglePhoneFlashlight: {ex.Message}", ex);
             }
         }
 
@@ -935,7 +935,7 @@ namespace ScheduleLua.API.UI
             {
                 if (Phone.Instance == null)
                 {
-                    _logger.Warning("IsPhoneFlashlightOn: Phone not available");
+                    LuaUtility.LogWarning("IsPhoneFlashlightOn: Phone not available");
                     return false;
                 }
 
@@ -943,7 +943,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in IsPhoneFlashlightOn: {ex.Message}");
+                LuaUtility.LogError($"Error in IsPhoneFlashlightOn: {ex.Message}", ex);
                 return false;
             }
         }
@@ -961,14 +961,14 @@ namespace ScheduleLua.API.UI
             {
                 if (string.IsNullOrEmpty(message))
                 {
-                    _logger.Warning("ShowNotification: message is null or empty");
+                    LuaUtility.LogWarning("ShowNotification: message is null or empty");
                     return;
                 }
 
                 var notificationsManager = UnityEngine.Object.FindObjectOfType<NotificationsManager>();
                 if (notificationsManager == null)
                 {
-                    _logger.Warning("ShowNotification: NotificationsManager not available");
+                    LuaUtility.LogWarning("ShowNotification: NotificationsManager not available");
                     return;
                 }
 
@@ -976,7 +976,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowNotification: {ex.Message}");
+                LuaUtility.LogError($"Error in ShowNotification: {ex.Message}", ex);
             }
         }
 
@@ -989,14 +989,14 @@ namespace ScheduleLua.API.UI
             {
                 if (string.IsNullOrEmpty(message))
                 {
-                    _logger.Warning("ShowNotificationWithIcon: message is null or empty");
+                    LuaUtility.LogWarning("ShowNotificationWithIcon: message is null or empty");
                     return;
                 }
 
                 var notificationsManager = UnityEngine.Object.FindObjectOfType<NotificationsManager>();
                 if (notificationsManager == null)
                 {
-                    _logger.Warning("ShowNotificationWithIcon: NotificationsManager not available");
+                    LuaUtility.LogWarning("ShowNotificationWithIcon: NotificationsManager not available");
                     return;
                 }
 
@@ -1006,7 +1006,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowNotificationWithIcon: {ex.Message}");
+                LuaUtility.LogError($"Error in ShowNotificationWithIcon: {ex.Message}", ex);
             }
         }
 
@@ -1019,14 +1019,14 @@ namespace ScheduleLua.API.UI
             {
                 if (string.IsNullOrEmpty(message))
                 {
-                    _logger.Warning("ShowNotificationWithTimeout: message is null or empty");
+                    LuaUtility.LogWarning("ShowNotificationWithTimeout: message is null or empty");
                     return;
                 }
 
                 var notificationsManager = UnityEngine.Object.FindObjectOfType<NotificationsManager>();
                 if (notificationsManager == null)
                 {
-                    _logger.Warning("ShowNotificationWithTimeout: NotificationsManager not available");
+                    LuaUtility.LogWarning("ShowNotificationWithTimeout: NotificationsManager not available");
                     return;
                 }
 
@@ -1034,7 +1034,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowNotificationWithTimeout: {ex.Message}");
+                LuaUtility.LogError($"Error in ShowNotificationWithTimeout: {ex.Message}", ex);
             }
         }
 
@@ -1047,14 +1047,14 @@ namespace ScheduleLua.API.UI
             {
                 if (string.IsNullOrEmpty(message))
                 {
-                    _logger.Warning("ShowNotificationWithIconAndTimeout: message is null or empty");
+                    LuaUtility.LogWarning("ShowNotificationWithIconAndTimeout: message is null or empty");
                     return;
                 }
 
                 var notificationsManager = UnityEngine.Object.FindObjectOfType<NotificationsManager>();
                 if (notificationsManager == null)
                 {
-                    _logger.Warning("ShowNotificationWithIconAndTimeout: NotificationsManager not available");
+                    LuaUtility.LogWarning("ShowNotificationWithIconAndTimeout: NotificationsManager not available");
                     return;
                 }
 
@@ -1064,7 +1064,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowNotificationWithIconAndTimeout: {ex.Message}");
+                LuaUtility.LogError($"Error in ShowNotificationWithIconAndTimeout: {ex.Message}", ex);
             }
         }
 
@@ -1077,7 +1077,7 @@ namespace ScheduleLua.API.UI
             {
                 if (string.IsNullOrEmpty(filePath))
                 {
-                    _logger.Warning("LoadSpriteFromFile: filePath is null or empty");
+                    LuaUtility.LogWarning("LoadSpriteFromFile: filePath is null or empty");
                     return null;
                 }
 
@@ -1117,7 +1117,7 @@ namespace ScheduleLua.API.UI
 
                 if (!File.Exists(fullPath))
                 {
-                    _logger.Warning($"LoadSpriteFromFile: File not found at path: {fullPath}");
+                    LuaUtility.LogWarning($"LoadSpriteFromFile: File not found at path: {fullPath}");
                     return null;
                 }
 
@@ -1133,13 +1133,13 @@ namespace ScheduleLua.API.UI
                 }
                 else
                 {
-                    _logger.Warning($"LoadSpriteFromFile: Failed to load image data from {filePath}");
+                    LuaUtility.LogWarning($"LoadSpriteFromFile: Failed to load image data from {filePath}");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error loading sprite from file: {ex.Message}");
+                LuaUtility.LogError($"Error loading sprite from file: {ex.Message}", ex);
                 return null;
             }
         }
@@ -1170,7 +1170,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in GetHoveredItemName: {ex.Message}");
+                LuaUtility.LogError($"Error in GetHoveredItemName: {ex.Message}", ex);
                 return string.Empty;
             }
         }
@@ -1195,7 +1195,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in IsItemBeingDragged: {ex.Message}");
+                LuaUtility.LogError($"Error in IsItemBeingDragged: {ex.Message}", ex);
                 return false;
             }
         }
@@ -1214,7 +1214,7 @@ namespace ScheduleLua.API.UI
                 var dialogueCanvas = UnityEngine.Object.FindObjectOfType<DialogueCanvas>();
                 if (dialogueCanvas == null)
                 {
-                    _logger.Warning("ShowDialogue: DialogueCanvas not available");
+                    LuaUtility.LogWarning("ShowDialogue: DialogueCanvas not available");
                     return;
                 }
 
@@ -1232,26 +1232,26 @@ namespace ScheduleLua.API.UI
                     }
                     catch (Exception ex)
                     {
-                        _logger.Warning($"Error stopping text override: {ex.Message}");
+                        LuaUtility.LogWarning($"Error stopping text override: {ex.Message}");
                     }
                 }
 
                 // Show the dialogue with proper error handling
                 try
                 {
-                    // _logger.Msg($"Showing dialogue: {formattedText.Substring(0, Math.Min(50, formattedText.Length))}...");
+                    // LuaUtility.Log($"Showing dialogue: {formattedText.Substring(0, Math.Min(50, formattedText.Length))}...");
                     dialogueCanvas.OverrideText(formattedText);
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Error in dialogueCanvas.OverrideText: {ex.Message}");
+                    LuaUtility.LogError($"Error in dialogueCanvas.OverrideText: {ex.Message}", ex);
                     throw;
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowDialogue: {ex.Message}");
-                _logger.Error(ex.StackTrace);
+                LuaUtility.LogError($"Error in ShowDialogue: {ex.Message}", ex);
+                LuaUtility.LogError(ex.StackTrace);
             }
         }
 
@@ -1281,8 +1281,8 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowDialogueWithTimeout: {ex.Message}");
-                _logger.Error(ex.StackTrace);
+                LuaUtility.LogError($"Error in ShowDialogueWithTimeout: {ex.Message}", ex);
+                LuaUtility.LogError(ex.StackTrace);
             }
         }
 
@@ -1306,11 +1306,11 @@ namespace ScheduleLua.API.UI
                 // Check if there's a valid choices table
                 if (choices == null || choices.Length == 0)
                 {
-                    _logger.Warning("ShowChoiceDialogue: choices table is null or empty");
+                    LuaUtility.LogWarning("ShowChoiceDialogue: choices table is null or empty");
                     return;
                 }
 
-                // _logger.Msg($"Showing choice dialogue with {choices.Length} options");
+                // LuaUtility.Log($"Showing choice dialogue with {choices.Length} options");
 
                 // Convert the Lua table of choices to a C# list
                 List<string> choiceTexts = new List<string>();
@@ -1330,7 +1330,7 @@ namespace ScheduleLua.API.UI
                 var dialogueCanvas = UnityEngine.Object.FindObjectOfType<DialogueCanvas>();
                 if (dialogueCanvas == null)
                 {
-                    _logger.Warning("ShowChoiceDialogue: DialogueCanvas not available");
+                    LuaUtility.LogWarning("ShowChoiceDialogue: DialogueCanvas not available");
                     return;
                 }
 
@@ -1368,8 +1368,8 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in ShowChoiceDialogue: {ex.Message}");
-                _logger.Error(ex.StackTrace);
+                LuaUtility.LogError($"Error in ShowChoiceDialogue: {ex.Message}", ex);
+                LuaUtility.LogError(ex.StackTrace);
             }
         }
 
@@ -1401,7 +1401,7 @@ namespace ScheduleLua.API.UI
             public void StartMonitoring()
             {
                 _isMonitoring = true;
-                // _logger.Msg("Started monitoring for dialogue choices");
+                // LuaUtility.Log("Started monitoring for dialogue choices");
             }
 
             private void Update()
@@ -1432,12 +1432,12 @@ namespace ScheduleLua.API.UI
                 {
                     try
                     {
-                        // _logger.Msg($"Calling Lua callback with index: {index + 1}");
+                        // LuaUtility.Log($"Calling Lua callback with index: {index + 1}");
                         ScheduleLua.Core.Instance._luaEngine.Call(_callback, index + 1);
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error($"Error in choice callback: {ex.Message}");
+                        LuaUtility.LogError($"Error in choice callback: {ex.Message}", ex);
                     }
                 }
 
@@ -1456,12 +1456,11 @@ namespace ScheduleLua.API.UI
                 var dialogueCanvas = UnityEngine.Object.FindObjectOfType<DialogueCanvas>();
                 if (dialogueCanvas == null)
                 {
-                    _logger.Warning("CloseDialogue: DialogueCanvas not available");
+                    LuaUtility.LogWarning("CloseDialogue: DialogueCanvas not available");
                     return;
                 }
 
                 dialogueCanvas.EndDialogue();
-                // _logger.Msg("EndDialogue called successfully");
 
                 // Handle active dialogue in DialogueHandler if one exists
                 if (DialogueHandler.activeDialogue != null)
@@ -1471,14 +1470,14 @@ namespace ScheduleLua.API.UI
                     if (dialogueHandler != null)
                     {
                         dialogueHandler.EndDialogue();
-                        // _logger.Msg("DialogueHandler.EndDialogue called");
+                        // LuaUtility.Log("DialogueHandler.EndDialogue called");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in CloseDialogue: {ex.Message}");
-                _logger.Error(ex.StackTrace);
+                LuaUtility.LogError($"Error in CloseDialogue: {ex.Message}", ex);
+                LuaUtility.LogError(ex.StackTrace);
             }
         }
 
@@ -1494,7 +1493,7 @@ namespace ScheduleLua.API.UI
                 var npc = NPCManager.GetNPC(npcId);
                 if (npc == null)
                 {
-                    _logger.Error($"❌ NPC '{npcId}' not found.");
+                    LuaUtility.LogError($"❌ NPC '{npcId}' not found.");
                     return;
                 }
 
@@ -1504,7 +1503,7 @@ namespace ScheduleLua.API.UI
                     var sampleChoiceField = npc.GetType().GetField("sampleChoice", BindingFlags.Instance | BindingFlags.NonPublic);
                     if (sampleChoiceField == null)
                     {
-                        _logger.Error($"❌ '{npcId}' has no sampleChoice field (not a Customer?).");
+                        LuaUtility.LogError($"❌ '{npcId}' has no sampleChoice field (not a Customer?).");
                         return;
                     }
 
@@ -1513,17 +1512,17 @@ namespace ScheduleLua.API.UI
                     {
                         var choiceTextProp = sampleChoice.GetType().GetProperty("ChoiceText");
                         choiceTextProp?.SetValue(sampleChoice, newText);
-                        _logger.Msg($"✅ Updated customer dialogue for '{npcId}' to '{newText}'");
+                        // LuaUtility.Log($"✅ Updated customer dialogue for '{npcId}' to '{newText}'");
                     }
                 }
                 else
                 {
-                    _logger.Error($"❌ '{npcId}' is not a Customer. Unable to set customer dialogue.");
+                    LuaUtility.LogError($"❌ '{npcId}' is not a Customer. Unable to set customer dialogue.");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"❌ Error setting customer dialogue: {ex.Message}");
+                LuaUtility.LogError($"❌ Error setting customer dialogue: {ex.Message}", ex);
             }
         }
 
@@ -1539,7 +1538,7 @@ namespace ScheduleLua.API.UI
                 var npc = NPCManager.GetNPC(npcId);
                 if (npc == null)
                 {
-                    _logger.Error($"❌ NPC '{npcId}' not found.");
+                    LuaUtility.LogError($"❌ NPC '{npcId}' not found.");
                     return;
                 }
 
@@ -1549,7 +1548,7 @@ namespace ScheduleLua.API.UI
                     var recruitField = npc.GetType().GetField("recruitChoice", BindingFlags.Instance | BindingFlags.NonPublic);
                     if (recruitField == null)
                     {
-                        _logger.Error($"❌ '{npcId}' has no recruitChoice field (not a Dealer?).");
+                        LuaUtility.LogError($"❌ '{npcId}' has no recruitChoice field (not a Dealer?).");
                         return;
                     }
 
@@ -1558,17 +1557,17 @@ namespace ScheduleLua.API.UI
                     {
                         var choiceTextProp = recruitChoice.GetType().GetProperty("ChoiceText");
                         choiceTextProp?.SetValue(recruitChoice, newText);
-                        _logger.Msg($"✅ Updated dealer dialogue for '{npcId}' to '{newText}'");
+                        // LuaUtility.Log($"✅ Updated dealer dialogue for '{npcId}' to '{newText}'");
                     }
                 }
                 else
                 {
-                    _logger.Error($"❌ '{npcId}' is not a Dealer. Unable to set dealer dialogue.");
+                    LuaUtility.LogError($"❌ '{npcId}' is not a Dealer. Unable to set dealer dialogue.");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"❌ Error setting dealer dialogue: {ex.Message}");
+                LuaUtility.LogError($"❌ Error setting dealer dialogue: {ex.Message}", ex);
             }
         }
 
@@ -1584,7 +1583,7 @@ namespace ScheduleLua.API.UI
                 var npc = NPCManager.GetNPC(npcId);
                 if (npc == null)
                 {
-                    _logger.Error($"❌ NPC '{npcId}' not found");
+                    LuaUtility.LogError($"❌ NPC '{npcId}' not found");
                     return;
                 }
 
@@ -1601,27 +1600,27 @@ namespace ScheduleLua.API.UI
                             if (choices != null && choices.Count > 0)
                             {
                                 choices[0].ChoiceText = newText;
-                                _logger.Msg($"✅ Updated shop dialogue for '{npcId}' to '{newText}'");
+                                // LuaUtility.Log($"✅ Updated shop dialogue for '{npcId}' to '{newText}'");
                             }
                         }
                         else
                         {
-                            _logger.Error($"❌ Could not locate shop choice list for '{npcId}'.");
+                            LuaUtility.LogError($"❌ Could not locate shop choice list for '{npcId}'.");
                         }
                     }
                     else
                     {
-                        _logger.Error($"❌ DialogueController not found for '{npcId}'.");
+                        LuaUtility.LogError($"❌ DialogueController not found for '{npcId}'.");
                     }
                 }
                 else
                 {
-                    _logger.Error($"❌ '{npcId}' is not a Shop Worker. Unable to set shop dialogue.");
+                    LuaUtility.LogError($"❌ '{npcId}' is not a Shop Worker. Unable to set shop dialogue.");
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"❌ Error setting shop dialogue: {ex.Message}");
+                LuaUtility.LogError($"❌ Error setting shop dialogue: {ex.Message}", ex);
             }
         }
 
@@ -1698,7 +1697,7 @@ namespace ScheduleLua.API.UI
                 catch (Exception ex)
                 {
                     var logger = ScheduleLua.Core.Instance.LoggerInstance;
-                    logger.Error($"Error drawing button '{Id}': {ex.Message}");
+                    logger.Error($"Error drawing button '{Id}': {ex.Message}", ex);
                 }
             }
         }
@@ -1734,7 +1733,7 @@ namespace ScheduleLua.API.UI
                 catch (Exception ex)
                 {
                     var logger = ScheduleLua.Core.Instance.LoggerInstance;
-                    logger.Error($"Error drawing label '{Id}': {ex.Message}");
+                    logger.Error($"Error drawing label '{Id}': {ex.Message}", ex);
                 }
             }
         }
@@ -1769,7 +1768,7 @@ namespace ScheduleLua.API.UI
                 catch (Exception ex)
                 {
                     var logger = ScheduleLua.Core.Instance.LoggerInstance;
-                    logger.Error($"Error drawing text field '{Id}': {ex.Message}");
+                    logger.Error($"Error drawing text field '{Id}': {ex.Message}", ex);
                 }
             }
         }
@@ -1790,7 +1789,6 @@ namespace ScheduleLua.API.UI
 
             private List<LuaControl> _controls = new List<LuaControl>();
             private Rect _windowRect;
-            private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
 
             public LuaWindow(string id, string title, float x, float y, float width, float height)
             {
@@ -1860,10 +1858,7 @@ namespace ScheduleLua.API.UI
                 }
                 catch (Exception ex)
                 {
-                    if (_logger != null)
-                    {
-                        _logger.Error($"Error drawing window '{Id}': {ex.Message}");
-                    }
+                    LuaUtility.LogError($"Error drawing window '{Id}': {ex.Message}", ex);
                 }
             }
         }
@@ -1891,7 +1886,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetWindowStyle: {ex.Message}");
+                LuaUtility.LogError($"Error in SetWindowStyle: {ex.Message}", ex);
             }
         }
 
@@ -1914,7 +1909,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetButtonStyle: {ex.Message}");
+                LuaUtility.LogError($"Error in SetButtonStyle: {ex.Message}", ex);
             }
         }
 
@@ -1937,7 +1932,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetLabelStyle: {ex.Message}");
+                LuaUtility.LogError($"Error in SetLabelStyle: {ex.Message}", ex);
             }
         }
 
@@ -1960,7 +1955,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetTextFieldStyle: {ex.Message}");
+                LuaUtility.LogError($"Error in SetTextFieldStyle: {ex.Message}", ex);
             }
         }
 
@@ -1983,7 +1978,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetBoxStyle: {ex.Message}");
+                LuaUtility.LogError($"Error in SetBoxStyle: {ex.Message}", ex);
             }
         }
 
@@ -2032,7 +2027,7 @@ namespace ScheduleLua.API.UI
                     style.onActive.textColor = color;
                     break;
                 default:
-                    _logger.Warning($"Unknown color name: {colorName}");
+                    LuaUtility.LogWarning($"Unknown color name: {colorName}");
                     break;
             }
         }
@@ -2057,7 +2052,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetFontSize: {ex.Message}");
+                LuaUtility.LogError($"Error in SetFontSize: {ex.Message}", ex);
             }
         }
 
@@ -2091,14 +2086,14 @@ namespace ScheduleLua.API.UI
                             style.fontStyle = FontStyle.BoldAndItalic;
                             break;
                         default:
-                            _logger.Warning($"Unknown font style: {fontStyle}");
+                            LuaUtility.LogWarning($"Unknown font style: {fontStyle}");
                             break;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetFontStyle: {ex.Message}");
+                LuaUtility.LogError($"Error in SetFontStyle: {ex.Message}", ex);
             }
         }
 
@@ -2157,14 +2152,14 @@ namespace ScheduleLua.API.UI
                             style.alignment = TextAnchor.LowerRight;
                             break;
                         default:
-                            _logger.Warning($"Unknown text alignment: {alignment}");
+                            LuaUtility.LogWarning($"Unknown text alignment: {alignment}");
                             break;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetTextAlignment: {ex.Message}");
+                LuaUtility.LogError($"Error in SetTextAlignment: {ex.Message}", ex);
             }
         }
 
@@ -2191,7 +2186,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetBorder: {ex.Message}");
+                LuaUtility.LogError($"Error in SetBorder: {ex.Message}", ex);
             }
         }
 
@@ -2218,7 +2213,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in SetPadding: {ex.Message}");
+                LuaUtility.LogError($"Error in SetPadding: {ex.Message}", ex);
             }
         }
 
@@ -2240,7 +2235,7 @@ namespace ScheduleLua.API.UI
                 case "box":
                     return _boxStyle;
                 default:
-                    _logger.Warning($"Unknown style name: {styleName}");
+                    LuaUtility.LogWarning($"Unknown style name: {styleName}");
                     return null;
             }
         }
@@ -2273,7 +2268,7 @@ namespace ScheduleLua.API.UI
                 ScheduleOne.Storage.StorageEntity templateEntity = UnityEngine.Object.FindObjectOfType<ScheduleOne.Storage.StorageEntity>();
                 if (templateEntity == null)
                 {
-                    _logger.Warning("No StorageEntity template found in scene! Using new GameObject approach instead.");
+                    LuaUtility.LogWarning("No StorageEntity template found in scene! Using new GameObject approach instead.");
 
                     // Create storage with manual approach (fallback)
                     GameObject storageObject = new GameObject($"LuaStorage_{name}");
@@ -2336,12 +2331,12 @@ namespace ScheduleLua.API.UI
                 }
 
                 CloseStorageEntity(entityId);
-                _logger.Msg($"Created storage entity '{name}' with ID {entityId}, {slotCount} slots, and {rowCount} rows");
+                // LuaUtility.Log($"Created storage entity '{name}' with ID {entityId}, {slotCount} slots, and {rowCount} rows");
                 return entityId;
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error creating storage entity: {ex.Message}\n{ex.StackTrace}");
+                LuaUtility.LogError($"Error creating storage entity: {ex.Message}\n{ex.StackTrace}", ex);
                 return string.Empty;
             }
         }
@@ -2356,7 +2351,7 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return;
                 }
 
@@ -2364,28 +2359,26 @@ namespace ScheduleLua.API.UI
                 try
                 {
                     storageEntity.Open();
-                    _logger.Msg($"Opened storage entity {entityId}");
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Error calling Open method: {ex.Message}");
+                    LuaUtility.LogError($"Error calling Open method: {ex.Message}", ex);
 
                     // Fallback: Try manual opening through the StorageMenu
                     var storageMenu = ScheduleOne.DevUtilities.Singleton<ScheduleOne.UI.StorageMenu>.Instance;
                     if (storageMenu != null)
                     {
                         storageMenu.Open(storageEntity);
-                        _logger.Msg($"Opened storage entity {entityId} through StorageMenu");
                     }
                     else
                     {
-                        _logger.Error("StorageMenu instance not available");
+                        LuaUtility.LogError("StorageMenu instance not available");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error opening storage entity: {ex.Message}\n{ex.StackTrace}");
+                LuaUtility.LogError($"Error opening storage entity: {ex.Message}\n{ex.StackTrace}", ex);
             }
         }
 
@@ -2402,7 +2395,7 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return false;
                 }
 
@@ -2412,7 +2405,7 @@ namespace ScheduleLua.API.UI
                 // Check if the item exists in the registry first
                 if (!ScheduleLua.API.Registry.RegistryAPI.DoesItemExist(itemId))
                 {
-                    _logger.Error($"Item with ID '{itemId}' not found in registry. Cannot add to storage entity '{entityId}'");
+                    LuaUtility.LogError($"Item with ID '{itemId}' not found in registry. Cannot add to storage entity '{entityId}'");
                     return false;
                 }
 
@@ -2420,17 +2413,15 @@ namespace ScheduleLua.API.UI
                 itemDef = ScheduleLua.API.Registry.RegistryAPI.GetItemDirect(itemId);
                 if (itemDef == null)
                 {
-                    _logger.Error($"Failed to retrieve item definition for '{itemId}' despite item existing in registry");
+                    LuaUtility.LogError($"Failed to retrieve item definition for '{itemId}' despite item existing in registry");
                     return false;
                 }
-
-                _logger.Msg($"Found item definition for '{itemId}' ({itemDef.Name}) - attempting to add to storage '{entityId}'");
 
                 // Create an item instance
                 ScheduleOne.ItemFramework.ItemInstance itemInstance = itemDef.GetDefaultInstance();
                 if (itemInstance == null)
                 {
-                    _logger.Error($"Failed to create item instance for {itemId}");
+                    LuaUtility.LogError($"Failed to create item instance for {itemId}");
                     return false;
                 }
 
@@ -2440,7 +2431,7 @@ namespace ScheduleLua.API.UI
                 // Check if we can fit this item
                 if (!storageEntity.CanItemFit(itemInstance))
                 {
-                    _logger.Warning($"Cannot fit item {itemId} x{quantity} in storage {entityId}");
+                    LuaUtility.LogWarning($"Cannot fit item {itemId} x{quantity} in storage {entityId}");
                     return false;
                 }
 
@@ -2448,12 +2439,11 @@ namespace ScheduleLua.API.UI
                 try
                 {
                     storageEntity.InsertItem(itemInstance, false);
-                    _logger.Msg($"Added {quantity}x {itemId} to storage entity {entityId}");
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Error inserting item: {ex.Message}");
+                    LuaUtility.LogError($"Error inserting item: {ex.Message}", ex);
 
                     // Fallback: Try to insert manually to an empty slot
                     if (storageEntity.ItemSlots != null)
@@ -2464,7 +2454,7 @@ namespace ScheduleLua.API.UI
                             {
                                 // Use SetStoredItem method instead of direct property assignment (which has a protected setter)
                                 storageEntity.ItemSlots[i].SetStoredItem(itemInstance, true);
-                                _logger.Msg($"Added {quantity}x {itemId} to storage entity {entityId} in slot {i} (manual method)");
+                                // LuaUtility.Log($"Added {quantity}x {itemId} to storage entity {entityId} in slot {i} (manual method)");
                                 return true;
                             }
                         }
@@ -2475,7 +2465,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error adding item to storage: {ex.Message}\n{ex.StackTrace}");
+                LuaUtility.LogError($"Error adding item to storage: {ex.Message}\n{ex.StackTrace}", ex);
                 return false;
             }
         }
@@ -2490,18 +2480,16 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return;
                 }
 
                 // Close the storage entity UI
                 storageEntity.Close();
-
-                _logger.Msg($"Closed storage entity {entityId}");
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error closing storage entity: {ex.Message}");
+                LuaUtility.LogError($"Error closing storage entity: {ex.Message}", ex);
             }
         }
 
@@ -2516,7 +2504,7 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return null;
                 }
 
@@ -2551,7 +2539,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error getting storage items: {ex.Message}");
+                LuaUtility.LogError($"Error getting storage items: {ex.Message}", ex);
                 return null;
             }
         }
@@ -2567,7 +2555,7 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return false;
                 }
 
@@ -2575,7 +2563,7 @@ namespace ScheduleLua.API.UI
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error checking if storage is open: {ex.Message}");
+                LuaUtility.LogError($"Error checking if storage is open: {ex.Message}", ex);
                 return false;
             }
         }
@@ -2591,16 +2579,15 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return;
                 }
 
                 storageEntity.StorageEntityName = name;
-                _logger.Msg($"Set storage entity {entityId} name to '{name}'");
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error setting storage name: {ex.Message}");
+                LuaUtility.LogError($"Error setting storage name: {ex.Message}", ex);
             }
         }
 
@@ -2615,16 +2602,15 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return;
                 }
 
                 storageEntity.StorageEntitySubtitle = subtitle;
-                _logger.Msg($"Set storage entity {entityId} subtitle to '{subtitle}'");
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error setting storage subtitle: {ex.Message}");
+                LuaUtility.LogError($"Error setting storage subtitle: {ex.Message}", ex);
             }
         }
 
@@ -2638,16 +2624,15 @@ namespace ScheduleLua.API.UI
             {
                 if (!_luaStorageEntities.TryGetValue(entityId, out ScheduleOne.Storage.StorageEntity storageEntity))
                 {
-                    _logger.Error($"Storage entity with ID {entityId} not found");
+                    LuaUtility.LogError($"Storage entity with ID {entityId} not found");
                     return;
                 }
 
                 storageEntity.ClearContents();
-                _logger.Msg($"Cleared contents of storage entity {entityId}");
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error clearing storage contents: {ex.Message}");
+                LuaUtility.LogError($"Error clearing storage contents: {ex.Message}", ex);
             }
         }
 
