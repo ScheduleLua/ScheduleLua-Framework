@@ -35,7 +35,7 @@ public static ReturnType FunctionName(ParameterType paramName)
     // 1. Input validation
     if (paramName == null)
     {
-        Log("FunctionName: paramName is null");
+        LuaUtility.Log("FunctionName: paramName is null");
         return default(ReturnType); // Or appropriate default value
     }
     
@@ -50,7 +50,7 @@ public static ReturnType FunctionName(ParameterType paramName)
     catch (Exception ex)
     {
         // 4. Error handling
-        LogError($"Error in FunctionName: {ex.Message}");
+        LuaUtility.LogError($"Error in FunctionName: {ex.Message}", ex);
         return default(ReturnType); // Or appropriate default value
     }
 }
@@ -217,8 +217,6 @@ namespace ScheduleLua.API
     /// </summary>
     public static class QuestAPI
     {
-        private static MelonLogger.Instance _logger => Core.Instance.LoggerInstance;
-        
         /// <summary>
         /// Registers quest API functions with the Lua engine
         /// </summary>
@@ -245,7 +243,7 @@ namespace ScheduleLua.API
             {
                 if (QuestManager.Instance == null)
                 {
-                    _logger.Warning("GetActiveQuests: QuestManager not available");
+                    LuaUtility.LogWarning("GetActiveQuests: QuestManager not available");
                     return new Quest[0];
                 }
                 
@@ -253,7 +251,7 @@ namespace ScheduleLua.API
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in GetActiveQuests: {ex.Message}");
+                LuaUtility.LogError($"Error in GetActiveQuests: {ex.Message}");
                 return new Quest[0];
             }
         }
@@ -267,7 +265,7 @@ namespace ScheduleLua.API
         {
             if (string.IsNullOrEmpty(questName))
             {
-                _logger.Warning("GetQuestByName: questName is null or empty");
+                LuaUtility.LogWarning("GetQuestByName: questName is null or empty");
                 return null;
             }
             
@@ -275,7 +273,7 @@ namespace ScheduleLua.API
             {
                 if (QuestManager.Instance == null)
                 {
-                    _logger.Warning("GetQuestByName: QuestManager not available");
+                    LuaUtility.LogWarning("GetQuestByName: QuestManager not available");
                     return null;
                 }
                 
@@ -283,7 +281,7 @@ namespace ScheduleLua.API
             }
             catch (Exception ex)
             {
-                _logger.Error($"Error in GetQuestByName: {ex.Message}");
+                LuaUtility.LogError($"Error in GetQuestByName: {ex.Message}");
                 return null;
             }
         }
