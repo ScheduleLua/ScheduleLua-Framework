@@ -1,0 +1,15 @@
+{
+  "name": "Bars_Tweaks",
+  "version": "1.0.1",
+  "description": "A QOL mod to enhance the Schedule 1 experience",
+  "author": "Bars",
+  "main": "init.lua",
+  "dependencies": [],
+  "files": [
+    "menu.lua",
+    "backpack.lua",
+    "item_tweaks.lua",
+    "atm_tweaks.lua"
+  ],
+  "api_version": "0.1.5"
+}

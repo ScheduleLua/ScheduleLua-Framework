@@ -53,4 +53,4 @@ First beta release of ScheduleLua, a Lua modding framework for Schedule I that e
 - Some functions may not be reliable after game updates 
 
 ### Note
-- You can find full documentation on the [Wiki Page](https://ifbars.github.io/ScheduleLua-Docs/)
+- You can find full documentation on the [Wiki Page](https://schedulelua.github.io/ScheduleLua-Docs/)

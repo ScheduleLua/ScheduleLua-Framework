@@ -2,13 +2,13 @@
 
 <img src="logo.png" alt="ScheduleLua Logo" width="333">
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://thunderstore.io/c/schedule-i/p/ScheduleLua/ScheduleLua/versions/)
+[![Version](https://img.shields.io/badge/version-0.1.6-blue.svg)](https://thunderstore.io/c/schedule-i/p/ScheduleLua/ScheduleLua/versions/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-beta-orange.svg)](https://ifbars.github.io/ScheduleLua-Docs/guide/development-status.html)
+[![Status](https://img.shields.io/badge/status-beta-orange.svg)](https://schedulelua.github.io/ScheduleLua-Docs/guide/development-status.html)
 [![MelonLoader](https://img.shields.io/badge/requires-MelonLoader-red.svg)](https://melonwiki.xyz/)
 [![Lua](https://img.shields.io/badge/language-Lua-blue.svg)](https://www.lua.org/)
 [![C#](https://img.shields.io/badge/language-C%23-darkgreen.svg)](https://docs.microsoft.com/en-us/dotnet/csharp/)
-[![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](https://ifbars.github.io/ScheduleLua-Docs/guide/contributing.html)
+[![Contributions](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](https://schedulelua.github.io/ScheduleLua-Docs/guide/contributing.html)
 
 A Lua modding framework for Schedule I that aims to expose the game's functionality to Lua scripts, enabling custom gameplay mechanics, automation, and new features. ScheduleLua is currently in beta development, and the only features that are known to be working properly are the ones in the example scripts. I and or other contributors cannot guarantee that everything will work or be available, especially after the game updates.
 
@@ -113,7 +113,7 @@ ScheduleLua is a MelonLoader mod that integrates the MoonSharp Lua interpreter w
 
 ## Getting Started
 
-For a comprehensive guide on getting started with ScheduleLua, visit our [online documentation](https://ifbars.github.io/ScheduleLua-Docs/guide/getting-started.html).
+For a comprehensive guide on getting started with ScheduleLua, visit our [online documentation](https://schedulelua.github.io/ScheduleLua-Docs/guide/getting-started.html).
 
 ### Creating Your First Script
 
@@ -844,16 +844,16 @@ return true
 
 ## Contributing
 
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ifBars/ScheduleLua/pulls)
-[![Issues](https://img.shields.io/badge/Issues-welcome-blue.svg)](https://github.com/ifBars/ScheduleLua/issues)
-[![Contributors](https://img.shields.io/badge/Contributors-help_wanted-orange.svg)](https://github.com/ifBars/ScheduleLua/graphs/contributors)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ScheduleLua/ScheduleLua-Framework/pulls)
+[![Issues](https://img.shields.io/badge/Issues-welcome-blue.svg)](https://github.com/ScheduleLua/ScheduleLua-Framework/issues)
+[![Contributors](https://img.shields.io/badge/Contributors-help_wanted-orange.svg)](https://github.com/ScheduleLua/ScheduleLua-Framework/graphs/contributors)
 
 We welcome contributions to ScheduleLua! This guide will walk you through the process of contributing to the project.
 
 ### Getting Started
 
 1. **Fork the Repository**
-   - Visit [ScheduleLua GitHub repository](https://github.com/ifBars/ScheduleLua)
+   - Visit [ScheduleLua GitHub repository](https://github.com/ScheduleLua/ScheduleLua-Framework)
    - Click the "Fork" button in the top right corner
    - This creates a copy of the repository in your GitHub account
 
@@ -865,7 +865,7 @@ We welcome contributions to ScheduleLua! This guide will walk you through the pr
 
 3. **Add the Original Repository as Upstream**
    ```bash
-   git remote add upstream https://github.com/ifBars/ScheduleLua.git
+   git remote add upstream https://github.com/ScheduleLua/ScheduleLua-Framework.git
    ```
 
 ### Making Changes
