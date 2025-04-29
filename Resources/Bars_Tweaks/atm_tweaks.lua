@@ -23,9 +23,6 @@ local config = {
     }
 }
 
--- Debug logging
-local debugLogging = _G.DEBUG_LOGGING or false
-
 local isInitialized = false
 local currentScene = "Menu"
 
@@ -39,11 +36,6 @@ function ATMTweaks.Initialize()
     if GetATMDepositLimit then
         config.originalLimit = GetATMDepositLimit()
         Log("Original ATM deposit limit: " .. FormatMoney(config.originalLimit))
-        
-        if _G.DEBUG_LOGGING then
-            Log("DEBUG: ATM Tweaks initialized with preset: " .. config.currentPreset)
-            Log("DEBUG: Available ATM presets: " .. table.concat(GetTableKeys(config.presetLimits), ", "))
-        end
     end
     
     isInitialized = true

@@ -6,25 +6,12 @@
 -- Create a module table
 local Menu = {}
 
--- Global debug logging toggle - accessible to all modules
-_G.DEBUG_LOGGING = false
-
 -- Global variables to track UI state and elements
 local isUIVisible = false
 local mainWindowId = nil
 local isMainSceneLoaded = false
 local currentTheme = "dark" -- Default theme
-local lastToggleTime = 0 -- Initialize last toggle time
-local config = {
-    toggleCooldown = 0.5 -- Set cooldown in seconds
-}
-
--- Debug tracking
-local keyPressCheck = {
-    lastCheckTime = 0,
-    checkInterval = 5, -- Log debug info every 5 seconds
-    lastKeyPressTime = 0
-}
+local config = {}
 
 -- Track UI controls for easier reference
 local menuControls = {}
@@ -46,24 +33,18 @@ local versionLabelId = nil
 -- Array to track all controls for proper cleanup
 local allControlIds = {}
 
--- Safe function to call UI operations with error protection
+-- Safe function to call UI operations
 local function SafeUICall(func, ...)
     local success, result = pcall(func, ...)
-    if not success then 
-        LogError("UI ERROR: Failed to call " .. tostring(func) .. " - " .. tostring(result))
-    end
     return success, result
 end
 
 local function SafeSaveConfig()
-    -- Just log a message and return success to avoid breaking other functionality
     if _G["SaveConfig"] == nil then
         _G["SaveConfig"] = function()
-            Log("DEBUG: Placeholder SaveConfig called")
             return true
         end
     end
-    
     return true
 end
 
@@ -75,66 +56,185 @@ local function TrackControl(controlId)
     return controlId
 end
 
--- Theme definitions with improved colors
+-- Enhanced themes with more styling properties
 local themes = {
+    -- Dark Theme
     dark = {
-        window        = { background = {0.10, 0.12, 0.15, 0.96}, text = {0.92, 0.92, 0.95, 1} },
-        header        = { background = {0.16, 0.18, 0.22, 1.0 }, text = {1,      1,      1,      1} },
-        footer        = { background = {0.16, 0.18, 0.22, 1.0 }, text = {0.80,   0.82,   0.85,   1} },
-        button        = { background = {0.18, 0.20, 0.25, 0.95}, text = {0.92, 0.92, 0.95, 1}, hover = {0.22, 0.24, 0.30, 0.95} },
-        activeButton  = { background = {0.22, 0.58, 0.77, 0.95}, text = {1,    1,    1,    1}, hover = {0.25, 0.65, 0.85, 0.95} },
-        label         = { text = {0.92, 0.92, 0.95, 1} },
-        highlightLabel= { text = {0.20, 0.60, 0.85, 1} },
-        statusLabel   = { text = {0.78, 0.80, 0.83, 1} },
-        textfield     = { background = {0.14, 0.16, 0.20, 0.95}, text = {0.92, 0.92, 0.95, 1} }
+        window        = { background = {0.12, 0.14, 0.18, 0.97}, text = {0.95, 0.95, 0.98, 1}, border = {0.18, 0.20, 0.25, 1.0} },
+        header        = { background = {0.18, 0.20, 0.25, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.18, 0.20, 0.25, 1.0 }, text = {0.85, 0.87, 0.90, 1} },
+        button        = { background = {0.22, 0.24, 0.30, 0.95}, text = {0.95, 0.95, 0.98, 1}, hover = {0.28, 0.30, 0.38, 0.95}, 
+                          active = {0.30, 0.32, 0.40, 0.95}, border = {0.28, 0.30, 0.38, 1.0} },
+        activeButton  = { background = {0.25, 0.65, 0.85, 0.95}, text = {1,    1,    1,    1}, hover = {0.30, 0.70, 0.90, 0.95},
+                          active = {0.35, 0.75, 0.95, 0.95}, border = {0.35, 0.75, 0.95, 1.0} },
+        label         = { text = {0.95, 0.95, 0.98, 1} },
+        highlightLabel= { text = {0.30, 0.70, 0.95, 1} },
+        statusLabel   = { text = {0.80, 0.82, 0.85, 1} },
+        textfield     = { background = {0.16, 0.18, 0.23, 0.95}, text = {0.95, 0.95, 0.98, 1}, border = {0.22, 0.24, 0.30, 1.0} },
+        box           = { background = {0.14, 0.16, 0.20, 0.95}, text = {0.95, 0.95, 0.98, 1}, border = {0.20, 0.22, 0.28, 1.0} },
+        
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments= { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {3, 3, 3, 3}, button = {3, 3, 3, 3}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} },
+        padding       = { window = {4, 4, 4, 4}, button = {6, 6, 6, 6}, label = {2, 2, 2, 2}, textfield = {5, 5, 5, 5}, box = {4, 4, 4, 4} }
     },
 
+    -- Ocean Theme
     ocean = {
-        window        = { background = {0.02, 0.06, 0.14, 0.98}, text = {0.93, 0.96, 0.98, 1} },
-        header        = { background = {0.04, 0.10, 0.22, 1.0 }, text = {1,    1,    1,    1} },
-        footer        = { background = {0.04, 0.10, 0.22, 1.0 }, text = {0.80, 0.85, 0.90, 1} },
-        button        = { background = {0.08, 0.18, 0.30, 0.95}, text = {1,    1,    1,    1}, hover = {0.10, 0.22, 0.36, 0.95} },
-        activeButton  = { background = {0.12, 0.42, 0.60, 0.95}, text = {1,    1,    1,    1}, hover = {0.15, 0.50, 0.70, 0.95} },
-        label         = { text = {0.93, 0.96, 0.98, 1} },
-        highlightLabel= { text = {0.40, 0.80, 0.95, 1} },
-        statusLabel   = { text = {0.75, 0.85, 0.90, 1} },
-        textfield     = { background = {0.05, 0.12, 0.20, 0.95}, text = {0.93, 0.96, 0.98, 1} }
+        window        = { background = {0.05, 0.10, 0.20, 0.98}, text = {0.95, 0.97, 1.00, 1}, border = {0.12, 0.20, 0.35, 1.0} },
+        header        = { background = {0.08, 0.15, 0.28, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.08, 0.15, 0.28, 1.0 }, text = {0.85, 0.90, 0.95, 1} },
+        button        = { background = {0.12, 0.22, 0.35, 0.95}, text = {1,    1,    1,    1}, hover = {0.15, 0.28, 0.42, 0.95},
+                          active = {0.18, 0.32, 0.48, 0.95}, border = {0.18, 0.30, 0.45, 1.0} },
+        activeButton  = { background = {0.15, 0.48, 0.70, 0.95}, text = {1,    1,    1,    1}, hover = {0.20, 0.55, 0.78, 0.95},
+                          active = {0.25, 0.60, 0.85, 0.95}, border = {0.25, 0.60, 0.85, 1.0} },
+        label         = { text = {0.95, 0.97, 1.00, 1} },
+        highlightLabel= { text = {0.45, 0.85, 1.00, 1} },
+        statusLabel   = { text = {0.80, 0.88, 0.95, 1} },
+        textfield     = { background = {0.08, 0.16, 0.26, 0.95}, text = {0.95, 0.97, 1.00, 1}, border = {0.15, 0.25, 0.40, 1.0} },
+        box           = { background = {0.06, 0.13, 0.22, 0.95}, text = {0.95, 0.97, 1.00, 1}, border = {0.15, 0.30, 0.50, 1.0} },
+        
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments= { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {3, 3, 3, 3}, button = {3, 3, 3, 3}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} },
+        padding       = { window = {4, 4, 6, 4}, button = {6, 6, 6, 6}, label = {2, 2, 2, 2}, textfield = {5, 5, 5, 5}, box = {4, 4, 4, 4} }
     },
 
+    -- Refined Ocean Theme with deeper blues
+    ocean = {
+        window        = { background = {0.05, 0.10, 0.20, 0.98}, text = {0.95, 0.97, 1.00, 1} },
+        header        = { background = {0.08, 0.15, 0.28, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.08, 0.15, 0.28, 1.0 }, text = {0.85, 0.90, 0.95, 1} },
+        button        = { background = {0.12, 0.22, 0.35, 0.95}, text = {1,    1,    1,    1}, hover = {0.15, 0.28, 0.42, 0.95}, active = {0.15, 0.48, 0.70, 0.95}, border = {0.15, 0.28, 0.42, 1.0} },
+        label         = { text = {0.95, 0.97, 1.00, 1} },
+        highlightLabel= { text = {0.45, 0.85, 1.00, 1} },
+        statusLabel   = { text = {0.80, 0.88, 0.95, 1} },
+        textfield     = { background = {0.08, 0.16, 0.26, 0.95}, text = {0.95, 0.97, 1.00, 1}, border = {0.08, 0.16, 0.26, 1.0} },
+        box           = { background = {0.08, 0.16, 0.26, 1.0}, text = {0.95, 0.97, 1.00, 1.0}, border = {0.08, 0.16, 0.26, 1.0} },
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments = { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {0.08, 0.16, 0.26, 1.0}, button = {0.15, 0.28, 0.42, 1.0}, textfield = {0.08, 0.16, 0.26, 1.0}, box = {0.08, 0.16, 0.26, 1.0} },
+        padding       = { window = {4, 4, 4, 4}, button = {2, 2, 2, 2}, label = {2, 2, 2, 2}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} }
+    },
+
+    -- Enhanced Forest Theme with richer greens
     forest = {
-        window        = { background = {0.06, 0.10, 0.06, 0.98}, text = {0.90, 0.95, 0.90, 1} },
-        header        = { background = {0.10, 0.16, 0.10, 1.0 }, text = {1,    1,    1,    1} },
-        footer        = { background = {0.10, 0.16, 0.10, 1.0 }, text = {0.70, 0.80, 0.70, 1} },
-        button        = { background = {0.12, 0.24, 0.12, 0.95}, text = {0.90, 0.95, 0.90, 1}, hover = {0.16, 0.30, 0.16, 0.95} },
-        activeButton  = { background = {0.30, 0.60, 0.35, 0.95}, text = {1,    1,    1,    1}, hover = {0.35, 0.70, 0.40, 0.95} },
-        label         = { text = {0.90, 0.95, 0.90, 1} },
-        highlightLabel= { text = {0.70, 1.00, 0.75, 1} },
-        statusLabel   = { text = {0.70, 0.80, 0.70, 1} },
-        textfield     = { background = {0.08, 0.14, 0.08, 0.95}, text = {0.90, 0.95, 0.90, 1} }
+        window        = { background = {0.08, 0.14, 0.08, 0.98}, text = {0.92, 0.97, 0.92, 1} },
+        header        = { background = {0.12, 0.20, 0.12, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.12, 0.20, 0.12, 1.0 }, text = {0.75, 0.85, 0.75, 1} },
+        button        = { background = {0.15, 0.28, 0.15, 0.95}, text = {0.92, 0.97, 0.92, 1}, hover = {0.20, 0.35, 0.20, 0.95}, active = {0.35, 0.70, 0.40, 0.95}, border = {0.15, 0.28, 0.15, 1.0} },
+        label         = { text = {0.92, 0.97, 0.92, 1} },
+        highlightLabel= { text = {0.60, 1.00, 0.65, 1} },
+        statusLabel   = { text = {0.75, 0.85, 0.75, 1} },
+        textfield     = { background = {0.10, 0.18, 0.10, 0.95}, text = {0.92, 0.97, 0.92, 1}, border = {0.10, 0.18, 0.10, 1.0} },
+        box           = { background = {0.10, 0.18, 0.10, 1.0}, text = {0.92, 0.97, 0.92, 1.0}, border = {0.10, 0.18, 0.10, 1.0} },
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments = { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {0.10, 0.18, 0.10, 1.0}, button = {0.15, 0.28, 0.15, 1.0}, textfield = {0.10, 0.18, 0.10, 1.0}, box = {0.10, 0.18, 0.10, 1.0} },
+        padding       = { window = {4, 4, 4, 4}, button = {2, 2, 2, 2}, label = {2, 2, 2, 2}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} }
     },
 
+    -- Refined Sunset Theme with warmer tones
     sunset = {
-        window        = { background = {0.18, 0.08, 0.05, 0.98}, text = {1.00, 0.95, 0.90, 1} },
-        header        = { background = {0.22, 0.10, 0.07, 1.0 }, text = {1,    1,    1,    1} },
-        footer        = { background = {0.22, 0.10, 0.07, 1.0 }, text = {0.90, 0.82, 0.75, 1} },
-        button        = { background = {0.32, 0.16, 0.12, 0.95}, text = {1.00, 0.95, 0.90, 1}, hover = {0.38, 0.18, 0.14, 0.95} },
-        activeButton  = { background = {1.00, 0.60, 0.30, 0.95}, text = {0.10, 0.10, 0.10, 1}, hover = {1.00, 0.66, 0.33, 0.95} },
-        label         = { text = {1.00, 0.95, 0.90, 1} },
-        highlightLabel= { text = {1.00, 0.65, 0.35, 1} },
-        statusLabel   = { text = {0.90, 0.82, 0.75, 1} },
-        textfield     = { background = {0.20, 0.10, 0.08, 0.95}, text = {1.00, 0.95, 0.90, 1} }
+        window        = { background = {0.15, 0.08, 0.10, 0.98}, text = {1.00, 0.96, 0.92, 1} },
+        header        = { background = {0.25, 0.12, 0.15, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.25, 0.12, 0.15, 1.0 }, text = {0.92, 0.85, 0.80, 1} },
+        button        = { background = {0.35, 0.18, 0.20, 0.95}, text = {1.00, 0.96, 0.92, 1}, hover = {0.42, 0.22, 0.25, 0.95}, active = {0.95, 0.50, 0.30, 0.95}, border = {0.30, 0.18, 0.20, 1.0} },
+        label         = { text = {1.00, 0.96, 0.92, 1} },
+        highlightLabel= { text = {1.00, 0.70, 0.40, 1} },
+        statusLabel   = { text = {0.92, 0.85, 0.80, 1} },
+        textfield     = { background = {0.22, 0.12, 0.15, 0.95}, text = {1.00, 0.96, 0.92, 1}, border = {0.22, 0.12, 0.15, 1.0} },
+        box           = { background = {0.22, 0.12, 0.15, 1.0}, text = {1.00, 0.96, 0.92, 1.0}, border = {0.22, 0.12, 0.15, 1.0} },
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments = { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {0.22, 0.12, 0.15, 1.0}, button = {0.30, 0.18, 0.20, 1.0}, textfield = {0.22, 0.12, 0.15, 1.0}, box = {0.22, 0.12, 0.15, 1.0} },
+        padding       = { window = {4, 4, 4, 4}, button = {2, 2, 2, 2}, label = {2, 2, 2, 2}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} }
     },
+    
+    -- New Modern Theme with blue accents
+    modern = {
+        window        = { background = {0.14, 0.14, 0.16, 0.97}, text = {0.98, 0.98, 0.98, 1} },
+        header        = { background = {0.16, 0.16, 0.18, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.16, 0.16, 0.18, 1.0 }, text = {0.80, 0.80, 0.82, 1} },
+        button        = { background = {0.20, 0.20, 0.22, 0.95}, text = {0.98, 0.98, 0.98, 1}, hover = {0.24, 0.24, 0.26, 0.95}, active = {0.20, 0.55, 0.90, 0.95}, border = {0.20, 0.20, 0.22, 1.0} },
+        label         = { text = {0.98, 0.98, 0.98, 1} },
+        highlightLabel= { text = {0.35, 0.65, 1.00, 1} },
+        statusLabel   = { text = {0.80, 0.80, 0.82, 1} },
+        textfield     = { background = {0.18, 0.18, 0.20, 0.95}, text = {0.98, 0.98, 0.98, 1}, border = {0.18, 0.18, 0.20, 1.0} },
+        box           = { background = {0.16, 0.16, 0.18, 1.0}, text = {0.80, 0.80, 0.82, 1.0}, border = {0.18, 0.18, 0.20, 1.0} },
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments = { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {0.16, 0.16, 0.18, 1.0}, button = {0.20, 0.20, 0.22, 1.0}, textfield = {0.18, 0.18, 0.20, 1.0}, box = {0.16, 0.16, 0.18, 1.0} },
+        padding       = { window = {4, 4, 4, 4}, button = {2, 2, 2, 2}, label = {2, 2, 2, 2}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} }
+    },
+    
+    -- New Mint Theme with fresh greens
+    mint = {
+        window        = { background = {0.12, 0.16, 0.16, 0.97}, text = {0.94, 0.98, 0.96, 1} },
+        header        = { background = {0.14, 0.20, 0.20, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.14, 0.20, 0.20, 1.0 }, text = {0.80, 0.90, 0.85, 1} },
+        button        = { background = {0.18, 0.24, 0.24, 0.95}, text = {0.94, 0.98, 0.96, 1}, hover = {0.22, 0.30, 0.28, 0.95}, active = {0.20, 0.70, 0.55, 0.95}, border = {0.18, 0.24, 0.24, 1.0} },
+        label         = { text = {0.94, 0.98, 0.96, 1} },
+        highlightLabel= { text = {0.30, 0.85, 0.70, 1} },
+        statusLabel   = { text = {0.80, 0.90, 0.85, 1} },
+        textfield     = { background = {0.16, 0.22, 0.22, 0.95}, text = {0.94, 0.98, 0.96, 1}, border = {0.16, 0.22, 0.22, 1.0} },
+        box           = { background = {0.14, 0.20, 0.20, 1.0}, text = {0.80, 0.90, 0.85, 1.0}, border = {0.14, 0.20, 0.20, 1.0} },
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments = { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {0.14, 0.20, 0.20, 1.0}, button = {0.18, 0.24, 0.24, 1.0}, textfield = {0.16, 0.22, 0.22, 1.0}, box = {0.14, 0.20, 0.20, 1.0} },
+        padding       = { window = {4, 4, 4, 4}, button = {2, 2, 2, 2}, label = {2, 2, 2, 2}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} }
+    },
+    
+    -- New Amber Theme with warm gold accents
+    amber = {
+        window        = { background = {0.15, 0.14, 0.12, 0.97}, text = {0.98, 0.96, 0.90, 1} },
+        header        = { background = {0.20, 0.18, 0.15, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.20, 0.18, 0.15, 1.0 }, text = {0.90, 0.85, 0.78, 1} },
+        button        = { background = {0.25, 0.22, 0.18, 0.95}, text = {0.98, 0.96, 0.90, 1}, hover = {0.30, 0.26, 0.22, 0.95}, active = {0.90, 0.70, 0.20, 0.95}, border = {0.25, 0.22, 0.18, 1.0} },
+        label         = { text = {0.98, 0.96, 0.90, 1} },
+        highlightLabel= { text = {0.95, 0.75, 0.25, 1} },
+        statusLabel   = { text = {0.90, 0.85, 0.78, 1} },
+        textfield     = { background = {0.22, 0.20, 0.16, 0.95}, text = {0.98, 0.96, 0.90, 1}, border = {0.22, 0.20, 0.16, 1.0} },
+        box           = { background = {0.20, 0.18, 0.15, 1.0}, text = {0.90, 0.85, 0.78, 1.0}, border = {0.20, 0.18, 0.15, 1.0} },
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments = { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {0.20, 0.18, 0.15, 1.0}, button = {0.25, 0.22, 0.18, 1.0}, textfield = {0.22, 0.20, 0.16, 1.0}, box = {0.20, 0.18, 0.15, 1.0} },
+        padding       = { window = {4, 4, 4, 4}, button = {2, 2, 2, 2}, label = {2, 2, 2, 2}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} }
+    },
+    
+    -- New Violet Theme
+    violet = {
+        window        = { background = {0.12, 0.10, 0.16, 0.97}, text = {0.96, 0.94, 0.98, 1} },
+        header        = { background = {0.18, 0.14, 0.24, 1.0 }, text = {1,    1,    1,    1} },
+        footer        = { background = {0.18, 0.14, 0.24, 1.0 }, text = {0.85, 0.80, 0.90, 1} },
+        button        = { background = {0.22, 0.18, 0.28, 0.95}, text = {0.96, 0.94, 0.98, 1}, hover = {0.28, 0.22, 0.35, 0.95}, active = {0.60, 0.40, 0.85, 0.95}, border = {0.22, 0.18, 0.28, 1.0} },
+        label         = { text = {0.96, 0.94, 0.98, 1} },
+        highlightLabel= { text = {0.75, 0.60, 1.00, 1} },
+        statusLabel   = { text = {0.85, 0.80, 0.90, 1} },
+        textfield     = { background = {0.18, 0.14, 0.22, 0.95}, text = {0.96, 0.94, 0.98, 1}, border = {0.18, 0.14, 0.22, 1.0} },
+        box           = { background = {0.18, 0.14, 0.24, 1.0}, text = {0.85, 0.80, 0.90, 1.0}, border = {0.18, 0.14, 0.24, 1.0} },
+        fontSizes     = { window = 22, button = 16, label = 14, textfield = 14 },
+        fontStyles    = { window = "bold", button = "bold", label = "normal", textfield = "normal" },
+        textAlignments = { button = "middlecenter", label = "middlecenter", textfield = "middlecenter" },
+        borders       = { window = {0.18, 0.14, 0.24, 1.0}, button = {0.22, 0.18, 0.28, 1.0}, textfield = {0.18, 0.14, 0.22, 1.0}, box = {0.18, 0.14, 0.24, 1.0} },
+        padding       = { window = {4, 4, 4, 4}, button = {2, 2, 2, 2}, label = {2, 2, 2, 2}, textfield = {2, 2, 2, 2}, box = {2, 2, 2, 2} }
+    }
 }
 
--- Apply a theme to the UI
+-- Apply a theme to the UI with enhanced styling
 local function ApplyTheme(themeName)
     local theme = themes[themeName]
     if not theme then
-        Log("Theme not found: " .. themeName)
         return
     end
-    
-    Log("Applying theme: " .. themeName)
     
     -- Apply window style
     if theme.window.background then
@@ -159,11 +259,30 @@ local function ApplyTheme(themeName)
         local hov = theme.button.hover
         SetButtonStyle("hover", hov[1], hov[2], hov[3], hov[4])
     end
+    if theme.button.active then
+        local act = theme.button.active
+        SetButtonStyle("active", act[1], act[2], act[3], act[4])
+    end
     
     -- Apply label style
     if theme.label.text then
         local txt = theme.label.text
         SetLabelStyle("text", txt[1], txt[2], txt[3], txt[4])
+    end
+    
+    -- Apply highlight label style as a special case
+    if theme.highlightLabel and theme.highlightLabel.text then
+        -- Store current label style
+        local origLabel = theme.label.text
+        
+        -- Apply highlight style temporarily 
+        local hl = theme.highlightLabel.text
+        SetLabelStyle("text", hl[1], hl[2], hl[3], hl[4])
+        
+        -- Apply to any specific highlight labels here if needed
+        
+        -- Restore normal label style
+        SetLabelStyle("text", origLabel[1], origLabel[2], origLabel[3], origLabel[4])
     end
     
     -- Apply text field style
@@ -176,12 +295,88 @@ local function ApplyTheme(themeName)
         SetTextFieldStyle("text", txt[1], txt[2], txt[3], txt[4])
     end
     
+    -- Apply box styles
+    if theme.box then
+        if theme.box.background then
+            local bg = theme.box.background
+            SetBoxStyle("background", bg[1], bg[2], bg[3], bg[4])
+        end
+        if theme.box.text then
+            local txt = theme.box.text
+            SetBoxStyle("text", txt[1], txt[2], txt[3], txt[4])
+        end
+    end
+    
+    -- Apply font sizes
+    SetFontSize("window", theme.fontSizes and theme.fontSizes.window or 22)
+    SetFontSize("button", theme.fontSizes and theme.fontSizes.button or 16)
+    SetFontSize("label", theme.fontSizes and theme.fontSizes.label or 14)
+    SetFontSize("textfield", theme.fontSizes and theme.fontSizes.textfield or 14)
+    
+    -- Apply font styles
+    SetFontStyle("window", theme.fontStyles and theme.fontStyles.window or "bold")
+    SetFontStyle("button", theme.fontStyles and theme.fontStyles.button or "bold")
+    SetFontStyle("label", theme.fontStyles and theme.fontStyles.label or "normal")
+    SetFontStyle("textfield", theme.fontStyles and theme.fontStyles.textfield or "normal")
+    
+    -- Apply text alignments
+    SetTextAlignment("button", theme.textAlignments and theme.textAlignments.button or "middlecenter")
+    SetTextAlignment("label", theme.textAlignments and theme.textAlignments.label or "middlecenter")
+    SetTextAlignment("textfield", theme.textAlignments and theme.textAlignments.textfield or "middlecenter")
+    
+    -- Apply borders
+    if theme.borders then
+        if theme.borders.window then
+            local b = theme.borders.window
+            SetBorder("window", b[1], b[2], b[3], b[4])
+        end
+        if theme.borders.button then
+            local b = theme.borders.button
+            SetBorder("button", b[1], b[2], b[3], b[4])
+        end
+        if theme.borders.textfield then
+            local b = theme.borders.textfield
+            SetBorder("textfield", b[1], b[2], b[3], b[4])
+        end
+        if theme.borders.box then
+            local b = theme.borders.box
+            SetBorder("box", b[1], b[2], b[3], b[4])
+        end
+    end
+    
+    -- Apply padding
+    if theme.padding then
+        if theme.padding.window then
+            local p = theme.padding.window
+            SetPadding("window", p[1], p[2], p[3], p[4])
+        end
+        if theme.padding.button then
+            local p = theme.padding.button
+            SetPadding("button", p[1], p[2], p[3], p[4])
+        end
+        if theme.padding.label then
+            local p = theme.padding.label
+            SetPadding("label", p[1], p[2], p[3], p[4])
+        end
+        if theme.padding.textfield then
+            local p = theme.padding.textfield
+            SetPadding("textfield", p[1], p[2], p[3], p[4])
+        end
+        if theme.padding.box then
+            local p = theme.padding.box
+            SetPadding("box", p[1], p[2], p[3], p[4])
+        end
+    end
+    
     currentTheme = themeName
 
     -- Update status label if it exists
     if statusLabelId then
         SetControlText(statusLabelId, "Theme: " .. themeName)
     end
+    
+    -- Log the theme change for debugging
+    Log("Applied UI theme: " .. themeName)
 end
 
 -- Helper function to get the appropriate button style based on active status
@@ -190,35 +385,17 @@ local function UpdateButtonStyles()
     
     -- Update backpack button style
     if backpackBtnId then
-        if tweakStatus.backpack then
-            -- Use active button style
-            local bg = theme.activeButton.background
-            local txt = theme.activeButton.text
-            SetControlText(backpackBtnId, "✓ Backpack")
-        else
-            -- Use normal button style
-            local bg = theme.button.background
-            local txt = theme.button.text
-            SetControlText(backpackBtnId, "Backpack")
-        end
+        SetControlText(backpackBtnId, tweakStatus.backpack and "✓ Backpack" or "Backpack")
     end
     
     -- Update item tweaks button style
     if itemTweaksBtnId then
-        if tweakStatus.items then
-            SetControlText(itemTweaksBtnId, "✓ Item Tweaks")
-        else
-            SetControlText(itemTweaksBtnId, "Item Tweaks")
-        end
+        SetControlText(itemTweaksBtnId, tweakStatus.items and "✓ Item Tweaks" or "Item Tweaks")
     end
     
     -- Update ATM tweaks button style
     if atmTweaksBtnId then
-        if tweakStatus.atm then
-            SetControlText(atmTweaksBtnId, "✓ ATM Tweaks")
-        else
-            SetControlText(atmTweaksBtnId, "ATM Tweaks")
-        end
+        SetControlText(atmTweaksBtnId, tweakStatus.atm and "✓ ATM Tweaks" or "ATM Tweaks")
     end
 end
 
@@ -227,14 +404,12 @@ local function CreateSeparator(windowId, y, width)
     local separatorLabelId = TrackControl(AddLabel(windowId, "separator_" .. y, "───────────────────────────────────"))
     SetControlPosition(separatorLabelId, 10, y)
     SetControlSize(separatorLabelId, width - 20, 10)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     return separatorLabelId
 end
 
 -- Function to destroy all UI elements
 local function DestroyUI()
-    Log("Destroying UI elements")
-    
     -- Destroy all tracked controls
     for _, controlId in ipairs(allControlIds) do
         SafeUICall(DestroyControl, controlId)
@@ -251,7 +426,6 @@ local function DestroyUI()
     end
     
     isUIVisible = false
-    Log("UI destroyed successfully")
 end
 
 -- Function to create the UI
@@ -259,11 +433,8 @@ local function CreateUI()
     -- Always destroy existing UI first to prevent duplicates
     DestroyUI()
     
-    Log("Creating UI for Bars Tweaks menu")
-    
     -- Make sure GUI is enabled
     EnableGUI(true)
-    Log("GUI Enabled: " .. tostring(IsGUIEnabled()))
     
     -- Set up window dimensions - WIDER FOR BETTER HORIZONTAL USAGE
     local screenWidth = GetScreenWidth() -- Approximate screen width
@@ -275,7 +446,6 @@ local function CreateUI()
     
     -- Create main window
     mainWindowId = CreateWindow("bars_tweaks_window", "Bars Tweaks", x, y, winWidth, winHeight)
-    Log("Window created with ID: " .. mainWindowId)
     
     -- Initialize styles with default theme
     ApplyTheme(currentTheme)
@@ -285,7 +455,7 @@ local function CreateUI()
     SetFontStyle("window", "bold")
     SetFontSize("button", 16)  -- Increased button font 
     SetFontStyle("button", "bold")
-    SetTextAlignment("button", "center")
+    SetTextAlignment("button", "middlecenter")
     SetBorder("button", 3, 3, 3, 3)  -- Increased border
     
     -- HEADER SECTION
@@ -346,7 +516,7 @@ local function CreateUI()
     SetControlPosition(backpackDescId, leftColX, contentY + buttonHeight + 5)
     SetControlSize(backpackDescId, columnWidth, 20)
     SetFontSize("label", 12)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     
     -- RIGHT COLUMN MODULES
     
@@ -369,7 +539,7 @@ local function CreateUI()
     SetControlPosition(itemDescId, rightColX, contentY + buttonHeight + 5)
     SetControlSize(itemDescId, columnWidth, 20)
     SetFontSize("label", 12)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     
     -- Move down for next row of modules
     contentY = contentY + buttonHeight + buttonSpacing + 15 -- Extra space for descriptions
@@ -392,7 +562,7 @@ local function CreateUI()
     SetControlPosition(atmDescId, leftColX, contentY + buttonHeight + 5)
     SetControlSize(atmDescId, columnWidth, 20)
     SetFontSize("label", 12)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     
     -- Reserve space for future modules in the right column
     -- If needed, add another module button here in the right column
@@ -452,7 +622,7 @@ local function CreateUI()
     SetControlPosition(backpackSlotsValueId, leftColX + 155, contentY)
     SetControlSize(backpackSlotsValueId, 50, 30)
     SetFontSize("label", 14)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     menuControls.backpackSlotsValueId = backpackSlotsValueId
     
     -- Add increase button (ANONYMOUS FUNCTION WITH ERROR HANDLING)
@@ -506,7 +676,7 @@ local function CreateUI()
     SetControlPosition(backpackRowsValueId, leftColX + 155, contentY)
     SetControlSize(backpackRowsValueId, 50, 30)
     SetFontSize("label", 14)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     menuControls.backpackRowsValueId = backpackRowsValueId
     
     -- Add increase button (ANONYMOUS FUNCTION WITH ERROR HANDLING)
@@ -560,7 +730,7 @@ local function CreateUI()
                     LogError("ERROR: Failed to apply stack multiplier - " .. tostring(applyError))
                 end
             else
-                Log("DEBUG: ItemTweaks.ApplyStackMultiplier not available")
+                LogWarning("WARNING: ItemTweaks.ApplyStackMultiplier not available")
             end
             
             Log("Set stack multiplier to " .. newValue)
@@ -575,7 +745,7 @@ local function CreateUI()
     SetControlPosition(itemMultiValueId, rightColX + 175, contentY - 45)
     SetControlSize(itemMultiValueId, 50, 30)
     SetFontSize("label", 14)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     menuControls.itemMultiValueId = itemMultiValueId
     
     -- Add increase button (ANONYMOUS FUNCTION WITH ERROR HANDLING)
@@ -597,7 +767,7 @@ local function CreateUI()
                     LogError("ERROR: Failed to apply stack multiplier - " .. tostring(applyError))
                 end
             else
-                Log("DEBUG: ItemTweaks.ApplyStackMultiplier not available")
+                LogWarning("Warning: ItemTweaks.ApplyStackMultiplier not available")
             end
             
             Log("Set stack multiplier to " .. newValue)
@@ -709,7 +879,7 @@ local function CreateUI()
     -- Theme switcher (left column)
     local themeBtnId = TrackControl(AddButton(mainWindowId, "theme_btn", "Switch Theme", function()
         SafeUICall(function()
-            local themesList = {"dark", "ocean", "forest", "sunset"}
+            local themesList = {"dark", "ocean", "forest", "sunset", "modern", "mint", "amber", "violet"}
             local nextThemeIndex = 1
             
             -- Find current theme index
@@ -760,7 +930,7 @@ local function CreateUI()
     SetControlPosition(statusLabelId, 30, footerY + 5)
     SetControlSize(statusLabelId, winWidth - 60, 30)
     SetFontSize("label", 14)
-    SetTextAlignment("label", "center")
+    SetTextAlignment("label", "middlecenter")
     
     -- Make the window visible
     ShowWindow(mainWindowId, true)
@@ -781,7 +951,6 @@ local function CreateUI()
     
     -- Show a notification to confirm the UI is loaded
     ShowNotificationWithIcon("Bars Tweaks", "Menu loaded", "icon.png")
-    Log("Bars Tweaks menu created and shown")
 end
 
 -- Function to initialize advanced settings values from modules
@@ -828,13 +997,11 @@ function UpdateATMPresetButtonStyles()
     -- Safe require with error handling
     local success, AtmTweaks = pcall(require, "atm_tweaks")
     if not success then
-        LogError("ERROR: Failed to load atm_tweaks module - " .. tostring(AtmTweaks))
         return
     end
     
     -- Check for the GetCurrentPreset function
     if not AtmTweaks.GetCurrentPreset then 
-        LogError("ERROR: AtmTweaks.GetCurrentPreset function is missing")
         return 
     end
     
@@ -842,12 +1009,8 @@ function UpdateATMPresetButtonStyles()
     local currentPreset
     success, currentPreset = pcall(AtmTweaks.GetCurrentPreset)
     if not success then
-        LogError("ERROR: Failed to get current ATM preset - " .. tostring(currentPreset))
         return
     end
-    
-    -- Log debug info
-    Log("DEBUG: Updating ATM preset buttons, current preset: " .. tostring(currentPreset))
     
     -- Button IDs for each preset
     local presetButtons = {
@@ -863,12 +1026,6 @@ function UpdateATMPresetButtonStyles()
         -- Get the button ID from menuControls with nil check
         local btnId = menuControls and menuControls[btnVarName]
         if btnId then
-            -- Check if SetControlText exists
-            if not SetControlText then
-                LogError("ERROR: SetControlText function is missing")
-                return
-            end
-            
             -- Set appropriate text
             local buttonText = preset
             if preset == currentPreset then
@@ -886,33 +1043,10 @@ end
 
 -- Initialize the menu module
 function Menu.Initialize()
-    Log("Initializing Bars Tweaks menu module")
     -- Apply any initial settings here
-    
-    if _G.DEBUG_LOGGING then
-        Log("DEBUG: Menu module initialized")
-        -- Validate API functions are available
-        Menu.ValidateAPI()
-    end
 end
 
 function Menu.Update()
-    -- Debug status logging
-    if _G.DEBUG_LOGGING then
-        local currentTime = GetGameTime and GetGameTime() or 0
-        if currentTime - keyPressCheck.lastCheckTime >= keyPressCheck.checkInterval then
-            -- Use safe string conversion with nil checks
-            local mainSceneText = isMainSceneLoaded ~= nil and tostring(isMainSceneLoaded) or "nil"
-            local uiVisibleText = isUIVisible ~= nil and tostring(isUIVisible) or "nil"
-            local windowIdText = mainWindowId ~= nil and tostring(mainWindowId) or "nil"
-            
-            Log("DEBUG: Menu Update check - isMainSceneLoaded: " .. mainSceneText .. 
-                ", isUIVisible: " .. uiVisibleText .. 
-                ", mainWindowId: " .. windowIdText)
-            keyPressCheck.lastCheckTime = currentTime
-        end
-    end
-
     -- Only check for key press if we're in the main scene
     if not isMainSceneLoaded then
         -- Not in main scene, no need to check keys
@@ -921,67 +1055,28 @@ function Menu.Update()
     
     -- Check for = key press to toggle menu
     if not IsKeyPressed then
-        LogError("CRITICAL: IsKeyPressed function is missing!")
         return
     end
     
     local keyPressed = IsKeyPressed("Equals")
     if keyPressed then
-        -- Log key press
-        local currentTime = GetGameTime and GetGameTime() or 0
-        -- Sanity check: if time went backwards, reset lastToggleTime
-        if currentTime < lastToggleTime and _G.DEBUG_LOGGING then
-            LogWarning("WARNING: Game time went backwards. Resetting lastToggleTime.")
-            lastToggleTime = currentTime
-        end
-        if _G.DEBUG_LOGGING then
-            Log("DEBUG: Menu toggle key (=) pressed")
-        end
-        
-        -- Log time since last key press
-        if keyPressCheck.lastKeyPressTime > 0 and _G.DEBUG_LOGGING then
-            Log("DEBUG: Time since last menu key press: " .. tostring(currentTime - keyPressCheck.lastKeyPressTime) .. " seconds")
-        end
-        keyPressCheck.lastKeyPressTime = currentTime
-        
-        -- Check cooldown period
-        local elapsed = currentTime - lastToggleTime
-        local remaining = math.max(0, config.toggleCooldown - elapsed)
-        if elapsed >= config.toggleCooldown then
-            if _G.DEBUG_LOGGING then
-                Log("DEBUG: Toggle cooldown passed, toggling menu")
-            end
-            Menu.ToggleUI()
-            lastToggleTime = currentTime
-        else
-            if _G.DEBUG_LOGGING then
-                Log("DEBUG: Menu toggle on cooldown, remaining: " .. tostring(remaining) .. " seconds")
-            end
-        end
+        -- Toggle the menu immediately (no cooldown check - handled by WindowsAPI)
+        Menu.ToggleUI()
     end
 end
 
 -- Scene loaded event handler
 function Menu.OnSceneLoaded(sceneName)
-    Log("Scene loaded: " .. sceneName)
-    
     if sceneName == "Main" then
         -- Main game scene loaded, we can create UI now
-        Log("Main scene loaded")
         isMainSceneLoaded = true
         
         -- Wait a short time for scene to fully load before creating UI
         -- This helps prevent UI issues during scene transitions
         if not Wait then
-            LogError("CRITICAL: Wait function is missing!")
+            return
         else
-            if _G.DEBUG_LOGGING then
-                Log("DEBUG: Waiting 0.5 seconds before UI initialization")
-            end
             Wait(0.5, function()
-                if _G.DEBUG_LOGGING then
-                    Log("DEBUG: Post-wait callback executing, isUIVisible=" .. tostring(isUIVisible))
-                end
                 if isUIVisible then
                     CreateUI()
                 end
@@ -990,55 +1085,28 @@ function Menu.OnSceneLoaded(sceneName)
     elseif sceneName == "Menu" then
         -- Menu scene - hide UI if it exists
         if mainWindowId ~= nil then
-            if _G.DEBUG_LOGGING then
-                Log("DEBUG: Hiding window in Menu scene")
-            end
             ShowWindow(mainWindowId, false)
         end
         isMainSceneLoaded = false
         isUIVisible = false
-        Log("Menu scene loaded, UI hidden")
     end
 end
 
 -- Toggle the UI visibility
 function Menu.ToggleUI()
-    if _G.DEBUG_LOGGING then
-        Log("DEBUG: ToggleUI called, isMainSceneLoaded=" .. tostring(isMainSceneLoaded))
-    end
-    
-    if not isMainSceneLoaded then
-        LogWarning("WARNING: Attempted to toggle UI when not in main scene")
-        return
-    end
-    
     isUIVisible = not isUIVisible
-    if _G.DEBUG_LOGGING then
-        Log("DEBUG: Setting isUIVisible to " .. tostring(isUIVisible))
-    end
     
     if isUIVisible then
         -- Create fresh UI if it doesn't exist
         if mainWindowId == nil then
-            if _G.DEBUG_LOGGING then
-                Log("DEBUG: Creating new UI")
-            end
             CreateUI()
         else
-            if _G.DEBUG_LOGGING then
-                Log("DEBUG: Showing existing window")
-            end
             ShowWindow(mainWindowId, true)
         end
     else
         -- Just hide the window if it exists
         if mainWindowId ~= nil then
-            if _G.DEBUG_LOGGING then
-                Log("DEBUG: Hiding window")
-            end
             ShowWindow(mainWindowId, false)
-        else
-            LogWarning("WARNING: Tried to hide non-existent window")
         end
     end
     
@@ -1053,21 +1121,12 @@ function Menu.ValidateAPI()
         "ShowNotificationWithIcon"
     }
     
-    if _G.DEBUG_LOGGING then
-        Log("DEBUG: Validating required Menu API functions...")
-    end
-    
     local allValid = true
     
     for _, funcName in ipairs(requiredFunctions) do
         if _G[funcName] == nil then
-            LogError("CRITICAL: Required function missing: " .. funcName)
             allValid = false
         end
-    end
-    
-    if allValid and _G.DEBUG_LOGGING then
-        Log("DEBUG: All required Menu API functions are available")
     end
     
     return allValid
@@ -1088,23 +1147,9 @@ function Menu.GetTweakStatus(tweakName)
     return tweakStatus[tweakName] or false
 end
 
--- Get debug logging status
-function Menu.GetDebugLogging()
-    return _G.DEBUG_LOGGING or false
-end
-
--- Set debug logging status
-function Menu.SetDebugLogging(enabled)
-    _G.DEBUG_LOGGING = enabled and true or false
-    return true
-end
-
 -- Shutdown the menu module
 function Menu.Shutdown()
     DestroyUI()
-    Log("Bars Tweaks menu module shutdown")
 end
-
-Log("Bars_Tweaks Menu module loaded")
 
 return Menu 

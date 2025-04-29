@@ -1,0 +1,28 @@
+ScheduleLua/
+  API/
+    UI/
+      UIAPI.cs (main class, slimmed down)
+      Windows/
+        LuaWindow.cs
+        WindowManager.cs
+      Controls/
+        LuaControl.cs (abstract base)
+        LuaButton.cs
+        LuaLabel.cs
+        LuaTextField.cs
+        ControlManager.cs
+      Styles/
+        UIStyleManager.cs
+      Dialog/
+        DialogManager.cs
+        LuaChoiceCallback.cs
+      Tooltips/
+        TooltipManager.cs
+      Phone/
+        PhoneIntegration.cs
+      Notifications/
+        NotificationManager.cs
+      Storage/
+        StorageEntityManager.cs
+      Utils/
+        UIUtilities.cs

@@ -17,9 +17,6 @@ local config = {
     originalStackLimits = {}  -- Store original stack limits to restore when disabled
 }
 
--- Debug logging
-local debugLogging = _G.DEBUG_LOGGING or false
-
 -- Flag to track if Registry has been modified
 local isRegistryModified = false
 local isInitialized = false
@@ -31,10 +28,6 @@ function ItemTweaks.Initialize()
     
     Log("Initializing Bars_Tweaks Item Tweaks...")
     isInitialized = true
-    
-    if _G.DEBUG_LOGGING then
-        Log("DEBUG: Item Tweaks initialized with stackMultiplier=" .. config.stackMultiplier)
-    end
 end
 
 function ItemTweaks.OnSceneLoaded(sceneName)
@@ -191,9 +184,6 @@ end
 function ItemTweaks.ApplyStackMultiplier()
     -- Check if tweaks are enabled
     if not config.enabled then
-        if _G.DEBUG_LOGGING then
-            Log("DEBUG: ApplyStackMultiplier called, but tweaks are not enabled")
-        end
         return false
     end
     
@@ -204,9 +194,6 @@ function ItemTweaks.ApplyStackMultiplier()
     end
     
     if not IsRegistryReady() then
-        if _G.DEBUG_LOGGING then
-            Log("DEBUG: ApplyStackMultiplier failed - Registry not ready")
-        end
         return false
     end
     
