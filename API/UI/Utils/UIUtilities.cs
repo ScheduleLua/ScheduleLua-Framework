@@ -60,7 +60,7 @@ namespace ScheduleLua.API.UI.Utils
                         string fallbackScriptPath = "unknown";
                         try
                         {
-                            var scriptPathValue = ScheduleLua.Core.Instance._luaEngine.Globals.Get("SCRIPT_PATH");
+                            var scriptPathValue = ModCore.Instance._luaEngine.Globals.Get("SCRIPT_PATH");
                             if (scriptPathValue != null && scriptPathValue.Type == DataType.String)
                                 fallbackScriptPath = scriptPathValue.String;
                         }

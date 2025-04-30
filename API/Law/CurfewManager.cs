@@ -110,21 +110,21 @@ namespace ScheduleLua.API.Law
             if (curfewManager == null)
                 return;
 
-            curfewManager.onCurfewEnabled.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewEnabled");
-            });
+            curfewManager.onCurfewEnabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewEnabled");
+            }));
 
-            curfewManager.onCurfewDisabled.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewDisabled");
-            });
+            curfewManager.onCurfewDisabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewDisabled");
+            }));
 
-            curfewManager.onCurfewWarning.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewWarning");
-            });
+            curfewManager.onCurfewWarning.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewWarning");
+            }));
 
-            curfewManager.onCurfewHint.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent("OnCurfewHint");
-            });
+            curfewManager.onCurfewHint.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewHint");
+            }));
 
             _eventsHooked = true;
         }
@@ -268,9 +268,9 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewEnabled.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent(functionName);
-            });
+            CurfewManager.Instance.onCurfewEnabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
+            }));
         }
 
         private static void HookCurfewDisabledEvent(string functionName)
@@ -278,9 +278,9 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewDisabled.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent(functionName);
-            });
+            CurfewManager.Instance.onCurfewDisabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
+            }));
         }
 
         private static void HookCurfewWarningEvent(string functionName)
@@ -288,9 +288,9 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewWarning.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent(functionName);
-            });
+            CurfewManager.Instance.onCurfewWarning.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
+            }));
         }
 
         private static void HookCurfewHintEvent(string functionName)
@@ -298,9 +298,9 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewHint.AddListener(() => {
-                ScheduleLua.Core.Instance.TriggerEvent(functionName);
-            });
+            CurfewManager.Instance.onCurfewHint.AddListener((UnityEngine.Events.UnityAction)(() => {
+                ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
+            }));
         }
 
         #endregion

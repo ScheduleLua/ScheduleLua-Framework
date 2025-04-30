@@ -242,9 +242,9 @@ namespace ScheduleLua.API.UI
             if (_guiInitialized)
                 return;
 
-            if (ScheduleLua.Core.Instance != null)
+            if (ModCore.Instance != null)
             {
-                ScheduleLua.Core.Instance.OnGUICallback += OnGUI;
+                ModCore.Instance.OnGUICallback += OnGUI;
             }
             else
             {

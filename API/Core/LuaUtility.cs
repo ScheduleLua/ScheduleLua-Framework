@@ -20,8 +20,8 @@ namespace ScheduleLua.API.Core
         static LuaUtility()
         {
             // Store references to avoid repeatedly accessing Core.Instance
-            LoggerInstance = ScheduleLua.Core.Instance.LoggerInstance;
-            _luaEngine = ScheduleLua.Core.Instance._luaEngine;
+            LoggerInstance = ScheduleLua.ModCore.Instance.LoggerInstance;
+            _luaEngine = ScheduleLua.ModCore.Instance._luaEngine;
 
             // Register proxy types instead of structs
             UserData.RegisterType<Vector3Proxy>();

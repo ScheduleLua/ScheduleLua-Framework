@@ -37,7 +37,7 @@ namespace ScheduleLua.API.UI.Controls
                     // Call the Lua callback function
                     if (_callback != null && _callback.Type == DataType.Function)
                     {
-                        ScheduleLua.Core.Instance._luaEngine.Call(_callback);
+                        ModCore.Instance._luaEngine.Call(_callback);
                     }
                 }
 

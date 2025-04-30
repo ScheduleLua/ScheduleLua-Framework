@@ -242,7 +242,7 @@ namespace ScheduleLua.API.UI.Dialog
             {
                 if (_choiceCallback != null && _choiceCallback.Type == DataType.Function)
                 {
-                    ScheduleLua.Core.Instance._luaEngine.Call(_choiceCallback, DynValue.NewNumber(choiceIndex + 1));
+                    ModCore.Instance._luaEngine.Call(_choiceCallback, DynValue.NewNumber(choiceIndex + 1));
                 }
             }
             catch (Exception ex)

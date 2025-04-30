@@ -14,11 +14,11 @@ namespace ScheduleLua.API.UI.Dialog
         private List<string> _choices = new List<string>();
         private DynValue _callback;
         private bool _isMonitoring = false;
-        private KeyCode[] _numberKeys = new KeyCode[]
-        {
+        private KeyCode[] _numberKeys =
+        [
             KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4,
             KeyCode.Alpha5, KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9
-        };
+        ];
 
         /// <summary>
         /// Sets the choices and callback for this instance
@@ -46,7 +46,6 @@ namespace ScheduleLua.API.UI.Dialog
             if (!_isMonitoring || _choices == null || _choices.Count == 0)
                 return;
 
-            // Check for number key presses (1-9)
             for (int i = 0; i < _numberKeys.Length && i < _choices.Count; i++)
             {
                 if (UnityEngine.Input.GetKeyDown(_numberKeys[i]))
@@ -67,12 +66,11 @@ namespace ScheduleLua.API.UI.Dialog
 
             _isMonitoring = false;
 
-            // Call the Lua callback with the selected index (1-based for Lua)
             if (_callback != null && _callback.Type == DataType.Function)
             {
                 try
                 {
-                    ScheduleLua.Core.Instance._luaEngine.Call(_callback, index + 1);
+                    ModCore.Instance._luaEngine.Call(_callback, index + 1);
                 }
                 catch (Exception ex)
                 {
@@ -80,7 +78,6 @@ namespace ScheduleLua.API.UI.Dialog
                 }
             }
 
-            // Close the dialogue
             DialogManager.Instance?.CloseDialogue();
         }
 

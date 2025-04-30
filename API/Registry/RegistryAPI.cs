@@ -14,22 +14,23 @@ using ScheduleOne.PlayerScripts;
 using ScheduleOne.DevUtilities;
 using System.Collections;
 using System.Reflection;
+using ScheduleLua.API.Base;
 
 namespace ScheduleLua.API.Registry
 {
     /// <summary>
     /// Provides an interface to the ScheduleOne Registry system for Lua scripts
     /// </summary>
-    public static class RegistryAPI
+    public class RegistryAPI : BaseLuaApiModule
     {
-        private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
+        private static MelonLogger.Instance _logger => ModCore.Instance.LoggerInstance;
         private static bool _registryReady = false;
         private static bool _checkingRegistry = false;
 
         /// <summary>
         /// Registers Registry API with the Lua interpreter
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
@@ -110,7 +111,7 @@ namespace ScheduleLua.API.Registry
                 return;
 
             _checkingRegistry = true;
-            MelonLoader.MelonCoroutines.Start(CheckRegistryReady());
+            MelonCoroutines.Start(CheckRegistryReady());
         }
 
         /// <summary>
@@ -139,7 +140,7 @@ namespace ScheduleLua.API.Registry
             _registryReady = true;
 
             // Trigger callbacks
-            ScheduleLua.Core.Instance.TriggerEvent("OnRegistryReady");
+            ModCore.Instance.TriggerEvent("OnRegistryReady");
         }
 
         /// <summary>
@@ -238,7 +239,7 @@ namespace ScheduleLua.API.Registry
         /// </summary>
         public static Table GetItemCategories()
         {
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
 
             foreach (EItemCategory category in Enum.GetValues(typeof(EItemCategory)))
             {
@@ -254,9 +255,9 @@ namespace ScheduleLua.API.Registry
         public static Table GetItemsInCategory(string categoryName)
         {
             if (!Enum.TryParse(categoryName, true, out EItemCategory category))
-                return new Table(ScheduleLua.Core.Instance._luaEngine);
+                return new Table(ModCore.Instance._luaEngine);
 
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
 
             try
             {
@@ -298,8 +299,8 @@ namespace ScheduleLua.API.Registry
             {
                 // Use reflection to access the private ItemRegistry field
                 var itemRegistryField = registry.GetType().GetField("ItemRegistry",
-                    System.Reflection.BindingFlags.NonPublic |
-                    System.Reflection.BindingFlags.Instance);
+                    BindingFlags.NonPublic |
+                    BindingFlags.Instance);
 
                 if (itemRegistryField != null)
                 {
@@ -358,7 +359,7 @@ namespace ScheduleLua.API.Registry
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.Error($"Reflection error accessing ItemRegistry: {ex.Message}");
             }
@@ -373,7 +374,7 @@ namespace ScheduleLua.API.Registry
         /// </summary>
         public static Table GetAllItems()
         {
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
 
             try
             {
@@ -526,7 +527,6 @@ namespace ScheduleLua.API.Registry
                 item.AvailableInDemo = true;
                 item.DefaultValue = defaultValue;
 
-                // Register the item with the game registry
                 ScheduleOne.Registry.Instance.AddToRegistry(item);
 
                 _logger.Msg($"Created new integer item '{id}'");
@@ -787,7 +787,7 @@ namespace ScheduleLua.API.Registry
         /// </summary>
         public static Table GetAllSeeds()
         {
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
 
             try
             {
@@ -846,11 +846,11 @@ namespace ScheduleLua.API.Registry
         /// </summary>
         public static Table GetAllQualities()
         {
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
 
             foreach (EQuality quality in Enum.GetValues(typeof(EQuality)))
             {
-                var qualityTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+                var qualityTable = new Table(ModCore.Instance._luaEngine);
                 qualityTable.Set("name", DynValue.NewString(quality.ToString()));
                 qualityTable.Set("level", DynValue.NewNumber((int)quality));
 
@@ -872,7 +872,7 @@ namespace ScheduleLua.API.Registry
             if (item == null)
                 return null;
 
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
             table.Set("id", DynValue.NewString(item.ID));
             table.Set("name", DynValue.NewString(item.Name));
             table.Set("description", DynValue.NewString(item.Description));
@@ -884,7 +884,7 @@ namespace ScheduleLua.API.Registry
             // Convert keywords array to table
             if (item.Keywords != null && item.Keywords.Length > 0)
             {
-                var keywordsTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+                var keywordsTable = new Table(ModCore.Instance._luaEngine);
                 for (int i = 0; i < item.Keywords.Length; i++)
                 {
                     keywordsTable.Set(i + 1, DynValue.NewString(item.Keywords[i]));
@@ -920,7 +920,7 @@ namespace ScheduleLua.API.Registry
             if (seed == null)
                 return null;
 
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
             table.Set("id", DynValue.NewString(seed.ID));
             table.Set("name", DynValue.NewString(seed.Name));
             // Add more seed properties as needed
@@ -942,7 +942,7 @@ namespace ScheduleLua.API.Registry
             if (item.RequiredRank != null)
             {
                 // Create a table to represent the FullRank
-                var rankTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+                var rankTable = new Table(ModCore.Instance._luaEngine);
                 rankTable.Set("rank", DynValue.NewString(item.RequiredRank.Rank.ToString()));
                 rankTable.Set("tier", DynValue.NewNumber(item.RequiredRank.Tier));
                 table.Set("requiredRank", DynValue.NewTable(rankTable));
@@ -971,181 +971,5 @@ namespace ScheduleLua.API.Registry
         }
 
         #endregion
-    }
-
-    /// <summary>
-    /// A Lua-friendly proxy for ItemDefinition to prevent IL2CPP/AOT issues
-    /// </summary>
-    [MoonSharpUserData]
-    public class ItemProxy
-    {
-        private ItemDefinition _item;
-
-        public string ID => _item?.ID;
-        public string Name { get => _item?.Name; set { if (_item != null) _item.Name = value; } }
-        public string Description { get => _item?.Description; set { if (_item != null) _item.Description = value; } }
-        public int StackLimit { get => _item?.StackLimit ?? 0; set { if (_item != null) _item.StackLimit = value; } }
-        public EItemCategory Category => _item?.Category ?? default(EItemCategory);
-        public bool AvailableInDemo { get => _item?.AvailableInDemo ?? false; set { if (_item != null) _item.AvailableInDemo = value; } }
-        public ELegalStatus LegalStatus { get => _item?.legalStatus ?? default(ELegalStatus); set { if (_item != null) _item.legalStatus = value; } }
-
-        public ItemProxy(ItemDefinition item)
-        {
-            _item = item;
-        }
-
-        public string[] GetKeywords()
-        {
-            return _item?.Keywords ?? new string[0];
-        }
-
-        public void SetKeywords(Table keywordsTable)
-        {
-            if (_item == null || keywordsTable == null)
-                return;
-
-            var keywords = new List<string>();
-            foreach (var pair in keywordsTable.Pairs)
-            {
-                if (pair.Value.Type == DataType.String)
-                {
-                    keywords.Add(pair.Value.String);
-                }
-            }
-
-            _item.Keywords = keywords.ToArray();
-        }
-
-        public ItemInstance CreateInstance(int quantity = 1)
-        {
-            if (_item == null)
-                return null;
-
-            var instance = _item.GetDefaultInstance();
-            if (instance != null && quantity > 1)
-            {
-                instance.ChangeQuantity(quantity - 1); // -1 because default is already 1
-            }
-
-            return instance;
-        }
-
-        public override string ToString()
-        {
-            return $"Item[{ID}]: {Name}";
-        }
-    }
-
-    /// <summary>
-    /// A Lua-friendly proxy for ItemInstance to prevent IL2CPP/AOT issues
-    /// </summary>
-    [MoonSharpUserData]
-    public class ItemInstanceProxy
-    {
-        private ItemInstance _instance;
-
-        public string Name => _instance?.Definition?.Name;
-        public string Description => _instance?.Definition?.Description;
-        public int Quantity { get => _instance?.Quantity ?? 0; set { if (_instance != null) _instance.ChangeQuantity(value - _instance.Quantity); } }
-        public ItemDefinition Definition => _instance?.Definition;
-
-        public ItemInstanceProxy(ItemInstance instance)
-        {
-            _instance = instance;
-        }
-
-        public void ChangeQuantity(int delta)
-        {
-            _instance?.ChangeQuantity(delta);
-        }
-
-        public ItemInstanceProxy Copy(int quantity = -1)
-        {
-            if (_instance == null)
-                return null;
-
-            var copy = _instance.GetCopy(quantity >= 0 ? quantity : _instance.Quantity);
-            return new ItemInstanceProxy(copy);
-        }
-
-        public bool IsQualityItem()
-        {
-            return _instance is QualityItemInstance;
-        }
-
-        public string GetQuality()
-        {
-            if (_instance is QualityItemInstance qualityInstance)
-            {
-                return qualityInstance.Quality.ToString();
-            }
-            return "None";
-        }
-
-        public void SetQuality(string qualityName)
-        {
-            if (_instance is QualityItemInstance qualityInstance &&
-                Enum.TryParse(qualityName, true, out EQuality quality))
-            {
-                qualityInstance.Quality = quality;
-            }
-        }
-
-        public bool IsIntegerItem()
-        {
-            return _instance is IntegerItemInstance;
-        }
-
-        public int GetValue()
-        {
-            if (_instance is IntegerItemInstance intInstance)
-            {
-                return intInstance.Value;
-            }
-            return 0;
-        }
-
-        public void SetValue(int value)
-        {
-            if (_instance is IntegerItemInstance intInstance)
-            {
-                intInstance.Value = value;
-            }
-        }
-
-        public bool IsCashItem()
-        {
-            return _instance is CashInstance;
-        }
-
-        public float GetBalance()
-        {
-            if (_instance is CashInstance cashInstance)
-            {
-                return cashInstance.Balance;
-            }
-            return 0f;
-        }
-
-        public void SetBalance(float balance)
-        {
-            if (_instance is CashInstance cashInstance)
-            {
-                cashInstance.SetBalance(balance);
-            }
-        }
-
-        public void ChangeBalance(float delta)
-        {
-            if (_instance is CashInstance cashInstance)
-            {
-                cashInstance.ChangeBalance(delta);
-            }
-        }
-
-        public override string ToString()
-        {
-            return $"{Name} x{Quantity}";
-        }
     }
 }

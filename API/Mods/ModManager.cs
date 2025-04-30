@@ -77,9 +77,9 @@ namespace ScheduleLua.API.Mods
                     }
 
                     // API version check
-                    if (!string.IsNullOrEmpty(manifest.ApiVersion) && manifest.ApiVersion != ScheduleLua.Core.ModVersion)
+                    if (!string.IsNullOrEmpty(manifest.ApiVersion) && manifest.ApiVersion != ModCore.ModVersion)
                     {
-                        LuaUtility.LogWarning($"Mod {manifest.Name} requires API version {manifest.ApiVersion}, but current version is {ScheduleLua.Core.ModVersion}");
+                        LuaUtility.LogWarning($"Mod {manifest.Name} requires API version {manifest.ApiVersion}, but current version is {ModCore.ModVersion}");
                     }
 
                     discoveredMods.Add((folder, manifest));

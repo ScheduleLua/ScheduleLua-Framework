@@ -383,7 +383,7 @@ namespace ScheduleLua.API.UI.Storage
         {
             try
             {
-                Table itemsTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+                Table itemsTable = new Table(ModCore.Instance._luaEngine);
                 
                 // First try to get items from the game storage entity
                 if (_gameStorageEntities.TryGetValue(entityId, out var gameEntity))
@@ -396,7 +396,7 @@ namespace ScheduleLua.API.UI.Storage
                     {
                         if (item != null)
                         {
-                            Table itemData = new Table(ScheduleLua.Core.Instance._luaEngine);
+                            Table itemData = new Table(ModCore.Instance._luaEngine);
                             itemData["id"] = item.ID;
                             itemData["name"] = item.Name;
                             itemData["quantity"] = item.Quantity;
@@ -425,7 +425,7 @@ namespace ScheduleLua.API.UI.Storage
                 for (int i = 0; i < entity.Items.Count; i++)
                 {
                     var item = entity.Items[i];
-                    Table itemTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+                    Table itemTable = new Table(ModCore.Instance._luaEngine);
                     itemTable["id"] = item.Id;
                     itemTable["quantity"] = item.Quantity;
                     itemsTable[i + 1] = itemTable;
@@ -436,7 +436,7 @@ namespace ScheduleLua.API.UI.Storage
             catch (Exception ex)
             {
                 LuaUtility.LogError($"Error getting storage items: {ex.Message}", ex);
-                return new Table(ScheduleLua.Core.Instance._luaEngine);
+                return new Table(ModCore.Instance._luaEngine);
             }
         }
 

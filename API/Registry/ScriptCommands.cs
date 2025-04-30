@@ -15,7 +15,7 @@ namespace ScheduleLua.API.Registry
     /// </summary>
     public static class ScriptCommands
     {
-        private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
+        private static MelonLogger.Instance _logger => ModCore.Instance.LoggerInstance;
         private static bool _commandsRegistered = false;
 
         /// <summary>
@@ -24,7 +24,7 @@ namespace ScheduleLua.API.Registry
         public static void RegisterBackendCommands()
         {
             // Check if we're in the right scene and the console is ready
-            if (!ScheduleLua.Core.Instance._consoleReadyTriggered || SceneManager.GetActiveScene().name != "Main")
+            if (!ModCore.Instance._consoleReadyTriggered || SceneManager.GetActiveScene().name != "Main")
             {
                 return;
             }
@@ -130,7 +130,7 @@ namespace ScheduleLua.API.Registry
             {
                 try
                 {
-                    var core = ScheduleLua.Core.Instance;
+                    var core = ModCore.Instance;
                     if (core == null)
                     {
                         Console.Log("Lua system is not initialized.");
@@ -236,7 +236,7 @@ namespace ScheduleLua.API.Registry
             {
                 try
                 {
-                    var core = ScheduleLua.Core.Instance;
+                    var core = ModCore.Instance;
                     if (core == null)
                     {
                         Console.Log("Lua system is not initialized.");
@@ -317,7 +317,7 @@ namespace ScheduleLua.API.Registry
             {
                 try
                 {
-                    var core = ScheduleLua.Core.Instance;
+                    var core = ModCore.Instance;
                     if (core == null)
                     {
                         Console.Log("Lua system is not initialized.");

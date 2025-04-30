@@ -11,19 +11,22 @@ using UnityEngine.Events;
 using MelonLoader.Utils;
 using ScheduleLua.API.Registry;
 using ScheduleLua.API.Core;
+using UnityEngine.SceneManagement;
+using ScheduleLua.Core.Framework;
+using ScheduleLua.API.Player;
 
 // Define version constant
-[assembly: MelonInfo(typeof(ScheduleLua.Core), "ScheduleLua", ScheduleLua.Core.ModVersion, "Bars", null)]
+[assembly: MelonInfo(typeof(ScheduleLua.ModCore), "ScheduleLua", ScheduleLua.ModCore.ModVersion, "Bars", null)]
 [assembly: MelonGame("TVGS", "Schedule I")]
 namespace ScheduleLua;
 
-public class Core : MelonMod
+public class ModCore : MelonMod
 {
     // Version constant that can be used in both the MelonInfo attribute and exposed to Lua
     public const string ModVersion = "0.1.6";
 
-    private static Core _instance;
-    public static Core Instance => _instance;
+    private static ModCore _instance;
+    public static ModCore Instance => _instance;
 
     // Lua script engine
     public Script _luaEngine;
@@ -59,6 +62,10 @@ public class Core : MelonMod
     // Add ModManager to class variables
     public API.Mods.ModManager _modManager;
 
+    // Cache for PlayerApiModule instance
+    private PlayerApiModule _playerApiModule;
+    private PlayerApiModule PlayerModule => _playerApiModule ??= LuaAPI.GetPlayerApiModule();
+
     public override void OnInitializeMelon()
     {
         _instance = this;
@@ -80,6 +87,9 @@ public class Core : MelonMod
 
         // Make sure GUI is initialized when the mod loads
         InitializeGUI();
+
+        // Register for scene loaded events
+        SceneManager.sceneLoaded += OnSceneLoaded;
 
         LoggerInstance.Msg("ScheduleLua initialized successfully.");
     }
@@ -111,7 +121,7 @@ public class Core : MelonMod
         _luaEngine.Options.ScriptLoader = Script.DefaultOptions.ScriptLoader;
 
         // Initialize Unity type proxies for better IL2CPP/AOT compatibility
-        API.Core.UnityTypeProxies.Initialize();
+        UnityTypeProxies.Initialize();
 
         // Initialize GUI system
         InitializeGUI();
@@ -122,6 +132,10 @@ public class Core : MelonMod
         // Initialize Mod Manager and register Mods API
         _modManager = new API.Mods.ModManager(LoggerInstance, _luaEngine, _scriptsDirectory);
         API.Mods.ModsAPI.RegisterAPI(_luaEngine, _modManager);
+
+        // Set up hardwiring for IL2CPP and AOT compatibility
+        // This pre-generates necessary conversion code
+        Script.WarmUp();
     }
 
     /// <summary>
@@ -464,13 +478,13 @@ public class Core : MelonMod
         }
 
         // Call Update on all loaded mods
-        _modManager.UpdateMods();
+        _modManager?.UpdateMods();
 
         // Only monitor player health and energy if the flag is set
         if (_isMonitoring && _playerReadyTriggered && Player.Local != null)
         {
             // Check health
-            float currentHealth = API.PlayerAPI.GetPlayerHealth();
+            float currentHealth = PlayerModule.GetPlayerHealth();
             if (currentHealth != _lastHealthValue)
             {
                 TriggerEvent("OnPlayerHealthChanged", currentHealth);
@@ -478,7 +492,7 @@ public class Core : MelonMod
             }
 
             // Check energy
-            float currentEnergy = API.PlayerAPI.GetPlayerEnergy();
+            float currentEnergy = PlayerModule.GetPlayerEnergy();
             if (currentEnergy != _lastEnergyValue)
             {
                 TriggerEvent("OnPlayerEnergyChanged", currentEnergy);
@@ -596,17 +610,16 @@ public class Core : MelonMod
 
     private void AttachToPlayerHealthEvents(object playerHealth)
     {
-        var healthValue = API.PlayerAPI.GetPlayerHealth();
-
+        var healthValue = PlayerModule.GetPlayerHealth();
         StartHealthMonitoring();
     }
 
     private void AttachToPlayerEnergyEvents(object playerEnergy)
     {
-        var energyValue = API.PlayerAPI.GetPlayerEnergy();
-
+        var energyValue = PlayerModule.GetPlayerEnergy();
         StartEnergyMonitoring();
     }
+
     private float _lastHealthValue = -1;
     private float _lastEnergyValue = -1;
     private bool _isMonitoring = false;
@@ -616,8 +629,8 @@ public class Core : MelonMod
         if (!_isMonitoring)
         {
             _isMonitoring = true;
-            _lastHealthValue = API.PlayerAPI.GetPlayerHealth();
-            _lastEnergyValue = API.PlayerAPI.GetPlayerEnergy();
+            _lastHealthValue = PlayerModule.GetPlayerHealth();
+            _lastEnergyValue = PlayerModule.GetPlayerEnergy();
         }
     }
 
@@ -659,7 +672,7 @@ public class Core : MelonMod
         if (_isMonitoring && Player.Local != null)
         {
             // Check health
-            float currentHealth = API.PlayerAPI.GetPlayerHealth();
+            float currentHealth = PlayerModule.GetPlayerHealth();
             if (currentHealth != _lastHealthValue)
             {
                 TriggerEvent("OnPlayerHealthChanged", currentHealth);
@@ -667,7 +680,7 @@ public class Core : MelonMod
             }
 
             // Check energy
-            float currentEnergy = API.PlayerAPI.GetPlayerEnergy();
+            float currentEnergy = PlayerModule.GetPlayerEnergy();
             if (currentEnergy != _lastEnergyValue)
             {
                 TriggerEvent("OnPlayerEnergyChanged", currentEnergy);
@@ -710,15 +723,21 @@ public class Core : MelonMod
 
     public override void OnDeinitializeMelon()
     {
-        // Clean up resources
+        // Shutdown API modules
+        LuaAPI.ShutdownAPI();
+
         if (_fileWatcher != null)
         {
             _fileWatcher.EnableRaisingEvents = false;
-            _fileWatcher.Changed -= OnScriptFileChanged;
-            _fileWatcher.Created -= OnScriptFileChanged;
-            _fileWatcher.Renamed -= OnScriptFileChanged;
             _fileWatcher.Dispose();
+            _fileWatcher = null;
         }
+
+        // Unregister scene load events
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+
+        // Clear loaded scripts
+        _loadedScripts.Clear();
 
         // Unregister all Lua commands before exiting
         CommandRegistry.UnregisterAllCommands();
@@ -730,8 +749,24 @@ public class Core : MelonMod
     {
         base.OnSceneWasLoaded(buildIndex, sceneName);
 
+        // Note: Main scene hooks are now handled by the OnSceneLoaded event handler
+    }
+
+    // Make sure GUI is initialized when the mod loads
+    private void InitializeGUI()
+    {
+        if (_guiInitialized)
+            return;
+
+        LoggerInstance.Msg("Initializing GUI system...");
+        _guiInitialized = true;
+    }
+
+    // Scene loaded event handler
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
         // Re-hook events when entering the main game scene
-        if (sceneName == "Main")
+        if (scene.name == "Main")
         {
             LoggerInstance.Msg("Main scene loaded, hooking game events...");
             HookGameEvents();
@@ -743,22 +778,12 @@ public class Core : MelonMod
                 API.Registry.ScriptCommands.RegisterBackendCommands();
             }
         }
-        else if (sceneName == "Menu")
+        else if (scene.name == "Menu")
         {
             _playerEventsBound = false;
             _playerReadyTriggered = false;
             _consoleReadyTriggered = false;
         }
-    }
-
-    // Make sure GUI is initialized when the mod loads
-    private void InitializeGUI()
-    {
-        if (_guiInitialized)
-            return;
-
-        LoggerInstance.Msg("Initializing GUI system...");
-        _guiInitialized = true;
     }
 }
 

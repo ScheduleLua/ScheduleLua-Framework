@@ -11,7 +11,7 @@ namespace ScheduleLua.API.Scene
     /// </summary>
     public static class SceneAPI
     {
-        private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
+        private static MelonLogger.Instance _logger => ModCore.Instance.LoggerInstance;
         private static bool _eventsRegistered = false;
 
         /// <summary>
@@ -53,7 +53,7 @@ namespace ScheduleLua.API.Scene
         private static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, LoadSceneMode mode)
         {
             // Forward event to Lua scripts
-            ScheduleLua.Core.Instance.TriggerEvent("OnSceneLoaded", scene.name);
+            ModCore.Instance.TriggerEvent("OnSceneLoaded", scene.name);
             // _logger.Msg($"Scene loaded event triggered for: {scene.name}");
         }
 
@@ -63,7 +63,7 @@ namespace ScheduleLua.API.Scene
         private static void OnSceneUnloaded(UnityEngine.SceneManagement.Scene scene)
         {
             // Forward event to Lua scripts
-            ScheduleLua.Core.Instance.TriggerEvent("OnSceneUnloaded", scene.name);
+            ModCore.Instance.TriggerEvent("OnSceneUnloaded", scene.name);
             // _logger.Msg($"Scene unloaded event triggered for: {scene.name}");
         }
 

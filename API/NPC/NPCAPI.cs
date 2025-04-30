@@ -3,21 +3,20 @@ using MoonSharp.Interpreter;
 using ScheduleOne.Map;
 using ScheduleLua.API.Core;
 using ScheduleOne.NPCs;
+using ScheduleLua.API.Base;
 
 namespace ScheduleLua.API.NPC
 {
     /// <summary>
     /// Provides Lua API access to NPC-related functionality in Schedule I
     /// </summary>
-    public static class NPCAPI
+    public class NPCApiModule : BaseLuaApiModule
     {
-        private static NPCManager _npcManager;
-        private static NPCManager NPCManager => _npcManager ??= NPCManager.Instance;
 
         /// <summary>
         /// Registers all NPC-related API functions with the Lua engine
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
@@ -105,29 +104,29 @@ namespace ScheduleLua.API.NPC
         /// </summary>
         /// <param name="npcProxy">The NPC proxy to get the position of</param>
         /// <returns>The position vector of the NPC as Vector3Proxy</returns>
-        public static API.Core.Vector3Proxy GetNPCPositionProxy(NPCProxy npcProxy)
+        public static Vector3Proxy GetNPCPositionProxy(NPCProxy npcProxy)
         {
             try
             {
                 if (npcProxy == null)
                 {
                     LuaUtility.LogWarning("Cannot get position of null NPC");
-                    return API.Core.Vector3Proxy.zero;
+                    return Vector3Proxy.zero;
                 }
 
                 var npc = npcProxy.InternalNPC;
                 if (npc == null)
                 {
                     LuaUtility.LogWarning("Cannot get position of null NPC reference");
-                    return API.Core.Vector3Proxy.zero;
+                    return Vector3Proxy.zero;
                 }
 
-                return new API.Core.Vector3Proxy(npc.transform.position);
+                return new Vector3Proxy(npc.transform.position);
             }
             catch (Exception ex)
             {
                 LuaUtility.LogError("Error getting NPC position", ex);
-                return API.Core.Vector3Proxy.zero;
+                return Vector3Proxy.zero;
             }
         }
 
@@ -312,7 +311,7 @@ namespace ScheduleLua.API.NPC
                 }
 
                 EMapRegion mapRegion;
-                if (!System.Enum.TryParse(region, out mapRegion))
+                if (!Enum.TryParse(region, out mapRegion))
                 {
                     LuaUtility.LogWarning($"Invalid region name: {region}");
                     return false;

@@ -61,7 +61,7 @@ namespace ScheduleLua.API.Mods
         /// </summary>
         private static Table GetAllMods()
         {
-            var script = ScheduleLua.Core.Instance._luaEngine;
+            var script = ScheduleLua.ModCore.Instance._luaEngine;
             var modTable = new Table(script);
             int index = 1;
             
@@ -85,7 +85,7 @@ namespace ScheduleLua.API.Mods
         /// </summary>
         private static void ExportFunction(string name, DynValue function)
         {
-            var script = ScheduleLua.Core.Instance._luaEngine;
+            var script = ScheduleLua.ModCore.Instance._luaEngine;
             
             if (function == null || function.Type != DataType.Function)
             {

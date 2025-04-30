@@ -14,6 +14,11 @@ using MelonLoader.Utils;
 using ScheduleLua.API.Windows;
 using ScheduleLua.API.Player;
 using ScheduleLua.API.World;
+using ScheduleLua.Core.Framework;
+using ScheduleLua.API.Base;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ScheduleLua
 {
@@ -22,10 +27,20 @@ namespace ScheduleLua
     /// </summary>
     public class LuaAPI
     {
-        private static MelonLogger.Instance _logger => Core.Instance.LoggerInstance;
+        private static MelonLogger.Instance _logger => ModCore.Instance.LoggerInstance;
+        private static ApiRegistry _apiRegistry;
 
         // Dictionary to cache loaded modules
         private static Dictionary<string, DynValue> _loadedModules = new Dictionary<string, DynValue>();
+
+        /// <summary>
+        /// Get the PlayerApiModule instance from the registry
+        /// </summary>
+        /// <returns>PlayerApiModule instance or null if not registered</returns>
+        public static PlayerApiModule GetPlayerApiModule()
+        {
+            return _apiRegistry?.GetModule<PlayerApiModule>();
+        }
 
         /// <summary>
         /// Initializes API and registers it with the Lua interpreter
@@ -36,8 +51,11 @@ namespace ScheduleLua
                 throw new ArgumentNullException(nameof(luaEngine));
 
             // Expose mod version to Lua
-            luaEngine.Globals["SCHEDULELUA_VERSION"] = Core.ModVersion;
+            luaEngine.Globals["SCHEDULELUA_VERSION"] = ModCore.ModVersion;
             luaEngine.Globals["GAME_VERSION"] = Application.version;
+
+            // Create the API registry
+            _apiRegistry = new ApiRegistry(luaEngine);
 
             // Register basic API functions
             luaEngine.Globals["Log"] = (Action<string>)Log;
@@ -47,6 +65,21 @@ namespace ScheduleLua
             // Register the custom require function
             luaEngine.Globals["require"] = (Func<string, DynValue>)((moduleName) => RequireModule(luaEngine, moduleName));
 
+            // Register basic functions and utilities (these don't need to be in modules)
+            RegisterBasicFunctions(luaEngine);
+
+            // Register all API modules
+            RegisterApiModules(luaEngine);
+
+            // Initialize all modules
+            _apiRegistry.InitializeAll();
+        }
+
+        /// <summary>
+        /// Register basic utility functions that don't belong in a specific module
+        /// </summary>
+        private static void RegisterBasicFunctions(Script luaEngine)
+        {
             // Game object functions
             luaEngine.Globals["FindGameObject"] = (Func<string, GameObject>)FindGameObject;
             luaEngine.Globals["GetPosition"] = (Func<GameObject, Vector3Proxy>)GetPosition;
@@ -63,61 +96,43 @@ namespace ScheduleLua
             luaEngine.Globals["Wait"] = (Action<float, DynValue>)Wait;
             luaEngine.Globals["Delay"] = (Action<float, DynValue>)Wait; // Alias for Wait
 
-            // Register console command registry
-            CommandRegistry.RegisterCommandAPI(luaEngine);
-
-            // Register Law/Curfew API
-            CurfewManagerAPI.RegisterAPI(luaEngine);
-            LawAPI.RegisterAPI(luaEngine);
-
-            // Register UI API
-            UIAPI.RegisterAPI(luaEngine);
-
-            // Register Economy API
-            EconomyAPI.RegisterAPI(luaEngine);
-
-            // Register Player API
-            PlayerAPI.RegisterAPI(luaEngine);
-
-            // Register Inventory API
-            InventoryAPI.RegisterAPI(luaEngine);
-
-            // Register Time API
-            TimeAPI.RegisterAPI(luaEngine);
-
-            // Register NPC API
-            NPCAPI.RegisterAPI(luaEngine);
-
-            // Register Registry API
-            RegistryAPI.RegisterAPI(luaEngine);
-
-            // Register Scene API
-            SceneAPI.RegisterAPI(luaEngine);
-
-            // Register Windows API
-            WindowsAPI.RegisterAPI(luaEngine);
-
-            // Register Explosion API
-            ExplosionAPI.RegisterAPI(luaEngine);
-
-            // Register AppsAPI
-            // AppsAPI.RegisterAPI(luaEngine);
-
-            // Note: Mods API is registered in Core.cs after mod manager is initialized
-
             // Use proxy objects instead of direct Unity type registration
             // This improves compatibility across platforms, especially on IL2CPP/AOT
             RegisterProxyTypes(luaEngine);
+        }
 
-            // Register necessary types that can't be proxied easily
-            // Make sure to test these thoroughly on target platforms
-            UserData.RegisterType<Vector3Proxy>();
+        /// <summary>
+        /// Register all API modules with the registry
+        /// </summary>
+        private static void RegisterApiModules(Script luaEngine)
+        {
+            // New API module system
+            _apiRegistry.RegisterModule(new PlayerApiModule());
+            _apiRegistry.RegisterModule(new InventoryApiModule());
+            _apiRegistry.RegisterModule(new NPCApiModule());
+            _apiRegistry.RegisterModule(new RegistryAPI());
+            _apiRegistry.RegisterModule(new CommandRegistry());
 
-            // IMPORTANT: Don't directly register Unity types, use proxy methods instead
+            // Old API module system
+            CurfewManagerAPI.RegisterAPI(luaEngine);
+            LawAPI.RegisterAPI(luaEngine);
+            UIAPI.RegisterAPI(luaEngine);
+            EconomyAPI.RegisterAPI(luaEngine);
+            TimeAPI.RegisterAPI(luaEngine);
+            SceneAPI.RegisterAPI(luaEngine);
+            WindowsAPI.RegisterAPI(luaEngine);
+            ExplosionAPI.RegisterAPI(luaEngine);
 
-            // Set up hardwiring for IL2CPP and AOT compatibility
-            // This pre-generates necessary conversion code
-            Script.WarmUp();
+            // Temporary: Call legacy API registration for modules not yet converted
+            // These will be removed as modules are converted to the new format
+        }
+
+        /// <summary>
+        /// Shuts down all registered API modules
+        /// </summary>
+        public static void ShutdownAPI()
+        {
+            _apiRegistry?.ShutdownAll();
         }
 
         /// <summary>
@@ -236,7 +251,7 @@ namespace ScheduleLua
                 }
 
                 // Check in already loaded scripts
-                foreach (var scriptEntry in Core.Instance._loadedScripts)
+                foreach (var scriptEntry in ModCore.Instance._loadedScripts)
                 {
                     string scriptName = Path.GetFileNameWithoutExtension(scriptEntry.Value.Name);
 
@@ -394,26 +409,12 @@ namespace ScheduleLua
         }
 
         #region Logging Functions
-
-        public static void Log(string message)
-        {
-            _logger.Msg($"[Lua] {message}");
-        }
-
-        public static void LogWarning(string message)
-        {
-            _logger.Warning($"[Lua] {message}");
-        }
-
-        public static void LogError(string message)
-        {
-            _logger.Error($"[Lua] {message}");
-        }
-
+        public static void Log(string message) => LuaUtility.Log($"[Lua] {message}");
+        public static void LogWarning(string message) => LuaUtility.LogWarning($"[Lua] {message}");
+        public static void LogError(string message) => LuaUtility.LogError($"[Lua] {message}");
         #endregion
 
         #region Timing and Coroutine Functions
-
         /// <summary>
         /// Executes a Lua function after a specified delay
         /// </summary>
@@ -430,8 +431,7 @@ namespace ScheduleLua
             if (seconds < 0)
                 seconds = 0;
 
-            // Use MelonCoroutines instead of MonoBehaviour for running coroutines
-            MelonLoader.MelonCoroutines.Start(WaitCoroutine(seconds, callback));
+            MelonCoroutines.Start(WaitCoroutine(seconds, callback));
         }
 
         private static IEnumerator WaitCoroutine(float seconds, DynValue callback)
@@ -440,7 +440,7 @@ namespace ScheduleLua
 
             try
             {
-                var script = Core.Instance._luaEngine;
+                var script = ModCore.Instance._luaEngine;
                 script.Call(callback);
             }
             catch (Exception ex)
@@ -452,11 +452,7 @@ namespace ScheduleLua
         #endregion
 
         #region GameObject Functions
-
-        public static GameObject FindGameObject(string name)
-        {
-            return GameObject.Find(name);
-        }
+        public static GameObject FindGameObject(string name) => GameObject.Find(name);
 
         public static Vector3Proxy GetPosition(GameObject gameObject)
         {
@@ -473,11 +469,9 @@ namespace ScheduleLua
 
             gameObject.transform.position = new Vector3(x, y, z);
         }
-
         #endregion
 
         #region Map Functions
-
         public static Table GetAllMapRegions()
         {
             string[] regions = LuaUtility.GetAllMapRegions();
@@ -487,14 +481,12 @@ namespace ScheduleLua
         #endregion
 
         #region Helper Functions
-
         public static Vector3Proxy CreateVector3(float x, float y, float z)
         {
             return new Vector3Proxy(x, y, z);
         }
 
         #endregion
-
         /// <summary>
         /// Registers proxy classes instead of direct Unity types for better compatibility
         /// </summary>
@@ -524,10 +516,7 @@ namespace ScheduleLua
 
             luaEngine.Globals["SetTransformRotation"] = (Action<Transform, Vector3Proxy>)((t, rot) =>
             { if (t != null) t.eulerAngles = rot; });
-
-            // Add additional proxy methods for any Unity types you need to expose
-
-            // Add more proxy registration here as needed
+            // TODO: Add more proxy registration here as needed
         }
 
         /// <summary>
@@ -538,19 +527,17 @@ namespace ScheduleLua
         {
             try
             {
-                // Try to find by SCRIPT_PATH if available
                 DynValue scriptPath = luaEngine.Globals.Get("SCRIPT_PATH");
                 if (scriptPath.Type != DataType.Nil && !string.IsNullOrEmpty(scriptPath.String))
                 {
-                    var script = Core.Instance._loadedScripts.Values
+                    var script = ModCore.Instance._loadedScripts.Values
                         .FirstOrDefault(s => s.FilePath == scriptPath.String);
 
                     if (script != null)
                         return script;
                 }
 
-                // Try to find by current call stack (more complex but more reliable)
-                // This would require deeper MoonSharp integration
+                // TODO: Improve if needed
 
                 return null;
             }

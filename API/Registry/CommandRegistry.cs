@@ -1,21 +1,18 @@
-using System;
-using System.Collections.Generic;
 using MelonLoader;
-using ScheduleOne;
 using MoonSharp.Interpreter;
 using Console = ScheduleOne.Console;
 using UnityEngine.SceneManagement;
-using ScheduleOne.PlayerScripts;
 using ScheduleLua.API.Core;
+using ScheduleLua.API.Base;
 
 namespace ScheduleLua.API.Registry
 {
     /// <summary>
     /// Provides a system for Lua scripts to register console commands that interface with ScheduleOne's native Console
     /// </summary>
-    public static class CommandRegistry
+    public class CommandRegistry : BaseLuaApiModule
     {
-        private static MelonLogger.Instance _logger => ScheduleLua.Core.Instance.LoggerInstance;
+        private static MelonLogger.Instance _logger => ModCore.Instance.LoggerInstance;
         private static Dictionary<string, LuaCommand> _registeredCommands = new Dictionary<string, LuaCommand>();
 
         // Track which script registered which command
@@ -42,7 +39,7 @@ namespace ScheduleLua.API.Registry
         /// <summary>
         /// Registers the command API with the Lua engine
         /// </summary>
-        public static void RegisterCommandAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
@@ -76,7 +73,7 @@ namespace ScheduleLua.API.Registry
             }
 
             // Check if the console is ready by checking Core's _consoleReadyTriggered flag
-            if (!ScheduleLua.Core.Instance._consoleReadyTriggered)
+            if (!ModCore.Instance._consoleReadyTriggered)
             {
                 LuaUtility.LogError($"Cannot register command '{commandName}' because Console is not yet ready. " +
                              "Please register commands only after the OnConsoleReady event fires to avoid conflicts with native game commands.");
@@ -172,7 +169,7 @@ namespace ScheduleLua.API.Registry
             // Look through script instances to find matching script
             foreach (var script in _scriptInstances.Values)
             {
-                if (ReferenceEquals(callback.OwnerScript, ScheduleLua.Core.Instance._luaEngine))
+                if (ReferenceEquals(callback.OwnerScript, ModCore.Instance._luaEngine))
                 {
                     return script;
                 }
@@ -190,7 +187,7 @@ namespace ScheduleLua.API.Registry
         /// <returns>A Lua table containing command names and descriptions</returns>
         public static Table GetGameCommands()
         {
-            var table = new Table(ScheduleLua.Core.Instance._luaEngine);
+            var table = new Table(ModCore.Instance._luaEngine);
 
             // Get access to the game's commands dictionary
             if (typeof(Console).GetField("commands", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)?.GetValue(null) is Dictionary<string, Console.ConsoleCommand> commandsDict)
@@ -199,7 +196,7 @@ namespace ScheduleLua.API.Registry
                 {
                     if (!(kvp.Value is LuaCommand)) // Only include built-in commands, not Lua commands
                     {
-                        var cmdTable = new Table(ScheduleLua.Core.Instance._luaEngine);
+                        var cmdTable = new Table(ModCore.Instance._luaEngine);
                         cmdTable["name"] = kvp.Key;
                         cmdTable["description"] = kvp.Value.CommandDescription;
                         cmdTable["usage"] = kvp.Value.ExampleUsage;
