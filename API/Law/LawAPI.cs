@@ -9,15 +9,16 @@ using ScheduleLua.API.Core;
 using UnityEngine;
 using ScheduleOne.NPCs.Behaviour;
 using ScheduleOne.DevUtilities;
+using ScheduleLua.API.Base;
 
 namespace ScheduleLua.API.Law
 {
-    public static class LawAPI
+    public class LawAPI : BaseLuaApiModule
     {
         /// <summary>
         /// Registers all law-related API functions with the Lua engine
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));

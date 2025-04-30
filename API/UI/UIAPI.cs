@@ -12,13 +12,14 @@ using ScheduleLua.API.UI.Phone;
 using ScheduleLua.API.UI.Notifications;
 using ScheduleLua.API.UI.Storage;
 using ScheduleLua.API.UI.Utils;
+using ScheduleLua.API.Base;
 
 namespace ScheduleLua.API.UI
 {
     /// <summary>
     /// Provides UI functionality to Lua scripts using MelonLoader's IMGUI implementation
     /// </summary>
-    public static class UIAPI
+    public class UIAPI : BaseLuaApiModule
     {
         // Private manager instances
         private static WindowManager _windowManager;
@@ -39,7 +40,7 @@ namespace ScheduleLua.API.UI
         /// <summary>
         /// Registers UI API functions with the Lua engine
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));

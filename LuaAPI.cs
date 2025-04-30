@@ -112,11 +112,11 @@ namespace ScheduleLua
             _apiRegistry.RegisterModule(new NPCApiModule());
             _apiRegistry.RegisterModule(new RegistryAPI());
             _apiRegistry.RegisterModule(new CommandRegistry());
+            _apiRegistry.RegisterModule(new CurfewManagerAPI());
+            _apiRegistry.RegisterModule(new LawAPI());
+            _apiRegistry.RegisterModule(new UIAPI());
 
             // Old API module system
-            CurfewManagerAPI.RegisterAPI(luaEngine);
-            LawAPI.RegisterAPI(luaEngine);
-            UIAPI.RegisterAPI(luaEngine);
             EconomyAPI.RegisterAPI(luaEngine);
             TimeAPI.RegisterAPI(luaEngine);
             SceneAPI.RegisterAPI(luaEngine);

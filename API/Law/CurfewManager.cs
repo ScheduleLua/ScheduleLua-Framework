@@ -1,5 +1,6 @@
 using MelonLoader;
 using MoonSharp.Interpreter;
+using ScheduleLua.API.Base;
 using ScheduleLua.API.Core;
 using ScheduleOne.Law;
 using UnityEngine.SceneManagement;
@@ -9,14 +10,14 @@ namespace ScheduleLua.API.Law
     /// <summary>
     /// Provides an interface to the ScheduleOne Curfew system for Lua scripts
     /// </summary>
-    public static class CurfewManagerAPI
+    public class CurfewManagerAPI : BaseLuaApiModule
     {
         private static bool _eventsHooked = false;
 
         /// <summary>
         /// Registers Curfew API with the Lua interpreter
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));

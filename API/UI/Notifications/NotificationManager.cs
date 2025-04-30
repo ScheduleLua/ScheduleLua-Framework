@@ -63,7 +63,7 @@ namespace ScheduleLua.API.UI.Notifications
                 }
 
                 // Load the icon from the file path
-                Sprite icon = LoadSpriteFromFile(iconPath);
+                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath);
                 notificationsManager.SendNotification(title, message, icon);
             }
             catch (Exception ex)
@@ -93,7 +93,7 @@ namespace ScheduleLua.API.UI.Notifications
                 }
 
                 // Load the icon from the file path with script path context
-                Sprite icon = LoadSpriteFromFile(iconPath, scriptPath);
+                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath, scriptPath);
                 notificationsManager.SendNotification(title, message, icon);
             }
             catch (Exception ex)
@@ -151,7 +151,7 @@ namespace ScheduleLua.API.UI.Notifications
                 }
 
                 // Load the icon from the file path
-                Sprite icon = LoadSpriteFromFile(iconPath);
+                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath);
                 notificationsManager.SendNotification(title, message, icon, timeout);
             }
             catch (Exception ex)
@@ -181,7 +181,7 @@ namespace ScheduleLua.API.UI.Notifications
                 }
 
                 // Load the icon from the file path with script path context
-                Sprite icon = LoadSpriteFromFile(iconPath, scriptPath);
+                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath, scriptPath);
                 notificationsManager.SendNotification(title, message, icon, timeout);
             }
             catch (Exception ex)
@@ -237,80 +237,6 @@ namespace ScheduleLua.API.UI.Notifications
             catch { }
             ShowNotificationWithIconAndTimeout(title, message, iconPath, timeout, scriptPath);
             return DynValue.Nil;
-        }
-
-        /// <summary>
-        /// Loads a sprite from a file path
-        /// </summary>
-        private Sprite LoadSpriteFromFile(string filePath, string scriptPath = null)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(filePath))
-                {
-                    LuaUtility.LogWarning("LoadSpriteFromFile: filePath is null or empty");
-                    return null;
-                }
-
-                string fullPath = filePath;
-                if (!Path.IsPathRooted(filePath))
-                {
-                    if (!string.IsNullOrEmpty(scriptPath))
-                    {
-                        string scriptDir = Path.GetDirectoryName(scriptPath);
-                        fullPath = Path.Combine(scriptDir, filePath);
-                        fullPath = Path.GetFullPath(fullPath);
-                    }
-                    else
-                    {
-                        // Fallback to global context if scriptPath is not provided
-                        string fallbackScriptPath = "unknown";
-                        try
-                        {
-                            var scriptPathValue = ModCore.Instance._luaEngine.Globals.Get("SCRIPT_PATH");
-                            if (scriptPathValue != null && scriptPathValue.Type == DataType.String)
-                                fallbackScriptPath = scriptPathValue.String;
-                        }
-                        catch { }
-                        if (fallbackScriptPath != "unknown" && !string.IsNullOrEmpty(fallbackScriptPath))
-                        {
-                            string scriptDir = Path.GetDirectoryName(fallbackScriptPath);
-                            fullPath = Path.Combine(scriptDir, filePath);
-                            fullPath = Path.GetFullPath(fullPath);
-                        }
-                        else
-                        {
-                            fullPath = Path.Combine(Application.dataPath, "..", filePath);
-                            fullPath = Path.GetFullPath(fullPath);
-                        }
-                    }
-                }
-
-                if (!File.Exists(fullPath))
-                {
-                    LuaUtility.LogWarning($"LoadSpriteFromFile: File not found at path: {fullPath}");
-                    return null;
-                }
-
-                byte[] fileData = File.ReadAllBytes(fullPath);
-                Texture2D texture = new Texture2D(2, 2);
-                if (texture.LoadImage(fileData))
-                {
-                    Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height),
-                        new Vector2(0.5f, 0.5f));
-                    return sprite;
-                }
-                else
-                {
-                    LuaUtility.LogWarning($"LoadSpriteFromFile: Failed to load image data from {filePath}");
-                    return null;
-                }
-            }
-            catch (Exception ex)
-            {
-                LuaUtility.LogError($"Error loading sprite from file: {ex.Message}", ex);
-                return null;
-            }
         }
     }
 } 
