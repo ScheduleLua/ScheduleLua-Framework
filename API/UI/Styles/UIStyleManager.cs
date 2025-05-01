@@ -16,11 +16,11 @@ namespace ScheduleLua.API.UI.Styles
         private GUIStyle _labelStyle;
         private GUIStyle _boxStyle;
         private GUIStyle _textFieldStyle;
-        
+
         // State tracking
         public bool IsInitialized { get; private set; } = false;
         private bool _needsFullRefresh = false;
-        
+
         // Cache for color settings to recreate styles exactly
         private Color _windowBgColor = new Color(0.1f, 0.1f, 0.2f, 0.95f);
         private Color _windowTextColor = Color.white;
@@ -33,18 +33,18 @@ namespace ScheduleLua.API.UI.Styles
         private Color _boxTextColor = Color.white;
         private Color _textFieldBgColor = new Color(0.15f, 0.15f, 0.15f, 0.95f);
         private Color _textFieldTextColor = Color.white;
-        
+
         // Font and layout settings cache
         private Dictionary<string, int> _fontSizes = new Dictionary<string, int>();
         private Dictionary<string, FontStyle> _fontStyles = new Dictionary<string, FontStyle>();
         private Dictionary<string, TextAnchor> _textAlignments = new Dictionary<string, TextAnchor>();
         private Dictionary<string, RectOffset> _borders = new Dictionary<string, RectOffset>();
         private Dictionary<string, RectOffset> _paddings = new Dictionary<string, RectOffset>();
-        
+
         // GUI style properties with automatic initialization
-        public GUIStyle WindowStyle 
-        { 
-            get 
+        public GUIStyle WindowStyle
+        {
+            get
             {
                 if (_windowStyle == null)
                 {
@@ -54,10 +54,10 @@ namespace ScheduleLua.API.UI.Styles
             }
             private set { _windowStyle = value; }
         }
-        
-        public GUIStyle TitleStyle 
-        { 
-            get 
+
+        public GUIStyle TitleStyle
+        {
+            get
             {
                 if (_titleStyle == null)
                 {
@@ -67,10 +67,10 @@ namespace ScheduleLua.API.UI.Styles
             }
             private set { _titleStyle = value; }
         }
-        
-        public GUIStyle ButtonStyle 
-        { 
-            get 
+
+        public GUIStyle ButtonStyle
+        {
+            get
             {
                 if (_buttonStyle == null)
                 {
@@ -80,10 +80,10 @@ namespace ScheduleLua.API.UI.Styles
             }
             private set { _buttonStyle = value; }
         }
-        
-        public GUIStyle LabelStyle 
-        { 
-            get 
+
+        public GUIStyle LabelStyle
+        {
+            get
             {
                 if (_labelStyle == null)
                 {
@@ -93,10 +93,10 @@ namespace ScheduleLua.API.UI.Styles
             }
             private set { _labelStyle = value; }
         }
-        
-        public GUIStyle BoxStyle 
-        { 
-            get 
+
+        public GUIStyle BoxStyle
+        {
+            get
             {
                 if (_boxStyle == null)
                 {
@@ -106,10 +106,10 @@ namespace ScheduleLua.API.UI.Styles
             }
             private set { _boxStyle = value; }
         }
-        
-        public GUIStyle TextFieldStyle 
-        { 
-            get 
+
+        public GUIStyle TextFieldStyle
+        {
+            get
             {
                 if (_textFieldStyle == null)
                 {
@@ -122,7 +122,7 @@ namespace ScheduleLua.API.UI.Styles
 
         public UIStyleManager()
         {
-            
+
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace ScheduleLua.API.UI.Styles
             IsInitialized = true;
             // Do not call InitializeStyles() here - it must only be called from OnGUI
         }
-        
+
         /// <summary>
         /// Forces a complete refresh of all styles
         /// This is useful when themes are changed
@@ -148,10 +148,10 @@ namespace ScheduleLua.API.UI.Styles
             _labelStyle = null;
             _boxStyle = null;
             _textFieldStyle = null;
-            
+
             // Mark for full refresh on next OnGUI call
             _needsFullRefresh = true;
-            
+
             // Don't initialize here - wait for OnGUI to call InitializeStyles
             LuaUtility.Log("UI styles marked for refresh");
         }
@@ -187,7 +187,7 @@ namespace ScheduleLua.API.UI.Styles
                 _textFieldStyle = new GUIStyle(GUI.skin.textField);
             }
         }
-        
+
         /// <summary>
         /// Creates all UI styles from scratch using cached color values
         /// </summary>
@@ -325,7 +325,7 @@ namespace ScheduleLua.API.UI.Styles
                 _textFieldStyle.onFocused.background = textFieldTex;
             }
             _textFieldStyle.fontSize = 14;
-            
+
             // Apply any cached style properties
             ApplyCachedStyleProperties();
         }
@@ -336,7 +336,7 @@ namespace ScheduleLua.API.UI.Styles
             if (_windowStyle == null || _buttonStyle == null || _labelStyle == null || _boxStyle == null || _textFieldStyle == null)
             {
                 CreateAllStyles();
-                
+
                 // Double-check if any style is still null after initialization
                 if (_windowStyle == null) _windowStyle = new GUIStyle(GUI.skin.window);
                 if (_buttonStyle == null) _buttonStyle = new GUIStyle(GUI.skin.button);
@@ -379,7 +379,7 @@ namespace ScheduleLua.API.UI.Styles
                     Initialize();
 
                 Color color = new Color(r, g, b, a);
-                
+
                 // Store the colors for later recreation
                 switch (colorName.ToLower())
                 {
@@ -390,7 +390,7 @@ namespace ScheduleLua.API.UI.Styles
                         _windowTextColor = color;
                         break;
                 }
-                
+
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
             }
@@ -411,7 +411,7 @@ namespace ScheduleLua.API.UI.Styles
                     Initialize();
 
                 Color color = new Color(r, g, b, a);
-                
+
                 // Store the colors for later recreation
                 switch (colorName.ToLower())
                 {
@@ -428,7 +428,7 @@ namespace ScheduleLua.API.UI.Styles
                         _buttonActiveColor = color;
                         break;
                 }
-                
+
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
             }
@@ -449,13 +449,13 @@ namespace ScheduleLua.API.UI.Styles
                     Initialize();
 
                 Color color = new Color(r, g, b, a);
-                
+
                 // Store the color for later recreation
                 if (colorName.ToLower() == "text")
                 {
                     _labelTextColor = color;
                 }
-                
+
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
             }
@@ -476,7 +476,7 @@ namespace ScheduleLua.API.UI.Styles
                     Initialize();
 
                 Color color = new Color(r, g, b, a);
-                
+
                 // Store the colors for later recreation
                 switch (colorName.ToLower())
                 {
@@ -487,7 +487,7 @@ namespace ScheduleLua.API.UI.Styles
                         _textFieldTextColor = color;
                         break;
                 }
-                
+
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
             }
@@ -508,7 +508,7 @@ namespace ScheduleLua.API.UI.Styles
                     Initialize();
 
                 Color color = new Color(r, g, b, a);
-                
+
                 // Store the colors for later recreation
                 switch (colorName.ToLower())
                 {
@@ -519,7 +519,7 @@ namespace ScheduleLua.API.UI.Styles
                         _boxTextColor = color;
                         break;
                 }
-                
+
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
             }
@@ -548,7 +548,7 @@ namespace ScheduleLua.API.UI.Styles
                         // Apply to all normal states for better coverage
                         style.normal.background = tex;
                         style.onNormal.background = tex;
-                        
+
                         // Also ensure the background is properly visible by setting additional states
                         // if they don't already have backgrounds
                         if (style.hover.background == null)
@@ -614,7 +614,7 @@ namespace ScheduleLua.API.UI.Styles
 
                 // Store the font size for later application during OnGUI
                 _fontSizes[styleName.ToLower()] = size;
-                
+
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
             }
@@ -633,7 +633,7 @@ namespace ScheduleLua.API.UI.Styles
             {
                 if (!IsInitialized)
                     Initialize();
-                
+
                 // Convert string to FontStyle enum
                 FontStyle style = FontStyle.Normal;
                 switch (fontStyle.ToLower())
@@ -654,10 +654,10 @@ namespace ScheduleLua.API.UI.Styles
                         LuaUtility.LogWarning($"Unknown font style: {fontStyle}");
                         return;
                 }
-                
+
                 // Store for later application during OnGUI
                 _fontStyles[styleName.ToLower()] = style;
-                
+
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
             }
@@ -676,7 +676,7 @@ namespace ScheduleLua.API.UI.Styles
             {
                 if (!IsInitialized)
                     Initialize();
-                
+
                 // Convert string to TextAnchor enum
                 TextAnchor anchor;
                 switch (alignment.ToLower())
@@ -721,10 +721,10 @@ namespace ScheduleLua.API.UI.Styles
                         LuaUtility.LogWarning($"Unknown text alignment: {alignment}");
                         return;
                 }
-                
+
                 // Store for later application during OnGUI
                 _textAlignments[styleName.ToLower()] = anchor;
-                
+
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
             }
@@ -743,10 +743,10 @@ namespace ScheduleLua.API.UI.Styles
             {
                 if (!IsInitialized)
                     Initialize();
-                
+
                 // Store for later application during OnGUI
                 _borders[styleName.ToLower()] = new RectOffset(left, right, top, bottom);
-                
+
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
             }
@@ -765,10 +765,10 @@ namespace ScheduleLua.API.UI.Styles
             {
                 if (!IsInitialized)
                     Initialize();
-                
+
                 // Store for later application during OnGUI
                 _paddings[styleName.ToLower()] = new RectOffset(left, right, top, bottom);
-                
+
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
             }
@@ -792,7 +792,7 @@ namespace ScheduleLua.API.UI.Styles
                     style.fontSize = pair.Value;
                 }
             }
-            
+
             // Apply font styles
             foreach (var pair in _fontStyles)
             {
@@ -802,7 +802,7 @@ namespace ScheduleLua.API.UI.Styles
                     style.fontStyle = pair.Value;
                 }
             }
-            
+
             // Apply text alignments
             foreach (var pair in _textAlignments)
             {
@@ -812,7 +812,7 @@ namespace ScheduleLua.API.UI.Styles
                     style.alignment = pair.Value;
                 }
             }
-            
+
             // Apply borders
             foreach (var pair in _borders)
             {
@@ -822,7 +822,7 @@ namespace ScheduleLua.API.UI.Styles
                     style.border = pair.Value;
                 }
             }
-            
+
             // Apply paddings
             foreach (var pair in _paddings)
             {
@@ -843,7 +843,7 @@ namespace ScheduleLua.API.UI.Styles
             EnsureStyles();
             return GetStyleByNameInternal(styleName);
         }
-        
+
         /// <summary>
         /// Internal helper to get a style by name without calling EnsureStyles
         /// </summary>
@@ -867,4 +867,4 @@ namespace ScheduleLua.API.UI.Styles
             }
         }
     }
-} 
+}

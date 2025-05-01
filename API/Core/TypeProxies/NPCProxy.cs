@@ -1,15 +1,13 @@
 ﻿using MoonSharp.Interpreter;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using ScheduleLua.API.Base;
 
-namespace ScheduleLua.API.NPC
+namespace ScheduleLua.API.Core.TypeProxies
 {
     /// <summary>
     /// Proxy class for NPCs to avoid exposing complex NPC classes directly to Lua
     /// </summary>
     [MoonSharpUserData]
-    public class NPCProxy
+    public class NPCProxy : UnityTypeProxyBase<ScheduleOne.NPCs.NPC>
     {
         private ScheduleOne.NPCs.NPC _npc;
 

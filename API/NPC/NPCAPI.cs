@@ -4,6 +4,7 @@ using ScheduleOne.Map;
 using ScheduleLua.API.Core;
 using ScheduleOne.NPCs;
 using ScheduleLua.API.Base;
+using ScheduleLua.API.Core.TypeProxies;
 
 namespace ScheduleLua.API.NPC
 {
