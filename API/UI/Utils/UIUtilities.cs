@@ -35,7 +35,7 @@ namespace ScheduleLua.API.UI.Utils
         /// <summary>
         /// Loads a sprite from a file path
         /// </summary>
-        public static Sprite LoadSpriteFromFile(string filePath, string scriptPath = null)
+        public static Sprite LoadSpriteFromFile(string filePath, ScriptExecutionContext ctx = null)
         {
             try
             {
@@ -44,6 +44,9 @@ namespace ScheduleLua.API.UI.Utils
                     LuaUtility.LogWarning("LoadSpriteFromFile: filePath is null or empty");
                     return null;
                 }
+
+                // Get script path from context
+                string scriptPath = GetScriptPathFromContext(ctx);
 
                 string fullPath = filePath;
                 if (!Path.IsPathRooted(filePath))
@@ -65,7 +68,7 @@ namespace ScheduleLua.API.UI.Utils
                                 fallbackScriptPath = scriptPathValue.String;
                         }
                         catch { }
-                        
+
                         if (fallbackScriptPath != "unknown" && !string.IsNullOrEmpty(fallbackScriptPath))
                         {
                             string scriptDir = Path.GetDirectoryName(fallbackScriptPath);
@@ -116,7 +119,7 @@ namespace ScheduleLua.API.UI.Utils
             {
                 if (ctx == null)
                     return null;
-                
+
                 Table env = UIManager.GetCallingEnvironment(ctx);
                 if (env != null)
                 {
@@ -126,7 +129,7 @@ namespace ScheduleLua.API.UI.Utils
                 }
             }
             catch { }
-            
+
             return null;
         }
 
@@ -182,4 +185,4 @@ namespace ScheduleLua.API.UI.Utils
             }
         }
     }
-} 
+}

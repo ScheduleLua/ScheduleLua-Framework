@@ -100,6 +100,17 @@ namespace ScheduleLua.API.UI
             luaEngine.Globals["GetHoveredItemName"] = (Func<string>)UIUtilities.GetHoveredItemName;
             luaEngine.Globals["IsItemBeingDragged"] = (Func<bool>)UIUtilities.IsItemBeingDragged;
 
+            // Register sprite loading utility
+            luaEngine.Globals["LoadSpriteFromFile"] = DynValue.NewCallback(
+                (Func<ScriptExecutionContext, CallbackArguments, DynValue>)
+                ((ctx, args) => {
+                    if (args.Count < 1)
+                        return DynValue.Nil;
+
+                    string filePath = args[0].String;
+                    return DynValue.FromObject(ctx.GetScript(), UIUtilities.LoadSpriteFromFile(filePath, ctx));
+                }));
+
             // Register Dialog functions
             luaEngine.Globals["ShowDialogue"] = (Action<string, string>)_dialogManager.ShowDialogue;
             luaEngine.Globals["ShowDialogueWithTimeout"] = (Action<string, string, float>)_dialogManager.ShowDialogueWithTimeout;
@@ -182,7 +193,7 @@ namespace ScheduleLua.API.UI
         private static void SetFontSizeWrapper(string styleName, int size)
         {
             UIManager.StyleManager.SetFontSize(styleName, size);
-            _styleChangesMade = true; 
+            _styleChangesMade = true;
             LuaUtility.Log($"{styleName} font size set to {size}");
             ApplyStyleChangesIfNeeded();
         }
@@ -275,19 +286,19 @@ namespace ScheduleLua.API.UI
                 {
                     UIManager.StyleManager.Initialize();
                 }
-                
+
                 // Always ensure styles are initialized - this is safe in OnGUI context
                 UIManager.StyleManager.InitializeStyles();
 
                 // Apply any style changes before drawing
                 ApplyStyleChangesIfNeeded();
-                
+
                 // Draw all registered windows
                 _windowManager.DrawAllWindows();
-                
+
                 // Draw dialogs
                 _dialogManager.DrawDialog();
-                
+
                 // Draw tooltips
                 _tooltipManager.DrawTooltips();
             }

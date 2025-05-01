@@ -93,7 +93,7 @@ namespace ScheduleLua.API.UI.Notifications
                 }
 
                 // Load the icon from the file path with script path context
-                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath, scriptPath);
+                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath);
                 notificationsManager.SendNotification(title, message, icon);
             }
             catch (Exception ex)
@@ -181,7 +181,7 @@ namespace ScheduleLua.API.UI.Notifications
                 }
 
                 // Load the icon from the file path with script path context
-                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath, scriptPath);
+                Sprite icon = UIUtilities.LoadSpriteFromFile(iconPath);
                 notificationsManager.SendNotification(title, message, icon, timeout);
             }
             catch (Exception ex)
