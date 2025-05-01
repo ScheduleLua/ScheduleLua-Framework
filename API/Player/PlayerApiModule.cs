@@ -10,6 +10,7 @@ using System.Linq;
 using System.Collections.Generic;
 using ScheduleOne.DevUtilities;
 using UnityEngine.SceneManagement;
+using ScheduleLua.API.Core.TypeProxies;
 
 namespace ScheduleLua.API.Player
 {

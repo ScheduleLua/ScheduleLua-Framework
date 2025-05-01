@@ -14,6 +14,7 @@ using ScheduleLua.API.Core;
 using UnityEngine.SceneManagement;
 using ScheduleLua.Core.Framework;
 using ScheduleLua.API.Player;
+using ScheduleLua.Core.Framework.Mods;
 
 // Define version constant
 [assembly: MelonInfo(typeof(ScheduleLua.ModCore), "ScheduleLua", ScheduleLua.ModCore.ModVersion, "Bars", null)]
@@ -60,7 +61,7 @@ public class ModCore : MelonMod
     private object _queueLock = new object(); // Lock for thread safety
 
     // Add ModManager to class variables
-    public API.Mods.ModManager _modManager;
+    public ModManager _modManager;
 
     // Cache for PlayerApiModule instance
     private PlayerApiModule _playerApiModule;
@@ -130,8 +131,8 @@ public class ModCore : MelonMod
         LuaAPI.RegisterAPI(_luaEngine);
 
         // Initialize Mod Manager and register Mods API
-        _modManager = new API.Mods.ModManager(LoggerInstance, _luaEngine, _scriptsDirectory);
-        API.Mods.ModsAPI.RegisterAPI(_luaEngine, _modManager);
+        _modManager = new ModManager(LoggerInstance, _luaEngine, _scriptsDirectory);
+        ModsAPI.RegisterAPI(_luaEngine, _modManager);
 
         // Set up hardwiring for IL2CPP and AOT compatibility
         // This pre-generates necessary conversion code

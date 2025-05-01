@@ -1,10 +1,7 @@
-using System;
 using UnityEngine;
 using MoonSharp.Interpreter;
-using ScheduleOne;
-using System.Collections.Generic;
-using System.IO;
 using StringMatchingTools;
+using ScheduleLua.API.Core.TypeProxies;
 
 namespace ScheduleLua.API.Core
 {
@@ -20,8 +17,8 @@ namespace ScheduleLua.API.Core
         static LuaUtility()
         {
             // Store references to avoid repeatedly accessing Core.Instance
-            LoggerInstance = ScheduleLua.ModCore.Instance.LoggerInstance;
-            _luaEngine = ScheduleLua.ModCore.Instance._luaEngine;
+            LoggerInstance = ModCore.Instance.LoggerInstance;
+            _luaEngine = ModCore.Instance._luaEngine;
 
             // Register proxy types instead of structs
             UserData.RegisterType<Vector3Proxy>();
@@ -73,7 +70,7 @@ namespace ScheduleLua.API.Core
             // Check if the exception is a Lua interpreter exception
             if (ex != null)
             {
-                if (ex is MoonSharp.Interpreter.InterpreterException luaEx)
+                if (ex is InterpreterException luaEx)
                 {
                     // Use the detailed Lua error logging for interpreter exceptions
                     LogLuaError(luaEx, message, GetCurrentScriptPath());
@@ -91,7 +88,7 @@ namespace ScheduleLua.API.Core
         /// <summary>
         /// Logs detailed error information for Lua script errors
         /// </summary>
-        public static void LogLuaError(MoonSharp.Interpreter.InterpreterException luaEx, string context, string filePath)
+        public static void LogLuaError(InterpreterException luaEx, string context, string filePath)
         {
             try
             {
