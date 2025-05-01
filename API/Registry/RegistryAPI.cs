@@ -15,6 +15,7 @@ using ScheduleOne.DevUtilities;
 using System.Collections;
 using System.Reflection;
 using ScheduleLua.API.Base;
+using ScheduleLua.API.Core.TypeProxies;
 
 namespace ScheduleLua.API.Registry
 {

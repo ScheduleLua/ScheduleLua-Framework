@@ -11,13 +11,14 @@ using HarmonyLib;
 using ScheduleOne.UI;
 using ScheduleOne.DevUtilities;
 using UnityEngine.UI;
+using ScheduleLua.API.Base;
 
 namespace ScheduleLua.API.Economy
 {
     /// <summary>
     /// Provides Lua API access to economy-related functionality in Schedule I
     /// </summary>
-    public static class EconomyAPI
+    public class EconomyAPI : BaseLuaApiModule
     {
         private static float _atmDepositLimit = 10000f;
         private static bool _atmLimitPatchesApplied = false;
@@ -26,7 +27,7 @@ namespace ScheduleLua.API.Economy
         /// <summary>
         /// Register all economy-related API functions with the Lua engine
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));

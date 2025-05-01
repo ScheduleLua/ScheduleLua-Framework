@@ -1,7 +1,4 @@
-using System;
-using UnityEngine;
 using MoonSharp.Interpreter;
-using ScheduleOne.NPCs;
 using ScheduleLua.API.Core.TypeProxies;
 
 namespace ScheduleLua.API.Core

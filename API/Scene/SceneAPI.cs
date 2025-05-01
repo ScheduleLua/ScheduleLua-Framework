@@ -1,5 +1,6 @@
 ﻿using MelonLoader;
 using MoonSharp.Interpreter;
+using ScheduleLua.API.Base;
 using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -9,7 +10,7 @@ namespace ScheduleLua.API.Scene
     /// <summary>
     /// Provides scene management functionality to Lua scripts
     /// </summary>
-    public static class SceneAPI
+    public class SceneAPI : BaseLuaApiModule
     {
         private static MelonLogger.Instance _logger => ModCore.Instance.LoggerInstance;
         private static bool _eventsRegistered = false;
@@ -17,7 +18,7 @@ namespace ScheduleLua.API.Scene
         /// <summary>
         /// Registers Scene API functions with the Lua interpreter
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));

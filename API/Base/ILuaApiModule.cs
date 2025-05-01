@@ -18,7 +18,12 @@ namespace ScheduleLua.API.Base
         /// Gets the loading priority of this module (lower numbers load first)
         /// </summary>
         int Priority { get; }
-        
+
+        /// <summary>
+        /// Gets whether this module is deprecated
+        /// </summary>
+        bool IsDeprecated { get; }
+
         /// <summary>
         /// Initializes this API module
         /// </summary>

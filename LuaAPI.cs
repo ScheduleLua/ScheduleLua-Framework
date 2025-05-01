@@ -8,17 +8,12 @@ using ScheduleLua.API.Registry;
 using ScheduleLua.API.Law;
 using ScheduleLua.API.UI;
 using ScheduleLua.API.Economy;
-using ScheduleLua.API;
 using System.Collections;
 using MelonLoader.Utils;
 using ScheduleLua.API.Windows;
 using ScheduleLua.API.Player;
 using ScheduleLua.API.World;
 using ScheduleLua.Core.Framework;
-using ScheduleLua.API.Base;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using ScheduleLua.API.Core.TypeProxies;
 
 namespace ScheduleLua
@@ -116,13 +111,14 @@ namespace ScheduleLua
             _apiRegistry.RegisterModule(new CurfewManagerAPI());
             _apiRegistry.RegisterModule(new LawAPI());
             _apiRegistry.RegisterModule(new UIAPI());
+            _apiRegistry.RegisterModule(new EconomyAPI());
+            _apiRegistry.RegisterModule(new TimeAPI());
+            _apiRegistry.RegisterModule(new SceneAPI());
+            _apiRegistry.RegisterModule(new UnityAPI());
+            _apiRegistry.RegisterModule(new ExplosionAPI());
 
-            // Old API module system
-            EconomyAPI.RegisterAPI(luaEngine);
-            TimeAPI.RegisterAPI(luaEngine);
-            SceneAPI.RegisterAPI(luaEngine);
-            WindowsAPI.RegisterAPI(luaEngine);
-            ExplosionAPI.RegisterAPI(luaEngine);
+            // Deprecated in favor of Unity API
+            // _apiRegistry.RegisterModule(new WindowsAPI());
 
             // Temporary: Call legacy API registration for modules not yet converted
             // These will be removed as modules are converted to the new format

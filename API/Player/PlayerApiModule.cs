@@ -1,13 +1,9 @@
-using System;
 using UnityEngine;
 using MoonSharp.Interpreter;
-using ScheduleOne;
 using ScheduleLua.API.Base;
 using ScheduleLua.API.Core;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.PlayerScripts.Health;
-using System.Linq;
-using System.Collections.Generic;
 using ScheduleOne.DevUtilities;
 using UnityEngine.SceneManagement;
 using ScheduleLua.API.Core.TypeProxies;

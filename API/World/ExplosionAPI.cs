@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using FishNet;
 using MoonSharp.Interpreter;
+using ScheduleLua.API.Base;
 using ScheduleLua.API.Core;
 using ScheduleOne.Combat;
 using ScheduleOne.DevUtilities;
@@ -8,12 +9,12 @@ using UnityEngine;
 
 namespace ScheduleLua.API.World
 {
-    public static class ExplosionAPI
+    public class ExplosionAPI : BaseLuaApiModule
     {
         /// <summary>
         /// Registers explosion-related API functions with the Lua engine
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));

@@ -1,5 +1,6 @@
 ﻿using MelonLoader;
 using MoonSharp.Interpreter;
+using ScheduleLua.API.Base;
 using ScheduleLua.API.Core;
 using System;
 using System.Collections.Generic;
@@ -11,8 +12,10 @@ namespace ScheduleLua.API.Windows
     /// <summary>
     /// Provides scene management functionality to Lua scripts
     /// </summary>
-    public static class WindowsAPI
+    public class WindowsAPI : BaseLuaApiModule
     {
+        public override bool IsDeprecated => true;
+
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
 
@@ -152,7 +155,7 @@ namespace ScheduleLua.API.Windows
         /// <summary>
         /// Registers Scene API functions with the Lua interpreter
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));

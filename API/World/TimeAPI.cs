@@ -4,15 +4,16 @@ using System.Text;
 using MoonSharp.Interpreter;
 using ScheduleOne.GameTime;
 using ScheduleLua.API.Core;
+using ScheduleLua.API.Base;
 
 namespace ScheduleLua.API.World
 {
-    public static class TimeAPI
+    public class TimeAPI : BaseLuaApiModule
     {
         /// <summary>
         /// Registers all time-related API functions with the Lua engine
         /// </summary>
-        public static void RegisterAPI(Script luaEngine)
+        public override void RegisterAPI(Script luaEngine)
         {
             if (luaEngine == null)
                 throw new ArgumentNullException(nameof(luaEngine));
