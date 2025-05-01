@@ -34,6 +34,13 @@ namespace ScheduleLua.API.UI.Styles
         private Color _textFieldBgColor = new Color(0.15f, 0.15f, 0.15f, 0.95f);
         private Color _textFieldTextColor = Color.white;
         
+        // Font and layout settings cache
+        private Dictionary<string, int> _fontSizes = new Dictionary<string, int>();
+        private Dictionary<string, FontStyle> _fontStyles = new Dictionary<string, FontStyle>();
+        private Dictionary<string, TextAnchor> _textAlignments = new Dictionary<string, TextAnchor>();
+        private Dictionary<string, RectOffset> _borders = new Dictionary<string, RectOffset>();
+        private Dictionary<string, RectOffset> _paddings = new Dictionary<string, RectOffset>();
+        
         // GUI style properties with automatic initialization
         public GUIStyle WindowStyle 
         { 
@@ -318,6 +325,9 @@ namespace ScheduleLua.API.UI.Styles
                 _textFieldStyle.onFocused.background = textFieldTex;
             }
             _textFieldStyle.fontSize = 14;
+            
+            // Apply any cached style properties
+            ApplyCachedStyleProperties();
         }
 
         // Helper method to ensure styles are created when accessed
@@ -383,12 +393,6 @@ namespace ScheduleLua.API.UI.Styles
                 
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
-
-                // Just try to update current style if it exists (will be overwritten on next OnGUI)
-                if (_windowStyle != null)
-                {
-                    SetStyleColor(_windowStyle, colorName, r, g, b, a);
-                }
             }
             catch (Exception ex)
             {
@@ -427,12 +431,6 @@ namespace ScheduleLua.API.UI.Styles
                 
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
-
-                // Just try to update current style if it exists
-                if (_buttonStyle != null)
-                {
-                    SetStyleColor(_buttonStyle, colorName, r, g, b, a);
-                }
             }
             catch (Exception ex)
             {
@@ -460,12 +458,6 @@ namespace ScheduleLua.API.UI.Styles
                 
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
-
-                // Just try to update current style if it exists
-                if (_labelStyle != null)
-                {
-                    SetStyleColor(_labelStyle, colorName, r, g, b, a);
-                }
             }
             catch (Exception ex)
             {
@@ -498,12 +490,6 @@ namespace ScheduleLua.API.UI.Styles
                 
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
-
-                // Just try to update current style if it exists
-                if (_textFieldStyle != null)
-                {
-                    SetStyleColor(_textFieldStyle, colorName, r, g, b, a);
-                }
             }
             catch (Exception ex)
             {
@@ -536,12 +522,6 @@ namespace ScheduleLua.API.UI.Styles
                 
                 // Force recreation of styles on next frame
                 _needsFullRefresh = true;
-
-                // Just try to update current style if it exists
-                if (_boxStyle != null)
-                {
-                    SetStyleColor(_boxStyle, colorName, r, g, b, a);
-                }
             }
             catch (Exception ex)
             {
@@ -632,15 +612,11 @@ namespace ScheduleLua.API.UI.Styles
                 if (!IsInitialized)
                     Initialize();
 
+                // Store the font size for later application during OnGUI
+                _fontSizes[styleName.ToLower()] = size;
+                
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
-
-                // Update immediately if possible                
-                GUIStyle style = GetStyleByName(styleName);
-                if (style != null)
-                {
-                    style.fontSize = size;
-                }
             }
             catch (Exception ex)
             {
@@ -658,32 +634,32 @@ namespace ScheduleLua.API.UI.Styles
                 if (!IsInitialized)
                     Initialize();
                 
+                // Convert string to FontStyle enum
+                FontStyle style = FontStyle.Normal;
+                switch (fontStyle.ToLower())
+                {
+                    case "normal":
+                        style = FontStyle.Normal;
+                        break;
+                    case "bold":
+                        style = FontStyle.Bold;
+                        break;
+                    case "italic":
+                        style = FontStyle.Italic;
+                        break;
+                    case "bolditalic":
+                        style = FontStyle.BoldAndItalic;
+                        break;
+                    default:
+                        LuaUtility.LogWarning($"Unknown font style: {fontStyle}");
+                        return;
+                }
+                
+                // Store for later application during OnGUI
+                _fontStyles[styleName.ToLower()] = style;
+                
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
-
-                // Update immediately if possible
-                GUIStyle style = GetStyleByName(styleName);
-                if (style != null)
-                {
-                    switch (fontStyle.ToLower())
-                    {
-                        case "normal":
-                            style.fontStyle = FontStyle.Normal;
-                            break;
-                        case "bold":
-                            style.fontStyle = FontStyle.Bold;
-                            break;
-                        case "italic":
-                            style.fontStyle = FontStyle.Italic;
-                            break;
-                        case "bolditalic":
-                            style.fontStyle = FontStyle.BoldAndItalic;
-                            break;
-                        default:
-                            LuaUtility.LogWarning($"Unknown font style: {fontStyle}");
-                            break;
-                    }
-                }
             }
             catch (Exception ex)
             {
@@ -701,56 +677,56 @@ namespace ScheduleLua.API.UI.Styles
                 if (!IsInitialized)
                     Initialize();
                 
+                // Convert string to TextAnchor enum
+                TextAnchor anchor;
+                switch (alignment.ToLower())
+                {
+                    case "left":
+                        anchor = TextAnchor.MiddleLeft;
+                        break;
+                    case "center":
+                        anchor = TextAnchor.MiddleCenter;
+                        break;
+                    case "right":
+                        anchor = TextAnchor.MiddleRight;
+                        break;
+                    case "topleft":
+                        anchor = TextAnchor.UpperLeft;
+                        break;
+                    case "topcenter":
+                        anchor = TextAnchor.UpperCenter;
+                        break;
+                    case "topright":
+                        anchor = TextAnchor.UpperRight;
+                        break;
+                    case "middleleft":
+                        anchor = TextAnchor.MiddleLeft;
+                        break;
+                    case "middlecenter":
+                        anchor = TextAnchor.MiddleCenter;
+                        break;
+                    case "middleright":
+                        anchor = TextAnchor.MiddleRight;
+                        break;
+                    case "bottomleft":
+                        anchor = TextAnchor.LowerLeft;
+                        break;
+                    case "bottomcenter":
+                        anchor = TextAnchor.LowerCenter;
+                        break;
+                    case "bottomright":
+                        anchor = TextAnchor.LowerRight;
+                        break;
+                    default:
+                        LuaUtility.LogWarning($"Unknown text alignment: {alignment}");
+                        return;
+                }
+                
+                // Store for later application during OnGUI
+                _textAlignments[styleName.ToLower()] = anchor;
+                
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
-
-                // Update immediately if possible
-                GUIStyle style = GetStyleByName(styleName);
-                if (style != null)
-                {
-                    switch (alignment.ToLower())
-                    {
-                        case "left":
-                            style.alignment = TextAnchor.MiddleLeft;
-                            break;
-                        case "center":
-                            style.alignment = TextAnchor.MiddleCenter;
-                            break;
-                        case "right":
-                            style.alignment = TextAnchor.MiddleRight;
-                            break;
-                        case "topleft":
-                            style.alignment = TextAnchor.UpperLeft;
-                            break;
-                        case "topcenter":
-                            style.alignment = TextAnchor.UpperCenter;
-                            break;
-                        case "topright":
-                            style.alignment = TextAnchor.UpperRight;
-                            break;
-                        case "middleleft":
-                            style.alignment = TextAnchor.MiddleLeft;
-                            break;
-                        case "middlecenter":
-                            style.alignment = TextAnchor.MiddleCenter;
-                            break;
-                        case "middleright":
-                            style.alignment = TextAnchor.MiddleRight;
-                            break;
-                        case "bottomleft":
-                            style.alignment = TextAnchor.LowerLeft;
-                            break;
-                        case "bottomcenter":
-                            style.alignment = TextAnchor.LowerCenter;
-                            break;
-                        case "bottomright":
-                            style.alignment = TextAnchor.LowerRight;
-                            break;
-                        default:
-                            LuaUtility.LogWarning($"Unknown text alignment: {alignment}");
-                            break;
-                    }
-                }
             }
             catch (Exception ex)
             {
@@ -768,15 +744,11 @@ namespace ScheduleLua.API.UI.Styles
                 if (!IsInitialized)
                     Initialize();
                 
+                // Store for later application during OnGUI
+                _borders[styleName.ToLower()] = new RectOffset(left, right, top, bottom);
+                
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
-
-                // Update immediately if possible
-                GUIStyle style = GetStyleByName(styleName);
-                if (style != null)
-                {
-                    style.border = new RectOffset(left, right, top, bottom);
-                }
             }
             catch (Exception ex)
             {
@@ -794,15 +766,11 @@ namespace ScheduleLua.API.UI.Styles
                 if (!IsInitialized)
                     Initialize();
                 
+                // Store for later application during OnGUI
+                _paddings[styleName.ToLower()] = new RectOffset(left, right, top, bottom);
+                
                 // Force style refresh on next frame
                 _needsFullRefresh = true;
-
-                // Update immediately if possible
-                GUIStyle style = GetStyleByName(styleName);
-                if (style != null)
-                {
-                    style.padding = new RectOffset(left, right, top, bottom);
-                }
             }
             catch (Exception ex)
             {
@@ -811,12 +779,76 @@ namespace ScheduleLua.API.UI.Styles
         }
 
         /// <summary>
+        /// Apply all cached style properties to created styles
+        /// </summary>
+        private void ApplyCachedStyleProperties()
+        {
+            // Apply font sizes
+            foreach (var pair in _fontSizes)
+            {
+                GUIStyle style = GetStyleByNameInternal(pair.Key);
+                if (style != null)
+                {
+                    style.fontSize = pair.Value;
+                }
+            }
+            
+            // Apply font styles
+            foreach (var pair in _fontStyles)
+            {
+                GUIStyle style = GetStyleByNameInternal(pair.Key);
+                if (style != null)
+                {
+                    style.fontStyle = pair.Value;
+                }
+            }
+            
+            // Apply text alignments
+            foreach (var pair in _textAlignments)
+            {
+                GUIStyle style = GetStyleByNameInternal(pair.Key);
+                if (style != null)
+                {
+                    style.alignment = pair.Value;
+                }
+            }
+            
+            // Apply borders
+            foreach (var pair in _borders)
+            {
+                GUIStyle style = GetStyleByNameInternal(pair.Key);
+                if (style != null)
+                {
+                    style.border = pair.Value;
+                }
+            }
+            
+            // Apply paddings
+            foreach (var pair in _paddings)
+            {
+                GUIStyle style = GetStyleByNameInternal(pair.Key);
+                if (style != null)
+                {
+                    style.padding = pair.Value;
+                }
+            }
+        }
+
+        /// <summary>
         /// Helper method to get a style by name
+        /// This should ONLY be called during OnGUI
         /// </summary>
         private GUIStyle GetStyleByName(string styleName)
         {
             EnsureStyles();
-            
+            return GetStyleByNameInternal(styleName);
+        }
+        
+        /// <summary>
+        /// Internal helper to get a style by name without calling EnsureStyles
+        /// </summary>
+        private GUIStyle GetStyleByNameInternal(string styleName)
+        {
             switch (styleName.ToLower())
             {
                 case "window":

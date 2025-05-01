@@ -155,7 +155,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetWindowStyle(colorName, r, g, b, a);
             _styleChangesMade = true;
             LuaUtility.Log($"Window style updated: {colorName} set to ({r}, {g}, {b}, {a})");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetButtonStyleWrapper(string colorName, float r, float g, float b, float a = 1.0f)
@@ -163,7 +163,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetButtonStyle(colorName, r, g, b, a);
             _styleChangesMade = true;
             LuaUtility.Log($"Button style updated: {colorName} set to ({r}, {g}, {b}, {a})");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetLabelStyleWrapper(string colorName, float r, float g, float b, float a = 1.0f)
@@ -171,7 +171,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetLabelStyle(colorName, r, g, b, a);
             _styleChangesMade = true;
             LuaUtility.Log($"Label style updated: {colorName} set to ({r}, {g}, {b}, {a})");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetTextFieldStyleWrapper(string colorName, float r, float g, float b, float a = 1.0f)
@@ -179,7 +179,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetTextFieldStyle(colorName, r, g, b, a);
             _styleChangesMade = true;
             LuaUtility.Log($"TextField style updated: {colorName} set to ({r}, {g}, {b}, {a})");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetBoxStyleWrapper(string colorName, float r, float g, float b, float a = 1.0f)
@@ -187,7 +187,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetBoxStyle(colorName, r, g, b, a);
             _styleChangesMade = true;
             LuaUtility.Log($"Box style updated: {colorName} set to ({r}, {g}, {b}, {a})");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetFontSizeWrapper(string styleName, int size)
@@ -195,7 +195,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetFontSize(styleName, size);
             _styleChangesMade = true;
             LuaUtility.Log($"{styleName} font size set to {size}");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetFontStyleWrapper(string styleName, string fontStyle)
@@ -203,7 +203,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetFontStyle(styleName, fontStyle);
             _styleChangesMade = true;
             LuaUtility.Log($"{styleName} font style set to {fontStyle}");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetTextAlignmentWrapper(string styleName, string alignment)
@@ -211,7 +211,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetTextAlignment(styleName, alignment);
             _styleChangesMade = true;
             LuaUtility.Log($"{styleName} text alignment set to {alignment}");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetBorderWrapper(string styleName, int left, int right, int top, int bottom)
@@ -219,7 +219,7 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetBorder(styleName, left, right, top, bottom);
             _styleChangesMade = true;
             LuaUtility.Log($"{styleName} border set to ({left}, {right}, {top}, {bottom})");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
         private static void SetPaddingWrapper(string styleName, int left, int right, int top, int bottom)
@@ -227,10 +227,10 @@ namespace ScheduleLua.API.UI
             UIManager.StyleManager.SetPadding(styleName, left, right, top, bottom);
             _styleChangesMade = true;
             LuaUtility.Log($"{styleName} padding set to ({left}, {right}, {top}, {bottom})");
-            ApplyStyleChangesIfNeeded();
+            ApplyStyleChanges();
         }
 
-        private static void ApplyStyleChangesIfNeeded()
+        private static void ApplyStyleChanges()
         {
             if (_styleChangesMade)
             {
@@ -291,7 +291,7 @@ namespace ScheduleLua.API.UI
                 UIManager.StyleManager.InitializeStyles();
 
                 // Apply any style changes before drawing
-                ApplyStyleChangesIfNeeded();
+                ApplyStyleChanges();
 
                 // Draw all registered windows
                 _windowManager.DrawAllWindows();
