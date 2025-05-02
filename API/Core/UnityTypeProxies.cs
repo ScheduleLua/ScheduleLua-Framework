@@ -19,6 +19,10 @@ namespace ScheduleLua.API.Core
             UserData.RegisterType<ColorProxy>();
             UserData.RegisterType<RaycastHitProxy>();
             UserData.RegisterType<NPCProxy>();
+            UserData.RegisterType<PackagingDefinitionProxy>();
+            UserData.RegisterType<ProductDefinitionProxy>();
+            UserData.RegisterType<ProductItemInstanceProxy>();
+            UserData.RegisterType<ProductManagerProxy>();
 
             // Perform AOT-friendly type pre-registrations
             // This ensures types are known to the IL2CPP compiler
