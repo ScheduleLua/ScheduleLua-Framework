@@ -45,11 +45,13 @@ namespace ScheduleLua.API.Core.TypeProxies
                 return false;
 
             // Try to parse the property name to EProperty enum
-            if (Enum.TryParse<EProperty>(propertyName, out var property))
+            if (Enum.TryParse<EProperty>(propertyName, out var propertyEnum))
             {
+                // Iterate through properties and check for a match by comparing with their ID
                 foreach (var prop in _product.Properties)
                 {
-                    if (prop.PropertyType == property)
+                    // Convert enum to string and compare with property ID (which is lowercase)
+                    if (prop.ID.Equals(propertyName.ToLower(), StringComparison.OrdinalIgnoreCase))
                         return true;
                 }
             }
@@ -67,7 +69,7 @@ namespace ScheduleLua.API.Core.TypeProxies
                 var instance = new ProductItemInstance(_product, quantity, qualityEnum);
                 return new ProductItemInstanceProxy(instance);
             }
-            
+
             return null;
         }
 
@@ -76,4 +78,4 @@ namespace ScheduleLua.API.Core.TypeProxies
             return $"ProductDefinition: {Name} ({ID})";
         }
     }
-} 
+}

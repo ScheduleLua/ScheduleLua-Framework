@@ -47,6 +47,11 @@ namespace ScheduleLua.Core.Framework.Mods
         private Dictionary<string, object> Exports { get; set; } = new Dictionary<string, object>();
 
         /// <summary>
+        /// The mod's configuration
+        /// </summary>
+        private ModConfig _config;
+
+        /// <summary>
         /// Main script of the mod (the entry point)
         /// </summary>
         private LuaScript _mainScript;
@@ -59,6 +64,22 @@ namespace ScheduleLua.Core.Framework.Mods
             FolderPath = folderPath;
             Manifest = manifest;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Gets the mod's configuration if it exists
+        /// </summary>
+        public ModConfig GetModConfig()
+        {
+            return _config;
+        }
+
+        /// <summary>
+        /// Sets the mod's configuration
+        /// </summary>
+        public void SetModConfig(ModConfig config)
+        {
+            _config = config;
         }
 
         /// <summary>

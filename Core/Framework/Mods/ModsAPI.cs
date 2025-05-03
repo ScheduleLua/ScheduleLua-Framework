@@ -30,6 +30,9 @@ namespace ScheduleLua.Core.Framework.Mods
             luaEngine.Globals["ExportFunction"] = (Action<string, DynValue>)ExportFunction;
             luaEngine.Globals["ImportFunction"] = (Func<string, string, DynValue>)ImportFunction;
             luaEngine.Globals["IsModLoaded"] = (Func<string, bool>)IsModLoaded;
+            
+            // Register the ModConfig API
+            ModConfigAPI.RegisterAPI(luaEngine, modManager);
         }
         
         /// <summary>

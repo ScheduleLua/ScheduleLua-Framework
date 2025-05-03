@@ -24,43 +24,43 @@ namespace ScheduleLua.API.Core.TypeProxies
 
         public Table GetDiscoveredProducts()
         {
-            var script = MoonSharpInterpreter.CreateInterpreter();
+            var script = new Script();
             var table = new Table(script);
-            
+
             int index = 1;
             foreach (var product in ProductManager.DiscoveredProducts)
             {
                 table[index++] = new ProductDefinitionProxy(product);
             }
-            
+
             return table;
         }
 
         public Table GetListedProducts()
         {
-            var script = MoonSharpInterpreter.CreateInterpreter();
+            var script = new Script();
             var table = new Table(script);
-            
+
             int index = 1;
             foreach (var product in ProductManager.ListedProducts)
             {
                 table[index++] = new ProductDefinitionProxy(product);
             }
-            
+
             return table;
         }
 
         public Table GetFavouritedProducts()
         {
-            var script = MoonSharpInterpreter.CreateInterpreter();
+            var script = new Script();
             var table = new Table(script);
-            
+
             int index = 1;
             foreach (var product in ProductManager.FavouritedProducts)
             {
                 table[index++] = new ProductDefinitionProxy(product);
             }
-            
+
             return table;
         }
 
@@ -83,7 +83,7 @@ namespace ScheduleLua.API.Core.TypeProxies
         {
             if (_manager == null || product == null)
                 return 0;
-                
+
             return _manager.GetPrice(product.GetInternalInstance());
         }
 
@@ -91,7 +91,7 @@ namespace ScheduleLua.API.Core.TypeProxies
         {
             if (_manager == null)
                 return;
-                
+
             // Clamp price to valid range
             price = Mathf.Clamp(price, ProductManager.MIN_PRICE, ProductManager.MAX_PRICE);
             _manager.SendPrice(productId, price);
@@ -102,4 +102,4 @@ namespace ScheduleLua.API.Core.TypeProxies
             return "ProductManager";
         }
     }
-} 
+}
