@@ -1,10 +1,8 @@
-using System.Collections.Generic;
 using MoonSharp.Interpreter;
-using MoonSharp.Interpreter.Interop;
-using ScheduleOne.Product;
-using ScheduleOne.DevUtilities;
-using UnityEngine;
 using ScheduleLua.API.Base;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.Product;
+using UnityEngine;
 
 namespace ScheduleLua.API.Core.TypeProxies
 {

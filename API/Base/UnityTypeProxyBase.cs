@@ -4,7 +4,7 @@ namespace ScheduleLua.API.Base
     {
         protected T _value;
         public T UnderlyingValue => _value;
-        
+
         public override string ToString() => _value.ToString();
     }
 }

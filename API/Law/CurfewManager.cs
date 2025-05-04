@@ -111,19 +111,23 @@ namespace ScheduleLua.API.Law
             if (curfewManager == null)
                 return;
 
-            curfewManager.onCurfewEnabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+            curfewManager.onCurfewEnabled.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewEnabled");
             }));
 
-            curfewManager.onCurfewDisabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+            curfewManager.onCurfewDisabled.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewDisabled");
             }));
 
-            curfewManager.onCurfewWarning.AddListener((UnityEngine.Events.UnityAction)(() => {
+            curfewManager.onCurfewWarning.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewWarning");
             }));
 
-            curfewManager.onCurfewHint.AddListener((UnityEngine.Events.UnityAction)(() => {
+            curfewManager.onCurfewHint.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent("OnCurfewHint");
             }));
 
@@ -269,7 +273,8 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewEnabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+            CurfewManager.Instance.onCurfewEnabled.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
             }));
         }
@@ -279,7 +284,8 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewDisabled.AddListener((UnityEngine.Events.UnityAction)(() => {
+            CurfewManager.Instance.onCurfewDisabled.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
             }));
         }
@@ -289,7 +295,8 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewWarning.AddListener((UnityEngine.Events.UnityAction)(() => {
+            CurfewManager.Instance.onCurfewWarning.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
             }));
         }
@@ -299,7 +306,8 @@ namespace ScheduleLua.API.Law
             if (CurfewManager.Instance == null)
                 return;
 
-            CurfewManager.Instance.onCurfewHint.AddListener((UnityEngine.Events.UnityAction)(() => {
+            CurfewManager.Instance.onCurfewHint.AddListener((UnityEngine.Events.UnityAction)(() =>
+            {
                 ScheduleLua.ModCore.Instance.TriggerEvent(functionName);
             }));
         }

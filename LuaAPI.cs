@@ -1,20 +1,19 @@
 using MelonLoader;
-using UnityEngine;
+using MelonLoader.Utils;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Core;
-using ScheduleLua.API.Scene;
-using ScheduleLua.API.NPC;
-using ScheduleLua.API.Registry;
-using ScheduleLua.API.Law;
-using ScheduleLua.API.UI;
+using ScheduleLua.API.Core.TypeProxies;
 using ScheduleLua.API.Economy;
-using System.Collections;
-using MelonLoader.Utils;
-using ScheduleLua.API.Windows;
+using ScheduleLua.API.Law;
+using ScheduleLua.API.NPC;
 using ScheduleLua.API.Player;
+using ScheduleLua.API.Registry;
+using ScheduleLua.API.Scene;
+using ScheduleLua.API.UI;
 using ScheduleLua.API.World;
 using ScheduleLua.Core.Framework;
-using ScheduleLua.API.Core.TypeProxies;
+using System.Collections;
+using UnityEngine;
 
 namespace ScheduleLua
 {

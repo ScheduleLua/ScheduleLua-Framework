@@ -1,11 +1,8 @@
-using System;
-using System.IO;
-using UnityEngine;
-using ScheduleOne.UI;
+using MoonSharp.Interpreter;
 using ScheduleLua.API.Core;
 using ScheduleLua.API.UI.Utils;
-using ScheduleLua.API.UI;
-using MoonSharp.Interpreter;
+using ScheduleOne.UI;
+using UnityEngine;
 
 namespace ScheduleLua.API.UI.Notifications
 {
@@ -239,4 +236,4 @@ namespace ScheduleLua.API.UI.Notifications
             return DynValue.Nil;
         }
     }
-} 
+}

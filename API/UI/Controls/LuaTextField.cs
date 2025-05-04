@@ -1,8 +1,5 @@
-using System;
-using UnityEngine;
 using ScheduleLua.API.Core;
-using ScheduleLua.API.UI.Styles;
-using ScheduleLua.API.UI;
+using UnityEngine;
 
 namespace ScheduleLua.API.UI.Controls
 {
@@ -26,7 +23,7 @@ namespace ScheduleLua.API.UI.Controls
                 // Draw a background for the text field for better visibility
                 Color oldColor = GUI.backgroundColor;
                 GUI.backgroundColor = new Color(0.15f, 0.15f, 0.15f, 0.8f);
-                
+
                 // Draw the text field with our custom style and update the text
                 string newText = GUI.TextField(rect, Text, textFieldStyle);
                 if (newText != Text)
@@ -43,4 +40,4 @@ namespace ScheduleLua.API.UI.Controls
             }
         }
     }
-} 
+}

@@ -1,7 +1,7 @@
-using UnityEngine;
 using MoonSharp.Interpreter;
-using StringMatchingTools;
 using ScheduleLua.API.Core.TypeProxies;
+using StringMatchingTools;
+using UnityEngine;
 
 namespace ScheduleLua.API.Core
 {

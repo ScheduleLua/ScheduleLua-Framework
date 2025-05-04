@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Core;
 using UnityEngine;
@@ -14,7 +11,7 @@ namespace ScheduleLua.API.UI.Dialog
     {
         // Singleton instance
         private static DialogManager _instance;
-        
+
         // Public property to access the singleton instance
         public static DialogManager Instance
         {
@@ -27,17 +24,17 @@ namespace ScheduleLua.API.UI.Dialog
                 return _instance;
             }
         }
-        
+
         private string _currentDialogText;
         private string _currentDialogTitle;
         private bool _dialogVisible;
         private List<string> _dialogChoices = new List<string>();
         private DynValue _choiceCallback;
         private float _dialogCloseTime;
-        
+
         // Private constructor for singleton pattern
         private DialogManager() { }
-        
+
         /// <summary>
         /// Shows a dialog with the specified title and text
         /// </summary>
@@ -50,7 +47,7 @@ namespace ScheduleLua.API.UI.Dialog
                     LuaUtility.LogWarning("ShowDialogue: text is null or empty");
                     return;
                 }
-                
+
                 _currentDialogTitle = title;
                 _currentDialogText = text;
                 _dialogVisible = true;
@@ -63,7 +60,7 @@ namespace ScheduleLua.API.UI.Dialog
                 LuaUtility.LogError($"Error showing dialogue: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Shows a dialog with auto-close after the specified time
         /// </summary>
@@ -79,7 +76,7 @@ namespace ScheduleLua.API.UI.Dialog
                 LuaUtility.LogError($"Error showing dialogue with timeout: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Shows a dialog with choices
         /// </summary>
@@ -92,24 +89,24 @@ namespace ScheduleLua.API.UI.Dialog
                     LuaUtility.LogWarning("ShowChoiceDialogue: text is null or empty");
                     return;
                 }
-                
+
                 if (choices == null)
                 {
                     LuaUtility.LogWarning("ShowChoiceDialogue: choices table is null");
                     return;
                 }
-                
+
                 if (callback == null || callback.Type != DataType.Function)
                 {
                     LuaUtility.LogWarning("ShowChoiceDialogue: callback is null or not a function");
                     return;
                 }
-                
+
                 _currentDialogTitle = title;
                 _currentDialogText = text;
                 _dialogVisible = true;
                 _dialogChoices.Clear();
-                
+
                 // Convert the Lua table to a list of choices
                 foreach (var pair in choices.Pairs)
                 {
@@ -118,7 +115,7 @@ namespace ScheduleLua.API.UI.Dialog
                         _dialogChoices.Add(pair.Value.String);
                     }
                 }
-                
+
                 _choiceCallback = callback;
                 _dialogCloseTime = 0;
             }
@@ -127,7 +124,7 @@ namespace ScheduleLua.API.UI.Dialog
                 LuaUtility.LogError($"Error showing choice dialogue: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Closes the current dialog
         /// </summary>
@@ -137,7 +134,7 @@ namespace ScheduleLua.API.UI.Dialog
             _dialogChoices.Clear();
             _choiceCallback = null;
         }
-        
+
         /// <summary>
         /// Draws the dialog if visible
         /// </summary>
@@ -145,7 +142,7 @@ namespace ScheduleLua.API.UI.Dialog
         {
             if (!_dialogVisible)
                 return;
-                
+
             try
             {
                 // Check for auto-close timeout
@@ -154,27 +151,27 @@ namespace ScheduleLua.API.UI.Dialog
                     CloseDialogue();
                     return;
                 }
-                
+
                 // Calculate dialog size and position
                 float dialogWidth = Mathf.Min(500, Screen.width * 0.8f);
                 float dialogHeight = _dialogChoices.Count > 0 ? 250 : 200;
-                
+
                 Rect dialogRect = new Rect(
                     Screen.width / 2 - dialogWidth / 2,
                     Screen.height / 2 - dialogHeight / 2,
                     dialogWidth,
                     dialogHeight
                 );
-                
+
                 // Dialog background
                 GUI.backgroundColor = new Color(0.1f, 0.1f, 0.2f, 0.95f);
                 GUI.Box(dialogRect, "", UIManager.StyleManager.BoxStyle ?? GUI.skin.box);
-                
+
                 // Title bar
                 Rect titleRect = new Rect(dialogRect.x, dialogRect.y, dialogRect.width, 30);
                 GUI.backgroundColor = new Color(0.2f, 0.2f, 0.4f, 0.95f);
                 GUI.Box(titleRect, _currentDialogTitle, UIManager.StyleManager.TitleStyle ?? GUI.skin.box);
-                
+
                 // Dialog content
                 Rect contentRect = new Rect(
                     dialogRect.x + 10,
@@ -182,10 +179,10 @@ namespace ScheduleLua.API.UI.Dialog
                     dialogRect.width - 20,
                     dialogRect.height - 90
                 );
-                
+
                 GUI.backgroundColor = Color.white;
                 GUI.Label(contentRect, _currentDialogText, UIManager.StyleManager.LabelStyle ?? GUI.skin.label);
-                
+
                 // Draw choices if any
                 if (_dialogChoices.Count > 0)
                 {
@@ -193,7 +190,7 @@ namespace ScheduleLua.API.UI.Dialog
                     float buttonSpacing = 5;
                     float totalButtonHeight = _dialogChoices.Count * buttonHeight + (_dialogChoices.Count - 1) * buttonSpacing;
                     float buttonsStartY = contentRect.y + contentRect.height + 10;
-                    
+
                     for (int i = 0; i < _dialogChoices.Count; i++)
                     {
                         Rect buttonRect = new Rect(
@@ -202,7 +199,7 @@ namespace ScheduleLua.API.UI.Dialog
                             dialogRect.width - 40,
                             buttonHeight
                         );
-                        
+
                         if (GUI.Button(buttonRect, _dialogChoices[i], UIManager.StyleManager.ButtonStyle ?? GUI.skin.button))
                         {
                             InvokeChoiceCallback(i);
@@ -219,7 +216,7 @@ namespace ScheduleLua.API.UI.Dialog
                         100,
                         30
                     );
-                    
+
                     if (GUI.Button(closeButtonRect, "Close", UIManager.StyleManager.ButtonStyle ?? GUI.skin.button))
                     {
                         CloseDialogue();
@@ -232,7 +229,7 @@ namespace ScheduleLua.API.UI.Dialog
                 CloseDialogue();
             }
         }
-        
+
         /// <summary>
         /// Invokes the choice callback with the selected index
         /// </summary>
@@ -250,7 +247,7 @@ namespace ScheduleLua.API.UI.Dialog
                 LuaUtility.LogError($"Error invoking choice callback: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Sets custom dialogue for an NPC customer
         /// </summary>
@@ -265,7 +262,7 @@ namespace ScheduleLua.API.UI.Dialog
                 LuaUtility.LogError($"Error in SetCustomerDialogue: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Sets custom dialogue for an NPC dealer
         /// </summary>
@@ -280,7 +277,7 @@ namespace ScheduleLua.API.UI.Dialog
                 LuaUtility.LogError($"Error in SetDealerDialogue: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Sets custom dialogue for an NPC shop keeper
         /// </summary>
@@ -296,4 +293,4 @@ namespace ScheduleLua.API.UI.Dialog
             }
         }
     }
-} 
+}

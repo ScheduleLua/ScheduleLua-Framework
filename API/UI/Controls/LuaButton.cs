@@ -1,9 +1,6 @@
-using System;
-using UnityEngine;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Core;
-using ScheduleLua.API.UI.Styles;
-using ScheduleLua.API.UI;
+using UnityEngine;
 
 namespace ScheduleLua.API.UI.Controls
 {
@@ -50,4 +47,4 @@ namespace ScheduleLua.API.UI.Controls
             }
         }
     }
-} 
+}

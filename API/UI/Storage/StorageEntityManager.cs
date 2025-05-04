@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using UnityEngine;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Core;
+using UnityEngine;
 
 namespace ScheduleLua.API.UI.Storage
 {
@@ -287,7 +285,7 @@ namespace ScheduleLua.API.UI.Storage
                     try
                     {
                         gameEntity.InsertItem(itemInstance, false);
-                        
+
                         // Also update our internal model
                         var existingItem = entity.Items.Find(i => i.Id == itemId);
                         if (existingItem != null)
@@ -303,7 +301,7 @@ namespace ScheduleLua.API.UI.Storage
                             };
                             entity.Items.Add(newItem);
                         }
-                        
+
                         return true;
                     }
                     catch (Exception ex)
@@ -319,7 +317,7 @@ namespace ScheduleLua.API.UI.Storage
                                 {
                                     // Use SetStoredItem method instead of direct property assignment
                                     gameEntity.ItemSlots[i].SetStoredItem(itemInstance, true);
-                                    
+
                                     // Also update our internal model
                                     var existingItem = entity.Items.Find(i => i.Id == itemId);
                                     if (existingItem != null)
@@ -335,7 +333,7 @@ namespace ScheduleLua.API.UI.Storage
                                         };
                                         entity.Items.Add(newItem);
                                     }
-                                    
+
                                     return true;
                                 }
                             }
@@ -384,7 +382,7 @@ namespace ScheduleLua.API.UI.Storage
             try
             {
                 Table itemsTable = new Table(ModCore.Instance._luaEngine);
-                
+
                 // First try to get items from the game storage entity
                 if (_gameStorageEntities.TryGetValue(entityId, out var gameEntity))
                 {
@@ -411,10 +409,10 @@ namespace ScheduleLua.API.UI.Storage
                             itemsTable[index++] = itemData;
                         }
                     }
-                    
+
                     return itemsTable;
                 }
-                
+
                 // Fallback to our internal storage model
                 if (!_storageEntities.TryGetValue(entityId, out var entity))
                 {
@@ -452,7 +450,7 @@ namespace ScheduleLua.API.UI.Storage
                 {
                     return gameEntity.IsOpened;
                 }
-                
+
                 // Fallback to our internal model
                 if (!_storageEntities.TryGetValue(entityId, out var entity))
                 {
@@ -481,7 +479,7 @@ namespace ScheduleLua.API.UI.Storage
                 {
                     entity.Name = name;
                 }
-                
+
                 // Update the game storage entity
                 if (_gameStorageEntities.TryGetValue(entityId, out var gameEntity))
                 {
@@ -506,7 +504,7 @@ namespace ScheduleLua.API.UI.Storage
                 {
                     entity.Subtitle = subtitle;
                 }
-                
+
                 // Update the game storage entity
                 if (_gameStorageEntities.TryGetValue(entityId, out var gameEntity))
                 {
@@ -531,7 +529,7 @@ namespace ScheduleLua.API.UI.Storage
                 {
                     entity.Items.Clear();
                 }
-                
+
                 // Clear the game storage entity
                 if (_gameStorageEntities.TryGetValue(entityId, out var gameEntity))
                 {
@@ -575,4 +573,4 @@ namespace ScheduleLua.API.UI.Storage
         public string Id { get; set; }
         public int Quantity { get; set; }
     }
-} 
+}

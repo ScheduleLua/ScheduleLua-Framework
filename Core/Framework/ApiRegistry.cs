@@ -1,9 +1,6 @@
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Base;
 using ScheduleLua.API.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ScheduleLua.Core.Framework
 {
@@ -16,7 +13,7 @@ namespace ScheduleLua.Core.Framework
         private readonly List<ILuaApiModule> _modules = new List<ILuaApiModule>();
         private readonly Script _luaEngine;
         private bool _initialized = false;
-        
+
         /// <summary>
         /// Creates a new API registry for the specified Lua engine
         /// </summary>
@@ -25,17 +22,17 @@ namespace ScheduleLua.Core.Framework
         {
             _luaEngine = luaEngine ?? throw new ArgumentNullException(nameof(luaEngine));
         }
-        
+
         /// <summary>
         /// Gets all registered modules
         /// </summary>
         public IReadOnlyList<ILuaApiModule> Modules => _modules;
-        
+
         /// <summary>
         /// Gets whether the registry has been initialized
         /// </summary>
         public bool IsInitialized => _initialized;
-        
+
         /// <summary>
         /// Registers a new API module
         /// </summary>
@@ -45,15 +42,15 @@ namespace ScheduleLua.Core.Framework
         {
             if (module == null)
                 throw new ArgumentNullException(nameof(module));
-                
+
             if (_modules.Any(m => m.Name == module.Name))
             {
                 LuaUtility.LogWarning($"Module {module.Name} is already registered.");
                 return false;
             }
-            
+
             _modules.Add(module);
-            
+
             // If we're already initialized, initialize this module immediately
             if (_initialized)
             {
@@ -68,20 +65,20 @@ namespace ScheduleLua.Core.Framework
                     LuaUtility.LogError($"Failed to late-initialize module {module.Name}: {ex.Message}");
                 }
             }
-            
+
             return true;
         }
-        
+
         /// <summary>
         /// Initializes all registered modules in priority order (lower priority values initialize first)
         /// </summary>
         public void InitializeAll()
         {
             if (_initialized) return;
-            
+
             // Sort modules by priority - lower numbers go first
             var modulesToInitialize = _modules.OrderBy(m => m.Priority).ToList();
-            
+
             // Initialize modules in priority order
             foreach (var module in modulesToInitialize)
             {
@@ -97,17 +94,17 @@ namespace ScheduleLua.Core.Framework
                     LuaUtility.LogError(ex.StackTrace);
                 }
             }
-            
+
             _initialized = true;
         }
-        
+
         /// <summary>
         /// Shuts down all modules in reverse priority order
         /// </summary>
         public void ShutdownAll()
         {
             if (!_initialized) return;
-            
+
             // Shutdown in reverse priority order
             foreach (var module in _modules.OrderByDescending(m => m.Priority))
             {
@@ -121,10 +118,10 @@ namespace ScheduleLua.Core.Framework
                     LuaUtility.LogError($"Error shutting down module {module.Name}: {ex.Message}");
                 }
             }
-            
+
             _initialized = false;
         }
-        
+
         /// <summary>
         /// Gets a module by type
         /// </summary>
@@ -134,7 +131,7 @@ namespace ScheduleLua.Core.Framework
         {
             return _modules.OfType<T>().FirstOrDefault();
         }
-        
+
         /// <summary>
         /// Gets a module by name
         /// </summary>
@@ -145,4 +142,4 @@ namespace ScheduleLua.Core.Framework
             return _modules.FirstOrDefault(m => m.Name == name);
         }
     }
-} 
+}

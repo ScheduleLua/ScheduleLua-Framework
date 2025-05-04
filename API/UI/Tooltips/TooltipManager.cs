@@ -1,7 +1,5 @@
-using System;
-using UnityEngine;
 using ScheduleLua.API.Core;
-using ScheduleOne.UI.Tooltips;
+using UnityEngine;
 
 namespace ScheduleLua.API.UI.Tooltips
 {
@@ -93,7 +91,7 @@ namespace ScheduleLua.API.UI.Tooltips
 
                 // Draw the tooltip
                 Rect rect = new Rect(position.x, position.y, size.x, size.y);
-                
+
                 // Adjust position to ensure tooltip stays on screen
                 rect = EnsureRectIsOnScreen(rect);
 
@@ -101,16 +99,16 @@ namespace ScheduleLua.API.UI.Tooltips
                 Color oldColor = GUI.backgroundColor;
                 GUI.backgroundColor = new Color(0.1f, 0.1f, 0.1f, 0.9f);
                 GUI.Box(rect, "", style);
-                
+
                 // Draw border
                 Color oldContentColor = GUI.contentColor;
                 GUI.contentColor = new Color(0.7f, 0.7f, 0.9f, 1f);
                 GUI.Box(rect, "", GUI.skin.box);
-                
+
                 // Draw text
                 GUI.contentColor = Color.white;
                 GUI.Label(rect, _tooltipText, style);
-                
+
                 // Restore colors
                 GUI.backgroundColor = oldColor;
                 GUI.contentColor = oldContentColor;
@@ -154,4 +152,4 @@ namespace ScheduleLua.API.UI.Tooltips
             return rect;
         }
     }
-} 
+}

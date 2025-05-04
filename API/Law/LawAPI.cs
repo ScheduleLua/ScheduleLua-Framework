@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-using MoonSharp.Interpreter;
-using ScheduleOne.Law;
-using ScheduleOne.PlayerScripts;
-using ScheduleLua.API.Core;
-using UnityEngine;
-using ScheduleOne.NPCs.Behaviour;
-using ScheduleOne.DevUtilities;
+﻿using MoonSharp.Interpreter;
 using ScheduleLua.API.Base;
+using ScheduleLua.API.Core;
+using ScheduleOne.DevUtilities;
+using ScheduleOne.Law;
+using ScheduleOne.NPCs.Behaviour;
+using UnityEngine;
 
 namespace ScheduleLua.API.Law
 {

@@ -1,10 +1,10 @@
-﻿using UnityEngine;
-using MoonSharp.Interpreter;
-using ScheduleOne.Map;
-using ScheduleLua.API.Core;
-using ScheduleOne.NPCs;
+﻿using MoonSharp.Interpreter;
 using ScheduleLua.API.Base;
+using ScheduleLua.API.Core;
 using ScheduleLua.API.Core.TypeProxies;
+using ScheduleOne.Map;
+using ScheduleOne.NPCs;
+using UnityEngine;
 
 namespace ScheduleLua.API.NPC
 {

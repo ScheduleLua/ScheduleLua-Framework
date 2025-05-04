@@ -1,9 +1,9 @@
 using MelonLoader;
 using MoonSharp.Interpreter;
-using Console = ScheduleOne.Console;
-using UnityEngine.SceneManagement;
-using ScheduleLua.API.Core;
 using ScheduleLua.API.Base;
+using ScheduleLua.API.Core;
+using UnityEngine.SceneManagement;
+using Console = ScheduleOne.Console;
 
 namespace ScheduleLua.API.Registry
 {

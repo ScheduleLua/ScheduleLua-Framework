@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using MelonLoader;
+﻿using MelonLoader;
 using MoonSharp.Interpreter;
 
 namespace ScheduleLua.Core.Framework

@@ -10,7 +10,7 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
         private readonly ModManagerUIController _uiController;
         private readonly KeyCode _toggleKey;
         private readonly KeyCode _modifierKey;
-        
+
         /// <summary>
         /// Creates a new keyboard shortcut handler
         /// </summary>
@@ -18,15 +18,15 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
         /// <param name="toggleKey">The key to toggle the UI (default: F7)</param>
         /// <param name="modifierKey">Optional modifier key (default: None)</param>
         public ModManagerKeyboardShortcut(
-            ModManagerUIController uiController, 
-            KeyCode toggleKey = KeyCode.F7, 
+            ModManagerUIController uiController,
+            KeyCode toggleKey = KeyCode.F7,
             KeyCode modifierKey = KeyCode.None)
         {
             _uiController = uiController;
             _toggleKey = toggleKey;
             _modifierKey = modifierKey;
         }
-        
+
         /// <summary>
         /// Update method to be called each frame to check for keyboard input
         /// </summary>
@@ -41,4 +41,4 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
             }
         }
     }
-} 
+}

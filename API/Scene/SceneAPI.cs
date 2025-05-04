@@ -1,8 +1,6 @@
 ﻿using MelonLoader;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Base;
-using System;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace ScheduleLua.API.Scene

@@ -1,18 +1,14 @@
-using System;
-using UnityEngine;
 using MoonSharp.Interpreter;
-using System.Collections.Generic;
-using ScheduleLua.API.Core;
-using ScheduleLua.API.UI.Windows;
-using ScheduleLua.API.UI.Controls;
-using ScheduleLua.API.UI.Styles;
-using ScheduleLua.API.UI.Dialog;
-using ScheduleLua.API.UI.Tooltips;
-using ScheduleLua.API.UI.Phone;
-using ScheduleLua.API.UI.Notifications;
-using ScheduleLua.API.UI.Storage;
-using ScheduleLua.API.UI.Utils;
 using ScheduleLua.API.Base;
+using ScheduleLua.API.Core;
+using ScheduleLua.API.UI.Controls;
+using ScheduleLua.API.UI.Dialog;
+using ScheduleLua.API.UI.Notifications;
+using ScheduleLua.API.UI.Phone;
+using ScheduleLua.API.UI.Storage;
+using ScheduleLua.API.UI.Tooltips;
+using ScheduleLua.API.UI.Utils;
+using ScheduleLua.API.UI.Windows;
 
 namespace ScheduleLua.API.UI
 {
@@ -103,7 +99,8 @@ namespace ScheduleLua.API.UI
             // Register sprite loading utility
             luaEngine.Globals["LoadSpriteFromFile"] = DynValue.NewCallback(
                 (Func<ScriptExecutionContext, CallbackArguments, DynValue>)
-                ((ctx, args) => {
+                ((ctx, args) =>
+                {
                     if (args.Count < 1)
                         return DynValue.Nil;
 

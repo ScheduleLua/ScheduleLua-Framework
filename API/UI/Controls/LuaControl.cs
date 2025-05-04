@@ -1,6 +1,4 @@
-using System;
 using UnityEngine;
-using ScheduleLua.API.Core;
 
 namespace ScheduleLua.API.UI.Controls
 {
@@ -13,37 +11,37 @@ namespace ScheduleLua.API.UI.Controls
         /// Unique identifier for this control
         /// </summary>
         public string Id { get; private set; }
-        
+
         /// <summary>
         /// ID of the window this control belongs to
         /// </summary>
         public string WindowId { get; private set; }
-        
+
         /// <summary>
         /// X position relative to its window
         /// </summary>
         public float X { get; set; } = 10;
-        
+
         /// <summary>
         /// Y position relative to its window
         /// </summary>
         public float Y { get; set; } = 10;
-        
+
         /// <summary>
         /// Width of the control
         /// </summary>
         public float Width { get; set; } = 150;
-        
+
         /// <summary>
         /// Height of the control
         /// </summary>
         public float Height { get; set; } = 30;
-        
+
         /// <summary>
         /// Whether the control is visible
         /// </summary>
         public bool IsVisible { get; set; } = true;
-        
+
         /// <summary>
         /// Text content of the control
         /// </summary>
@@ -72,4 +70,4 @@ namespace ScheduleLua.API.UI.Controls
             return new Rect(windowX + X, windowY + Y, Width, Height);
         }
     }
-} 
+}

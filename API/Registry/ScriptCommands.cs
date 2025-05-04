@@ -1,12 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using MelonLoader;
-using ScheduleOne;
-using MoonSharp.Interpreter;
-using Console = ScheduleOne.Console;
 using UnityEngine.SceneManagement;
+using Console = ScheduleOne.Console;
 
 namespace ScheduleLua.API.Registry
 {
@@ -149,7 +143,7 @@ namespace ScheduleLua.API.Registry
                                 reloadedScriptCount++;
                             }
                         }
-                        
+
                         // Reload all mods
                         int reloadedModCount = 0;
                         if (core._modManager != null)
@@ -162,7 +156,7 @@ namespace ScheduleLua.API.Registry
                                 }
                             }
                         }
-                        
+
                         Console.Log($"Reloaded {reloadedScriptCount} individual Lua scripts and {reloadedModCount} mods.");
                     }
                     else

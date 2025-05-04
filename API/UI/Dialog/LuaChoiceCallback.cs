@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
-using UnityEngine;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Core;
+using UnityEngine;
 
 namespace ScheduleLua.API.UI.Dialog
 {
@@ -91,4 +89,4 @@ namespace ScheduleLua.API.UI.Dialog
             _isMonitoring = false;
         }
     }
-} 
+}

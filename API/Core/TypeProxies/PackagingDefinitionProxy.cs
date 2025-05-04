@@ -1,6 +1,5 @@
 using MoonSharp.Interpreter;
 using ScheduleOne.Product.Packaging;
-using UnityEngine;
 
 namespace ScheduleLua.API.Core.TypeProxies
 {
@@ -26,4 +25,4 @@ namespace ScheduleLua.API.Core.TypeProxies
             return $"Packaging: {Name} ({ID}, Quantity: {Quantity})";
         }
     }
-} 
+}

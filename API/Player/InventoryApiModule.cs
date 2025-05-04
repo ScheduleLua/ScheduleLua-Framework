@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
 using MoonSharp.Interpreter;
-using ScheduleOne.PlayerScripts;
-using ScheduleOne.ItemFramework;
-using ScheduleLua.API.Core;
-using ScheduleOne.Storage;
-using ScheduleOne;
-using ScheduleOne.Product;
 using ScheduleLua.API.Base;
+using ScheduleOne.ItemFramework;
+using ScheduleOne.PlayerScripts;
+using ScheduleOne.Product;
+using ScheduleOne.Storage;
 
 namespace ScheduleLua.API.Player
 {
@@ -155,11 +150,11 @@ namespace ScheduleLua.API.Player
         /// Checks if the player has an item equipped
         /// </summary>
         /// <returns>True if any item is equipped, false otherwise</returns>
-        public bool IsItemEquipped() 
+        public bool IsItemEquipped()
         {
-            try 
+            try
             {
-                return PlayerInventory.Instance?.isAnythingEquipped ?? false; 
+                return PlayerInventory.Instance?.isAnythingEquipped ?? false;
             }
             catch (Exception ex)
             {
@@ -172,7 +167,7 @@ namespace ScheduleLua.API.Player
         /// Gets the name of the currently equipped item
         /// </summary>
         /// <returns>The name of the equipped item or an empty string if no item is equipped</returns>
-        public string GetEquippedItemName() 
+        public string GetEquippedItemName()
         {
             try
             {
@@ -189,7 +184,7 @@ namespace ScheduleLua.API.Player
         /// Gets the quantity of the currently equipped item
         /// </summary>
         /// <returns>The quantity of the equipped item or 0 if no item is equipped</returns>
-        public int GetEquippedItemAmount() 
+        public int GetEquippedItemAmount()
         {
             try
             {
@@ -245,4 +240,4 @@ namespace ScheduleLua.API.Player
             }
         }
     }
-} 
+}

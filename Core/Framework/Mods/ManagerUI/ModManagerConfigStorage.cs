@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.IO;
 using Newtonsoft.Json;
-using MelonLoader;
 using ScheduleLua.API.Core;
 
 namespace ScheduleLua.Core.Framework.Mods.ManagerUI
@@ -13,7 +10,7 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
     {
         private readonly string _configFilePath;
         private ModManagerConfig _config;
-        
+
         /// <summary>
         /// Creates a new instance of the mod manager config storage
         /// </summary>
@@ -21,16 +18,16 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
         {
             // Config file is stored in the ScheduleLua directory
             _configFilePath = Path.Combine(
-                Path.GetDirectoryName(scriptsDirectory), 
+                Path.GetDirectoryName(scriptsDirectory),
                 "mod_manager_config.json");
-                
+
             // Initialize with default config
             _config = new ModManagerConfig();
-            
+
             // Load existing config if available
             LoadConfig();
         }
-        
+
         /// <summary>
         /// Loads the mod manager configuration from disk
         /// </summary>
@@ -43,10 +40,10 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
                     LuaUtility.Log("Mod manager config does not exist, using defaults");
                     return false;
                 }
-                
+
                 string json = File.ReadAllText(_configFilePath);
                 var loadedConfig = JsonConvert.DeserializeObject<ModManagerConfig>(json);
-                
+
                 if (loadedConfig != null)
                 {
                     _config = loadedConfig;
@@ -58,10 +55,10 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
             {
                 LuaUtility.LogError($"Error loading mod manager config: {ex.Message}");
             }
-            
+
             return false;
         }
-        
+
         /// <summary>
         /// Saves the mod manager configuration to disk
         /// </summary>
@@ -80,7 +77,7 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Get the enabled state for a mod
         /// </summary>
@@ -88,11 +85,11 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
         {
             if (_config.ModEnabledStates.TryGetValue(modFolderName, out bool enabled))
                 return enabled;
-                
+
             // Default to enabled if not specified
             return true;
         }
-        
+
         /// <summary>
         /// Set the enabled state for a mod
         /// </summary>
@@ -100,7 +97,7 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
         {
             _config.ModEnabledStates[modFolderName] = enabled;
         }
-        
+
         /// <summary>
         /// Updates the mod enabled states from the provided dictionary
         /// </summary>
@@ -111,7 +108,7 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
                 _config.ModEnabledStates[kvp.Key] = kvp.Value;
             }
         }
-        
+
         /// <summary>
         /// Configuration data for the mod manager
         /// </summary>
@@ -122,10 +119,10 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
             /// </summary>
             [JsonProperty("mod_enabled_states")]
             public Dictionary<string, bool> ModEnabledStates { get; set; } = new Dictionary<string, bool>();
-            
+
             /// <summary>
             /// Additional configuration options can be added here
             /// </summary>
         }
     }
-} 
+}

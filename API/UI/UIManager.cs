@@ -1,4 +1,3 @@
-using System;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Core;
 using ScheduleLua.API.UI.Styles;
@@ -12,10 +11,10 @@ namespace ScheduleLua.API.UI
     {
         // Static instance of the style manager
         private static UIStyleManager _styleManager;
-        
+
         // Static property to access the style manager
-        public static UIStyleManager StyleManager 
-        { 
+        public static UIStyleManager StyleManager
+        {
             get
             {
                 if (_styleManager == null)
@@ -37,7 +36,7 @@ namespace ScheduleLua.API.UI
                 _styleManager = new UIStyleManager();
                 _styleManager.Initialize();
             }
-            
+
             LuaUtility.Log("UI Manager initialized");
         }
 
@@ -57,7 +56,7 @@ namespace ScheduleLua.API.UI
                 {
                     // Get the global environment from the script
                     var globals = scriptRuntime.Globals;
-                    
+
                     // Try to get SCRIPT_PATH from globals
                     var scriptPathVal = globals.Get("SCRIPT_PATH");
                     if (scriptPathVal != null && scriptPathVal.Type == DataType.String)
@@ -67,7 +66,7 @@ namespace ScheduleLua.API.UI
                         simpleEnv["SCRIPT_PATH"] = scriptPathVal.String;
                         return simpleEnv;
                     }
-                    
+
                     // If we can't get a specific environment, return the globals
                     return globals;
                 }
@@ -76,8 +75,8 @@ namespace ScheduleLua.API.UI
             {
                 LuaUtility.LogError($"Error getting calling environment: {ex.Message}", ex);
             }
-            
+
             return null;
         }
     }
-} 
+}

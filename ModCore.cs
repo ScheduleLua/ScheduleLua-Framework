@@ -1,20 +1,14 @@
 ﻿using MelonLoader;
-using System;
-using System.IO;
-using System.Collections.Generic;
-using UnityEngine;
+using MelonLoader.Utils;
 using MoonSharp.Interpreter;
-using System.Reflection;
+using ScheduleLua.API.Core;
+using ScheduleLua.API.Player;
+using ScheduleLua.API.Registry;
+using ScheduleLua.Core.Framework.Mods;
 using ScheduleOne.GameTime;
 using ScheduleOne.PlayerScripts;
-using UnityEngine.Events;
-using MelonLoader.Utils;
-using ScheduleLua.API.Registry;
-using ScheduleLua.API.Core;
+using UnityEngine;
 using UnityEngine.SceneManagement;
-using ScheduleLua.Core.Framework;
-using ScheduleLua.API.Player;
-using ScheduleLua.Core.Framework.Mods;
 
 // Define version constant
 [assembly: MelonInfo(typeof(ScheduleLua.ModCore), "ScheduleLua", ScheduleLua.ModCore.ModVersion, "Bars", null)]
@@ -62,6 +56,10 @@ public class ModCore : MelonMod
 
     // Add ModManager to class variables
     public ModManager _modManager;
+
+    // Add ModManagerUIController
+    private Core.Framework.Mods.ManagerUI.ModManagerUIController _modManagerUIController;
+    private Core.Framework.Mods.ManagerUI.ModManagerKeyboardShortcut _modManagerKeyboardShortcut;
 
     // Cache for PlayerApiModule instance
     private PlayerApiModule _playerApiModule;
@@ -133,6 +131,13 @@ public class ModCore : MelonMod
         // Initialize Mod Manager and register Mods API
         _modManager = new ModManager(LoggerInstance, _luaEngine, _scriptsDirectory);
         ModsAPI.RegisterAPI(_luaEngine, _modManager);
+
+        // Initialize the Mod Manager UI
+        _modManagerUIController = new Core.Framework.Mods.ManagerUI.ModManagerUIController(_modManager, _scriptsDirectory);
+        _modManagerKeyboardShortcut = new Core.Framework.Mods.ManagerUI.ModManagerKeyboardShortcut(_modManagerUIController);
+
+        // Register the Mod Manager UI API with Lua
+        Core.Framework.Mods.ManagerUI.ModManagerUIAPI.RegisterAPI(_luaEngine, _modManagerUIController);
 
         // Set up hardwiring for IL2CPP and AOT compatibility
         // This pre-generates necessary conversion code
@@ -469,6 +474,17 @@ public class ModCore : MelonMod
             }
         }
 
+        // Update mod manager UI and check for keyboard shortcuts
+        if (_modManagerUIController != null)
+        {
+            _modManagerUIController.Update();
+        }
+
+        if (_modManagerKeyboardShortcut != null)
+        {
+            _modManagerKeyboardShortcut.Update();
+        }
+
         // Call Update on all loaded scripts
         foreach (var script in _loadedScripts.Values)
         {
@@ -522,19 +538,22 @@ public class ModCore : MelonMod
                 TimeManager timeManager = TimeManager.Instance;
 
                 // Day change event
-                timeManager.onDayPass = (Action)Delegate.Combine(timeManager.onDayPass, new Action(() => {
+                timeManager.onDayPass = (Action)Delegate.Combine(timeManager.onDayPass, new Action(() =>
+                {
                     TriggerEvent("OnDayChanged", timeManager.CurrentDay.ToString());
                 }));
 
                 // Time change event
-                timeManager.onHourPass = (Action)Delegate.Combine(timeManager.onHourPass, new Action(() => {
+                timeManager.onHourPass = (Action)Delegate.Combine(timeManager.onHourPass, new Action(() =>
+                {
                     TriggerEvent("OnTimeChanged", timeManager.CurrentTime);
                 }));
 
                 // Sleep events
                 if (timeManager._onSleepStart != null)
                 {
-                    timeManager._onSleepStart.AddListener(() => {
+                    timeManager._onSleepStart.AddListener(() =>
+                    {
                         TriggerEvent("OnSleepStart");
                     });
                 }
@@ -699,6 +718,12 @@ public class ModCore : MelonMod
         if (_guiInitialized)
         {
             OnGUICallback?.Invoke();
+
+            // Render the mod manager UI if initialized
+            if (_modManagerUIController != null)
+            {
+                _modManagerUIController.OnGUI();
+            }
         }
     }
 

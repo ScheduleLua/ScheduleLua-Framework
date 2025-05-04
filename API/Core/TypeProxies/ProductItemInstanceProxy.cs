@@ -1,11 +1,6 @@
-using System;
 using MoonSharp.Interpreter;
 using ScheduleOne.ItemFramework;
-using ScheduleOne.NPCs;
-using ScheduleOne.Packaging;
-using ScheduleOne.PlayerScripts;
 using ScheduleOne.Product;
-using ScheduleOne.Properties;
 
 namespace ScheduleLua.API.Core.TypeProxies
 {
@@ -15,12 +10,12 @@ namespace ScheduleLua.API.Core.TypeProxies
         private ProductItemInstance _productInstance;
 
         public string PackagingID => _productInstance?.PackagingID;
-        public PackagingDefinitionProxy AppliedPackaging => _productInstance?.AppliedPackaging != null 
-            ? new PackagingDefinitionProxy(_productInstance.AppliedPackaging) 
+        public PackagingDefinitionProxy AppliedPackaging => _productInstance?.AppliedPackaging != null
+            ? new PackagingDefinitionProxy(_productInstance.AppliedPackaging)
             : null;
         public int Amount => _productInstance?.Amount ?? 0;
-        public ProductDefinitionProxy ProductDefinition => _productInstance?.Definition != null 
-            ? new ProductDefinitionProxy(_productInstance.Definition as ProductDefinition) 
+        public ProductDefinitionProxy ProductDefinition => _productInstance?.Definition != null
+            ? new ProductDefinitionProxy(_productInstance.Definition as ProductDefinition)
             : null;
 
         public ProductItemInstanceProxy(ProductItemInstance instance) : base(instance)
@@ -59,7 +54,7 @@ namespace ScheduleLua.API.Core.TypeProxies
             {
                 return _productInstance.GetSimilarity(otherProduct.GetInternalInstance(), qualityEnum);
             }
-            
+
             return 0;
         }
 
@@ -73,4 +68,4 @@ namespace ScheduleLua.API.Core.TypeProxies
             return $"ProductInstance: {Name} (Qty: {Quantity}, Quality: {GetQuality()}, Packaging: {(_productInstance?.AppliedPackaging != null ? _productInstance.AppliedPackaging.Name : "None")})";
         }
     }
-} 
+}

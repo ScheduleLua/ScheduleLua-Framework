@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace StringMatchingTools
@@ -81,7 +75,7 @@ namespace StringMatchingTools
 
             int source1Length = source1.Length;
             int source2Length = source2.Length;
-            
+
             // If the difference in string lengths exceeds maxDistance,
             // we can return early since the Levenshtein distance can't be less
             if (source2Length - source1Length > maxDistance) return maxDistance + 1;
@@ -98,7 +92,7 @@ namespace StringMatchingTools
             for (int j = 1; j <= source2Length; j++)
             {
                 currentRow[0] = j;
-                
+
                 // Track if we've found a row where all values exceed maxDistance
                 bool allExceedThreshold = true;
 
@@ -109,11 +103,11 @@ namespace StringMatchingTools
                     currentRow[i] = Math.Min(
                         Math.Min(previousRow[i] + 1, currentRow[i - 1] + 1),
                         previousRow[i - 1] + cost);
-                    
+
                     if (currentRow[i] <= maxDistance)
                         allExceedThreshold = false;
                 }
-                
+
                 // Early termination if all values in this row exceed maxDistance
                 if (allExceedThreshold && maxDistance < int.MaxValue)
                     return maxDistance + 1;
@@ -135,7 +129,7 @@ namespace StringMatchingTools
         private static string Preprocess(string input)
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
-            
+
             input = input.ToLowerInvariant();
             input = new string(input.Where(c => !char.IsPunctuation(c)).ToArray());
 
@@ -163,7 +157,7 @@ namespace StringMatchingTools
             {
                 uInput = Preprocess(uInput);
                 uInput2 = Preprocess(uInput2);
-                
+
                 // Check again after preprocessing
                 if (string.IsNullOrEmpty(uInput) && string.IsNullOrEmpty(uInput2)) return 1.0;
                 if (string.IsNullOrEmpty(uInput) || string.IsNullOrEmpty(uInput2)) return 0.0;
@@ -174,11 +168,11 @@ namespace StringMatchingTools
             int maxDistance = maxDistanceFactor < 1.0 ? (int)(maxLength * maxDistanceFactor) : maxLength;
 
             int distance = Calculate(uInput, uInput2, maxDistance);
-            
+
             // If distance exceeds threshold, it means we hit early termination
-            if (distance > maxDistance) 
+            if (distance > maxDistance)
                 return 0.0;
-                
+
             double similarity = 1.0 - (double)distance / maxLength;
             return similarity;
         }

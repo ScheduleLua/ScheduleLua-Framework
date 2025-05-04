@@ -1,12 +1,12 @@
-using UnityEngine;
 using MoonSharp.Interpreter;
 using ScheduleLua.API.Base;
 using ScheduleLua.API.Core;
+using ScheduleLua.API.Core.TypeProxies;
+using ScheduleOne.DevUtilities;
 using ScheduleOne.PlayerScripts;
 using ScheduleOne.PlayerScripts.Health;
-using ScheduleOne.DevUtilities;
+using UnityEngine;
 using UnityEngine.SceneManagement;
-using ScheduleLua.API.Core.TypeProxies;
 
 namespace ScheduleLua.API.Player
 {
@@ -16,11 +16,11 @@ namespace ScheduleLua.API.Player
     public class PlayerApiModule : BaseLuaApiModule
     {
         private GameObject _player;
-        private GameObject Player => _player ??= (ScheduleOne.PlayerScripts.Player.Local != null ? 
+        private GameObject Player => _player ??= (ScheduleOne.PlayerScripts.Player.Local != null ?
             ScheduleOne.PlayerScripts.Player.Local.gameObject : GameObject.FindGameObjectWithTag("Player"));
 
         private ScheduleOne.PlayerScripts.Player _playerInstance;
-        private ScheduleOne.PlayerScripts.Player PlayerInstance => _playerInstance ??= 
+        private ScheduleOne.PlayerScripts.Player PlayerInstance => _playerInstance ??=
             ScheduleOne.PlayerScripts.Player.Local ?? Player?.GetComponent<ScheduleOne.PlayerScripts.Player>();
 
         private PlayerHealth _playerHealth;
@@ -59,7 +59,7 @@ namespace ScheduleLua.API.Player
                     _playerHealth = _player.GetComponent<PlayerHealth>();
                 }
             }
-            
+
             _playerMovement = PlayerSingleton<PlayerMovement>.Instance;
         }
 
@@ -106,7 +106,7 @@ namespace ScheduleLua.API.Player
                 SceneManager.sceneLoaded -= OnSceneLoaded;
                 _sceneChangeListenerAdded = false;
             }
-            
+
             ResetPlayerReferences();
         }
 
@@ -554,4 +554,4 @@ namespace ScheduleLua.API.Player
             }
         }
     }
-} 
+}

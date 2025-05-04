@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
 using ScheduleLua.API.Core;
-using ScheduleLua.API.UI.Windows;
-using UnityEngine;
 
 namespace ScheduleLua.API.UI.Windows
 {
@@ -193,4 +189,4 @@ namespace ScheduleLua.API.UI.Windows
             }
         }
     }
-} 
+}

@@ -1,9 +1,5 @@
-using MelonLoader;
 using MoonSharp.Interpreter;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using ScheduleLua.API.Core;
 
 namespace ScheduleLua.Core.Framework.Mods
@@ -102,7 +98,7 @@ namespace ScheduleLua.Core.Framework.Mods
                 catch (Exception ex)
                 {
                     LuaUtility.LogError($"Error converting config value for key '{key}': {ex.Message}");
-                    
+
                     // If conversion fails, check if we have a default value of the right type
                     if (DefaultValues.TryGetValue(key, out object defaultValue) && defaultValue is T defaultTypedValue)
                         return defaultTypedValue;
@@ -141,7 +137,7 @@ namespace ScheduleLua.Core.Framework.Mods
             // If the table appears to be an array (sequential numeric keys starting at 1)
             bool isArray = true;
             int arrayLength = 0;
-            
+
             // Check if it's an array by verifying sequential integer keys starting from 1
             for (int i = 1; i <= table.Length; i++)
             {
@@ -152,39 +148,39 @@ namespace ScheduleLua.Core.Framework.Mods
                 }
                 arrayLength = i;
             }
-            
+
             if (isArray && arrayLength > 0)
             {
                 // Create a list (will be serialized as a JSON array)
                 var list = new List<object>();
-                
+
                 for (int i = 1; i <= arrayLength; i++)
                 {
                     var value = table.Get(i);
                     list.Add(ConvertDynValueToSerializable(value));
                 }
-                
+
                 return list;
             }
             else
             {
                 // Create a dictionary (will be serialized as a JSON object)
                 var dict = new Dictionary<object, object>();
-                
+
                 foreach (var pair in table.Pairs)
                 {
                     var key = ConvertDynValueToSerializable(pair.Key);
                     var value = ConvertDynValueToSerializable(pair.Value);
-                    
+
                     // Only string keys are allowed in JSON
                     string stringKey = key?.ToString() ?? "null";
                     dict[stringKey] = value;
                 }
-                
+
                 return dict;
             }
         }
-        
+
         /// <summary>
         /// Converts a DynValue to a serializable object
         /// </summary>
@@ -194,19 +190,19 @@ namespace ScheduleLua.Core.Framework.Mods
             {
                 case DataType.Nil:
                     return null;
-                    
+
                 case DataType.Boolean:
                     return value.Boolean;
-                    
+
                 case DataType.Number:
                     return value.Number;
-                    
+
                 case DataType.String:
                     return value.String;
-                    
+
                 case DataType.Table:
                     return CleanTableForSerialization(value.Table);
-                    
+
                 case DataType.Tuple:
                     var list = new List<object>();
                     foreach (var item in value.Tuple)
@@ -214,7 +210,7 @@ namespace ScheduleLua.Core.Framework.Mods
                         list.Add(ConvertDynValueToSerializable(item));
                     }
                     return list;
-                    
+
                 default:
                     return value.ToString();
             }
@@ -265,12 +261,12 @@ namespace ScheduleLua.Core.Framework.Mods
                 }
 
                 string json = File.ReadAllText(ConfigFilePath);
-                
+
                 try
                 {
                     // Parse json without using dynamic
                     var jsonObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
-                    
+
                     if (jsonObject == null)
                     {
                         LuaUtility.LogError($"Failed to deserialize config for mod {ParentMod.Manifest.Name}");
@@ -282,9 +278,9 @@ namespace ScheduleLua.Core.Framework.Mods
                     {
                         // Convert to JSON and then back to dictionary
                         string valuesJson = JsonConvert.SerializeObject(valuesObj);
-                        ConfigValues = JsonConvert.DeserializeObject<Dictionary<string, object>>(valuesJson) 
+                        ConfigValues = JsonConvert.DeserializeObject<Dictionary<string, object>>(valuesJson)
                             ?? new Dictionary<string, object>();
-                        
+
                         // Check for descriptions
                         if (jsonObject.TryGetValue("descriptions", out object descriptionsObj))
                         {
@@ -304,7 +300,7 @@ namespace ScheduleLua.Core.Framework.Mods
                 {
                     LuaUtility.LogWarning($"Error parsing config structure for mod {ParentMod.Manifest.Name}: {ex.Message}");
                     LuaUtility.LogWarning("Attempting to load with direct deserialization...");
-                    
+
                     // Try deserializing as ModConfig object (old format)
                     try
                     {
@@ -353,7 +349,7 @@ namespace ScheduleLua.Core.Framework.Mods
             {
                 // Clean the ConfigValues dictionary to handle Lua tables
                 Dictionary<string, object> cleanedValues = new Dictionary<string, object>();
-                
+
                 foreach (var kvp in ConfigValues)
                 {
                     if (kvp.Value is Table luaTable)
@@ -365,17 +361,17 @@ namespace ScheduleLua.Core.Framework.Mods
                         cleanedValues[kvp.Key] = kvp.Value;
                     }
                 }
-                
+
                 // Create a temporary object for serialization with cleaned values
-                var serializableObj = new 
+                var serializableObj = new
                 {
                     values = cleanedValues,
                     descriptions = ConfigDescriptions
                 };
-                
+
                 // Serialize with indentation for readability
                 string json = JsonConvert.SerializeObject(serializableObj, Formatting.Indented);
-                
+
                 File.WriteAllText(ConfigFilePath, json);
                 LuaUtility.Log($"Saved config for mod {ParentMod.Manifest.Name}");
                 return true;
@@ -393,7 +389,7 @@ namespace ScheduleLua.Core.Framework.Mods
         public Table ToLuaTable(Script luaEngine)
         {
             var table = new Table(luaEngine);
-            
+
             foreach (var key in GetAllKeys())
             {
                 try
@@ -406,8 +402,8 @@ namespace ScheduleLua.Core.Framework.Mods
                     LuaUtility.LogError($"Error converting config value for key '{key}' to Lua: {ex.Message}");
                 }
             }
-            
+
             return table;
         }
     }
-} 
+}

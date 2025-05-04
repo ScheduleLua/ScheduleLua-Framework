@@ -1,8 +1,5 @@
-using System;
-using UnityEngine;
-using System.Reflection;
-using ScheduleOne.UI.Phone;
 using ScheduleLua.API.Core;
+using UnityEngine;
 
 namespace ScheduleLua.API.UI.Phone
 {
@@ -13,7 +10,7 @@ namespace ScheduleLua.API.UI.Phone
     {
         // Cache for performance
         private GameObject _phoneInstance;
-        
+
         /// <summary>
         /// Checks if the phone is currently open
         /// </summary>
@@ -35,7 +32,7 @@ namespace ScheduleLua.API.UI.Phone
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Opens the in-game phone
         /// </summary>
@@ -55,7 +52,7 @@ namespace ScheduleLua.API.UI.Phone
                 LuaUtility.LogError($"Error opening phone: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Closes the in-game phone
         /// </summary>
@@ -75,7 +72,7 @@ namespace ScheduleLua.API.UI.Phone
                 LuaUtility.LogError($"Error closing phone: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Toggles the phone flashlight on/off
         /// </summary>
@@ -99,7 +96,7 @@ namespace ScheduleLua.API.UI.Phone
                 LuaUtility.LogError($"Error toggling flashlight: {ex.Message}", ex);
             }
         }
-        
+
         /// <summary>
         /// Checks if the phone flashlight is on
         /// </summary>
@@ -125,7 +122,7 @@ namespace ScheduleLua.API.UI.Phone
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Finds the phone manager game object
         /// </summary>
@@ -133,10 +130,10 @@ namespace ScheduleLua.API.UI.Phone
         {
             if (_phoneInstance != null)
                 return _phoneInstance;
-            
+
             // Try to find the phone manager in the scene
             _phoneInstance = GameObject.Find("PhoneManager");
             return _phoneInstance;
         }
     }
-} 
+}

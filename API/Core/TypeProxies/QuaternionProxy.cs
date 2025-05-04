@@ -1,8 +1,5 @@
 ﻿using MoonSharp.Interpreter;
 using ScheduleLua.API.Base;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 
 namespace ScheduleLua.API.Core.TypeProxies

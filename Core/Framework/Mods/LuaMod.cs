@@ -1,7 +1,5 @@
 using MelonLoader;
 using MoonSharp.Interpreter;
-using System.Collections.Generic;
-using System.IO;
 using ScheduleLua.API.Core;
 
 namespace ScheduleLua.Core.Framework.Mods
