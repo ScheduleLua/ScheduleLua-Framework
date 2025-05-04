@@ -1,0 +1,12 @@
+{
+  "name": "Player Settings",
+  "version": "1.0.0",
+  "description": "A mod that demonstrates using the ModConfig system",
+  "author": "Example Author",
+  "main": "init.lua",
+  "files": [
+    "settings.lua"
+  ],
+  "dependencies": [],
+  "api_version": "0.1.6"
+} 
