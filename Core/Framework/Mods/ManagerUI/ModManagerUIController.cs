@@ -757,26 +757,41 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
 
             Type valueType = value.GetType();
 
-            if (valueType == typeof(bool))
+            // Handle Table objects first to ensure proper type checking
+            if (value is Table)
+            {
+                DrawTableEditor(key, (Table)value);
+            }
+            // Handle Dictionary objects that are loaded from JSON as editable tables
+            else if (value is Dictionary<string, object> || value is Dictionary<object, object>)
+            {
+                DrawDictionaryEditor(key, value);
+            }
+            // Handle List objects that are loaded from JSON as editable tables
+            else if (value is List<object>)
+            {
+                DrawListEditor(key, (List<object>)value);
+            }
+            else if (valueType == typeof(bool))
             {
                 // Boolean toggle
                 bool boolValue = (bool)(_tempConfigValues.ContainsKey(key) ? _tempConfigValues[key] : value);
-
+                
                 GUILayout.BeginHorizontal();
-
+                
                 // Create a custom toggle style to prevent text overlap
                 GUIStyle toggleStyle = new GUIStyle(GUI.skin.toggle);
                 toggleStyle.margin = new RectOffset(0, 5, 0, 0);
-
+                
                 // Only display the toggle without text
                 bool newValue = GUILayout.Toggle(boolValue, "", toggleStyle, GUILayout.Width(30));
-
+                
                 // Display the value as text separately
                 GUIStyle valueTextStyle = new GUIStyle(GUI.skin.label);
                 valueTextStyle.normal.textColor = new Color(0.85f, 0.85f, 0.85f);
                 valueTextStyle.fontSize = 13;
                 GUILayout.Label(boolValue ? "Enabled" : "Disabled", valueTextStyle);
-
+                
                 GUILayout.EndHorizontal();
 
                 if (newValue != boolValue)
@@ -823,202 +838,603 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
                     _tempConfigValues[key] = newValue;
                 }
             }
-            else if (value is IList<object> || value is Dictionary<string, object>)
-            {
-                // Complex types (lists/dictionaries) - just show a disabled field with a value summary
-                string summary = value is IList<object> list
-                    ? $"Array with {list.Count} items"
-                    : $"Object with {((Dictionary<string, object>)value).Count} properties";
-
-                GUILayout.Label(summary, _configValueStyle);
-                GUILayout.Label("Complex values can only be edited in the config file directly.", _modDescriptionStyle);
-            }
-            else if (value is MoonSharp.Interpreter.Table table)
-            {
-                // MoonSharp Table editor
-                GUILayout.BeginVertical(GUI.skin.box);
-
-                // Create a foldout for the table entries
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"Table with {table.Pairs.Count()} entries", _configLabelStyle);
-                GUILayout.EndHorizontal();
-
-                // Save the current table if it doesn't exist in temp values
-                if (!_tempConfigValues.ContainsKey(key))
-                {
-                    _tempConfigValues[key] = table;
-                }
-
-                MoonSharp.Interpreter.Table currentTable = (MoonSharp.Interpreter.Table)_tempConfigValues[key];
-
-                // Show table entries
-                GUILayout.BeginVertical(GUI.skin.box);
-
-                // Track entries to remove
-                List<DynValue> keysToRemove = new List<DynValue>();
-
-                // Display each key-value pair in the table
-                foreach (var pair in currentTable.Pairs)
-                {
-                    GUILayout.BeginHorizontal();
-
-                    // Show key
-                    GUILayout.Label(pair.Key.ToString(), GUILayout.Width(100));
-
-                    // Show value based on type
-                    switch (pair.Value.Type)
-                    {
-                        case DataType.Boolean:
-                            bool boolValue = pair.Value.Boolean;
-
-                            // Use same approach as above for boolean toggles
-                            GUIStyle pairToggleStyle = new GUIStyle(GUI.skin.toggle);
-                            pairToggleStyle.margin = new RectOffset(0, 5, 0, 0);
-
-                            bool newBoolValue = GUILayout.Toggle(boolValue, "", pairToggleStyle, GUILayout.Width(20));
-                            GUILayout.Label(boolValue ? "True" : "False", GUILayout.Width(40));
-
-                            if (newBoolValue != boolValue)
-                            {
-                                currentTable[pair.Key] = DynValue.NewBoolean(newBoolValue);
-                            }
-                            break;
-
-                        case DataType.Number:
-                            string numStr = pair.Value.Number.ToString();
-                            string newNumStr = GUILayout.TextField(numStr, _configValueStyle, GUILayout.Width(150));
-                            if (newNumStr != numStr && double.TryParse(newNumStr, out double newNum))
-                            {
-                                currentTable[pair.Key] = DynValue.NewNumber(newNum);
-                            }
-                            break;
-
-                        case DataType.String:
-                            string strVal = pair.Value.String;
-                            string newStrVal = GUILayout.TextField(strVal, _configValueStyle, GUILayout.Width(150));
-                            if (newStrVal != strVal)
-                            {
-                                currentTable[pair.Key] = DynValue.NewString(newStrVal);
-                            }
-                            break;
-
-                        default:
-                            // For other types, just show type information
-                            GUILayout.Label($"({pair.Value.Type}) {pair.Value}", _configValueStyle, GUILayout.Width(150));
-                            break;
-                    }
-
-                    // Delete button
-                    if (GUILayout.Button("X", GUILayout.Width(25)))
-                    {
-                        keysToRemove.Add(pair.Key);
-                    }
-
-                    GUILayout.EndHorizontal();
-                }
-
-                // Remove entries marked for deletion
-                foreach (var key_to_remove in keysToRemove)
-                {
-                    currentTable[key_to_remove] = DynValue.Nil;
-                }
-
-                // Add new entry
-                GUILayout.Space(10);
-                GUILayout.Label("Add new entry:", _configLabelStyle);
-
-                // Static variables to store new entry state
-                if (!_tableNewEntryKeys.ContainsKey(key))
-                {
-                    _tableNewEntryKeys[key] = "";
-                    _tableNewEntryValues[key] = "";
-                    _tableNewEntryTypes[key] = 0; // Default to string
-                }
-
-                GUILayout.BeginHorizontal();
-
-                // Key field
-                GUILayout.Label("Key:", GUILayout.Width(30));
-                _tableNewEntryKeys[key] = GUILayout.TextField(_tableNewEntryKeys[key], _configValueStyle, GUILayout.Width(100));
-
-                // Type selector
-                GUILayout.Label("Type:", GUILayout.Width(40));
-                _tableNewEntryTypes[key] = GUILayout.SelectionGrid(_tableNewEntryTypes[key], new string[] { "String", "Number", "Boolean" }, 3, GUILayout.Width(200));
-
-                GUILayout.EndHorizontal();
-
-                GUILayout.BeginHorizontal();
-
-                // Value field based on selected type
-                GUILayout.Label("Value:", GUILayout.Width(40));
-
-                switch (_tableNewEntryTypes[key])
-                {
-                    case 0: // String
-                        _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
-                        break;
-                    case 1: // Number
-                        _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
-                        break;
-                    case 2: // Boolean
-                        bool tempBool = _tableNewEntryValues[key] == "true";
-                        GUIStyle addBoolStyle = new GUIStyle(GUI.skin.toggle);
-                        tempBool = GUILayout.Toggle(tempBool, "True/False", addBoolStyle, GUILayout.Width(100));
-                        _tableNewEntryValues[key] = tempBool ? "true" : "false";
-                        break;
-                }
-
-                // Add button
-                if (GUILayout.Button("Add", GUILayout.Width(50)) && !string.IsNullOrEmpty(_tableNewEntryKeys[key]))
-                {
-                    // Create the key DynValue
-                    DynValue keyDyn;
-
-                    // Try to convert key to number if it parses
-                    if (double.TryParse(_tableNewEntryKeys[key], out double keyNum))
-                        keyDyn = DynValue.NewNumber(keyNum);
-                    else
-                        keyDyn = DynValue.NewString(_tableNewEntryKeys[key]);
-
-                    // Create value based on selected type
-                    DynValue valueDyn;
-                    switch (_tableNewEntryTypes[key])
-                    {
-                        case 0: // String
-                            valueDyn = DynValue.NewString(_tableNewEntryValues[key]);
-                            break;
-                        case 1: // Number
-                            if (double.TryParse(_tableNewEntryValues[key], out double valueNum))
-                                valueDyn = DynValue.NewNumber(valueNum);
-                            else
-                                valueDyn = DynValue.NewNumber(0);
-                            break;
-                        case 2: // Boolean
-                            valueDyn = DynValue.NewBoolean(_tableNewEntryValues[key] == "true");
-                            break;
-                        default:
-                            valueDyn = DynValue.NewString("");
-                            break;
-                    }
-
-                    // Add to table
-                    currentTable[keyDyn] = valueDyn;
-
-                    // Clear input fields
-                    _tableNewEntryKeys[key] = "";
-                    _tableNewEntryValues[key] = "";
-                }
-
-                GUILayout.EndHorizontal();
-
-                GUILayout.EndVertical(); // End of table entries
-                GUILayout.EndVertical(); // End of table editor
-            }
             else
             {
                 // Fallback for other types
                 GUILayout.Label(value.ToString(), _configValueStyle);
             }
+        }
+        
+        /// <summary>
+        /// Draw the table editor UI for MoonSharp tables
+        /// </summary>
+        private void DrawTableEditor(string key, Table table)
+        {
+            // MoonSharp Table editor
+            GUILayout.BeginVertical(GUI.skin.box);
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Table with {table.Pairs.Count()} entries", _configLabelStyle);
+            GUILayout.EndHorizontal();
+            
+            // Save the current table if it doesn't exist in temp values
+            if (!_tempConfigValues.ContainsKey(key))
+            {
+                _tempConfigValues[key] = table;
+            }
+            
+            Table currentTable = (Table)_tempConfigValues[key];
+            
+            // Show table entries
+            GUILayout.BeginVertical(GUI.skin.box);
+            
+            // Track entries to remove
+            List<DynValue> keysToRemove = new List<DynValue>();
+            
+            // Display each key-value pair in the table
+            foreach (var pair in currentTable.Pairs)
+            {
+                GUILayout.BeginHorizontal();
+                
+                // Show key
+                GUILayout.Label(pair.Key.ToString(), GUILayout.Width(100));
+                
+                // Show value based on type
+                switch (pair.Value.Type)
+                {
+                    case DataType.Boolean:
+                        bool boolValue = pair.Value.Boolean;
+                        
+                        // Use same approach as above for boolean toggles
+                        GUIStyle pairToggleStyle = new GUIStyle(GUI.skin.toggle);
+                        pairToggleStyle.margin = new RectOffset(0, 5, 0, 0);
+                        
+                        bool newBoolValue = GUILayout.Toggle(boolValue, "", pairToggleStyle, GUILayout.Width(20));
+                        GUILayout.Label(boolValue ? "True" : "False", GUILayout.Width(40));
+                        
+                        if (newBoolValue != boolValue)
+                        {
+                            currentTable[pair.Key] = DynValue.NewBoolean(newBoolValue);
+                        }
+                        break;
+                        
+                    case DataType.Number:
+                        string numStr = pair.Value.Number.ToString();
+                        string newNumStr = GUILayout.TextField(numStr, _configValueStyle, GUILayout.Width(150));
+                        if (newNumStr != numStr && double.TryParse(newNumStr, out double newNum))
+                        {
+                            currentTable[pair.Key] = DynValue.NewNumber(newNum);
+                        }
+                        break;
+                        
+                    case DataType.String:
+                        string strVal = pair.Value.String;
+                        string newStrVal = GUILayout.TextField(strVal, _configValueStyle, GUILayout.Width(150));
+                        if (newStrVal != strVal)
+                        {
+                            currentTable[pair.Key] = DynValue.NewString(newStrVal);
+                        }
+                        break;
+                        
+                    default:
+                        // For other types, just show type information
+                        GUILayout.Label($"({pair.Value.Type}) {pair.Value}", _configValueStyle, GUILayout.Width(150));
+                        break;
+                }
+                
+                // Delete button
+                if (GUILayout.Button("X", GUILayout.Width(25)))
+                {
+                    keysToRemove.Add(pair.Key);
+                }
+                
+                GUILayout.EndHorizontal();
+            }
+            
+            // Remove entries marked for deletion
+            foreach (var key_to_remove in keysToRemove)
+            {
+                currentTable[key_to_remove] = DynValue.Nil;
+            }
+            
+            // Add new entry
+            GUILayout.Space(10);
+            GUILayout.Label("Add new entry:", _configLabelStyle);
+            
+            // Static variables to store new entry state
+            if (!_tableNewEntryKeys.ContainsKey(key))
+            {
+                _tableNewEntryKeys[key] = "";
+                _tableNewEntryValues[key] = "";
+                _tableNewEntryTypes[key] = 0; // Default to string
+            }
+            
+            GUILayout.BeginHorizontal();
+            
+            // Key field
+            GUILayout.Label("Key:", GUILayout.Width(30));
+            _tableNewEntryKeys[key] = GUILayout.TextField(_tableNewEntryKeys[key], _configValueStyle, GUILayout.Width(100));
+            
+            // Type selector
+            GUILayout.Label("Type:", GUILayout.Width(40));
+            _tableNewEntryTypes[key] = GUILayout.SelectionGrid(_tableNewEntryTypes[key], new string[] { "String", "Number", "Boolean" }, 3, GUILayout.Width(200));
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            
+            // Value field based on selected type
+            GUILayout.Label("Value:", GUILayout.Width(40));
+            
+            switch (_tableNewEntryTypes[key])
+            {
+                case 0: // String
+                    _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
+                    break;
+                case 1: // Number
+                    _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
+                    break;
+                case 2: // Boolean
+                    bool tempBool = _tableNewEntryValues[key] == "true";
+                    GUIStyle addBoolStyle = new GUIStyle(GUI.skin.toggle);
+                    tempBool = GUILayout.Toggle(tempBool, "True/False", addBoolStyle, GUILayout.Width(100));
+                    _tableNewEntryValues[key] = tempBool ? "true" : "false";
+                    break;
+            }
+            
+            // Add button
+            if (GUILayout.Button("Add", GUILayout.Width(50)) && !string.IsNullOrEmpty(_tableNewEntryKeys[key]))
+            {
+                // Create the key DynValue
+                DynValue keyDyn;
+                
+                // Try to convert key to number if it parses
+                if (double.TryParse(_tableNewEntryKeys[key], out double keyNum))
+                    keyDyn = DynValue.NewNumber(keyNum);
+                else
+                    keyDyn = DynValue.NewString(_tableNewEntryKeys[key]);
+                
+                // Create value based on selected type
+                DynValue valueDyn;
+                switch (_tableNewEntryTypes[key])
+                {
+                    case 0: // String
+                        valueDyn = DynValue.NewString(_tableNewEntryValues[key]);
+                        break;
+                    case 1: // Number
+                        if (double.TryParse(_tableNewEntryValues[key], out double valueNum))
+                            valueDyn = DynValue.NewNumber(valueNum);
+                        else
+                            valueDyn = DynValue.NewNumber(0);
+                        break;
+                    case 2: // Boolean
+                        valueDyn = DynValue.NewBoolean(_tableNewEntryValues[key] == "true");
+                        break;
+                    default:
+                        valueDyn = DynValue.NewString("");
+                        break;
+                }
+                
+                // Add to table
+                currentTable[keyDyn] = valueDyn;
+                
+                // Clear input fields
+                _tableNewEntryKeys[key] = "";
+                _tableNewEntryValues[key] = "";
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.EndVertical(); // End of table entries
+            GUILayout.EndVertical(); // End of table editor
+        }
+
+        /// <summary>
+        /// Draw editor for Dictionary objects (JSON deserialized tables)
+        /// </summary>
+        private void DrawDictionaryEditor(string key, object dictObj)
+        {
+            // Create a stylish box for the dictionary editor
+            GUILayout.BeginVertical(GUI.skin.box);
+            
+            var dict = dictObj is Dictionary<string, object> ? 
+                       (Dictionary<string, object>)dictObj : 
+                       ((Dictionary<object, object>)dictObj).ToDictionary(k => k.Key.ToString(), v => v.Value);
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Object with {dict.Count} properties", _configLabelStyle);
+            GUILayout.EndHorizontal();
+            
+            // Save the dictionary in temp values if it doesn't exist
+            if (!_tempConfigValues.ContainsKey(key))
+            {
+                _tempConfigValues[key] = dict;
+            }
+            else if (!(_tempConfigValues[key] is Dictionary<string, object>))
+            {
+                // If the type changed, update it
+                _tempConfigValues[key] = dict;
+            }
+            
+            // Get the current dictionary from temp values
+            var currentDict = (Dictionary<string, object>)_tempConfigValues[key];
+            
+            // Show dictionary entries
+            GUILayout.BeginVertical(GUI.skin.box);
+            
+            // Track entries to remove
+            List<string> keysToRemove = new List<string>();
+            
+            // Display each key-value pair in the dictionary
+            foreach (var pair in currentDict.ToList()) // Use ToList to avoid collection modified exception
+            {
+                GUILayout.BeginHorizontal();
+                
+                // Show key
+                GUILayout.Label(pair.Key, GUILayout.Width(100));
+                
+                // Show value based on type
+                if (pair.Value is bool boolValue)
+                {
+                    GUIStyle pairToggleStyle = new GUIStyle(GUI.skin.toggle);
+                    pairToggleStyle.margin = new RectOffset(0, 5, 0, 0);
+                    
+                    bool newBoolValue = GUILayout.Toggle(boolValue, "", pairToggleStyle, GUILayout.Width(20));
+                    GUILayout.Label(boolValue ? "True" : "False", GUILayout.Width(40));
+                    
+                    if (newBoolValue != boolValue)
+                    {
+                        currentDict[pair.Key] = newBoolValue;
+                    }
+                }
+                else if (pair.Value is int intValue || pair.Value is long longValue || 
+                         pair.Value is double doubleValue || pair.Value is float floatValue)
+                {
+                    string numStr = pair.Value.ToString();
+                    string newNumStr = GUILayout.TextField(numStr, _configValueStyle, GUILayout.Width(150));
+                    
+                    if (newNumStr != numStr)
+                    {
+                        if (double.TryParse(newNumStr, out double newNum))
+                        {
+                            // Try to maintain the original numeric type
+                            if (pair.Value is int) 
+                                currentDict[pair.Key] = (int)newNum;
+                            else if (pair.Value is long) 
+                                currentDict[pair.Key] = (long)newNum;
+                            else if (pair.Value is float) 
+                                currentDict[pair.Key] = (float)newNum;
+                            else 
+                                currentDict[pair.Key] = newNum;
+                        }
+                    }
+                }
+                else if (pair.Value is string strValue)
+                {
+                    string newStrValue = GUILayout.TextField(strValue, _configValueStyle, GUILayout.Width(150));
+                    if (newStrValue != strValue)
+                    {
+                        currentDict[pair.Key] = newStrValue;
+                    }
+                }
+                else if (pair.Value is Dictionary<string, object> || pair.Value is Dictionary<object, object> ||
+                         pair.Value is List<object>)
+                {
+                    // For nested objects, just show a summary
+                    string summary;
+                    if (pair.Value is List<object> nestedList)
+                        summary = $"Array with {nestedList.Count} items";
+                    else
+                        summary = "Nested object";
+                        
+                    GUILayout.Label(summary, _configValueStyle, GUILayout.Width(150));
+                }
+                else
+                {
+                    // For other types, just show the value as text
+                    GUILayout.Label(pair.Value?.ToString() ?? "null", _configValueStyle, GUILayout.Width(150));
+                }
+                
+                // Delete button
+                if (GUILayout.Button("X", GUILayout.Width(25)))
+                {
+                    keysToRemove.Add(pair.Key);
+                }
+                
+                GUILayout.EndHorizontal();
+            }
+            
+            // Remove entries marked for deletion
+            foreach (var keyToRemove in keysToRemove)
+            {
+                currentDict.Remove(keyToRemove);
+            }
+            
+            // Add new entry
+            GUILayout.Space(10);
+            GUILayout.Label("Add new entry:", _configLabelStyle);
+            
+            // Static variables to store new entry state
+            if (!_tableNewEntryKeys.ContainsKey(key))
+            {
+                _tableNewEntryKeys[key] = "";
+                _tableNewEntryValues[key] = "";
+                _tableNewEntryTypes[key] = 0; // Default to string
+            }
+            
+            GUILayout.BeginHorizontal();
+            
+            // Key field
+            GUILayout.Label("Key:", GUILayout.Width(30));
+            _tableNewEntryKeys[key] = GUILayout.TextField(_tableNewEntryKeys[key], _configValueStyle, GUILayout.Width(100));
+            
+            // Type selector
+            GUILayout.Label("Type:", GUILayout.Width(40));
+            _tableNewEntryTypes[key] = GUILayout.SelectionGrid(_tableNewEntryTypes[key], 
+                                                             new string[] { "String", "Number", "Boolean" }, 
+                                                             3, GUILayout.Width(200));
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            
+            // Value field based on selected type
+            GUILayout.Label("Value:", GUILayout.Width(40));
+            
+            switch (_tableNewEntryTypes[key])
+            {
+                case 0: // String
+                    _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
+                    break;
+                case 1: // Number
+                    _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
+                    break;
+                case 2: // Boolean
+                    bool tempBool = _tableNewEntryValues[key] == "true";
+                    GUIStyle addBoolStyle = new GUIStyle(GUI.skin.toggle);
+                    tempBool = GUILayout.Toggle(tempBool, "True/False", addBoolStyle, GUILayout.Width(100));
+                    _tableNewEntryValues[key] = tempBool ? "true" : "false";
+                    break;
+            }
+            
+            // Add button
+            if (GUILayout.Button("Add", GUILayout.Width(50)) && !string.IsNullOrEmpty(_tableNewEntryKeys[key]))
+            {
+                object newValue;
+                
+                // Create value based on selected type
+                switch (_tableNewEntryTypes[key])
+                {
+                    case 0: // String
+                        newValue = _tableNewEntryValues[key];
+                        break;
+                    case 1: // Number
+                        if (double.TryParse(_tableNewEntryValues[key], out double valueNum))
+                            newValue = valueNum;
+                        else
+                            newValue = 0;
+                        break;
+                    case 2: // Boolean
+                        newValue = _tableNewEntryValues[key] == "true";
+                        break;
+                    default:
+                        newValue = "";
+                        break;
+                }
+                
+                // Add to dictionary
+                currentDict[_tableNewEntryKeys[key]] = newValue;
+                
+                // Clear input fields
+                _tableNewEntryKeys[key] = "";
+                _tableNewEntryValues[key] = "";
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.EndVertical(); // End of dictionary entries
+            GUILayout.EndVertical(); // End of dictionary editor
+        }
+        
+        /// <summary>
+        /// Draw editor for List objects (JSON deserialized arrays)
+        /// </summary>
+        private void DrawListEditor(string key, List<object> list)
+        {
+            // Create a stylish box for the list editor
+            GUILayout.BeginVertical(GUI.skin.box);
+            
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"Array with {list.Count} items", _configLabelStyle);
+            GUILayout.EndHorizontal();
+            
+            // Save the list in temp values if it doesn't exist
+            if (!_tempConfigValues.ContainsKey(key))
+            {
+                _tempConfigValues[key] = list;
+            }
+            else if (!(_tempConfigValues[key] is List<object>))
+            {
+                // If the type changed, update it
+                _tempConfigValues[key] = list;
+            }
+            
+            // Get the current list from temp values
+            var currentList = (List<object>)_tempConfigValues[key];
+            
+            // Show list entries
+            GUILayout.BeginVertical(GUI.skin.box);
+            
+            // Track items to remove
+            List<int> itemsToRemove = new List<int>();
+            
+            // Display each item in the list
+            for (int i = 0; i < currentList.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+                
+                // Show index
+                GUILayout.Label($"[{i}]", GUILayout.Width(40));
+                
+                var item = currentList[i];
+                
+                // Show value based on type
+                if (item is bool boolValue)
+                {
+                    GUIStyle listToggleStyle = new GUIStyle(GUI.skin.toggle);
+                    listToggleStyle.margin = new RectOffset(0, 5, 0, 0);
+                    
+                    bool newBoolValue = GUILayout.Toggle(boolValue, "", listToggleStyle, GUILayout.Width(20));
+                    GUILayout.Label(boolValue ? "True" : "False", GUILayout.Width(40));
+                    
+                    if (newBoolValue != boolValue)
+                    {
+                        currentList[i] = newBoolValue;
+                    }
+                }
+                else if (item is int intValue || item is long longValue || 
+                         item is double doubleValue || item is float floatValue)
+                {
+                    string numStr = item.ToString();
+                    string newNumStr = GUILayout.TextField(numStr, _configValueStyle, GUILayout.Width(150));
+                    
+                    if (newNumStr != numStr)
+                    {
+                        if (double.TryParse(newNumStr, out double newNum))
+                        {
+                            // Try to maintain the original numeric type
+                            if (item is int) 
+                                currentList[i] = (int)newNum;
+                            else if (item is long) 
+                                currentList[i] = (long)newNum;
+                            else if (item is float) 
+                                currentList[i] = (float)newNum;
+                            else 
+                                currentList[i] = newNum;
+                        }
+                    }
+                }
+                else if (item is string strValue)
+                {
+                    string newStrValue = GUILayout.TextField(strValue, _configValueStyle, GUILayout.Width(150));
+                    if (newStrValue != strValue)
+                    {
+                        currentList[i] = newStrValue;
+                    }
+                }
+                else if (item is Dictionary<string, object> || item is Dictionary<object, object> ||
+                         item is List<object>)
+                {
+                    // For nested objects, just show a summary
+                    string summary;
+                    if (item is List<object> nestedList)
+                        summary = $"Array with {nestedList.Count} items";
+                    else
+                        summary = "Nested object";
+                        
+                    GUILayout.Label(summary, _configValueStyle, GUILayout.Width(150));
+                }
+                else
+                {
+                    // For other types, just show the value as text
+                    GUILayout.Label(item?.ToString() ?? "null", _configValueStyle, GUILayout.Width(150));
+                }
+                
+                // Delete button
+                if (GUILayout.Button("X", GUILayout.Width(25)))
+                {
+                    itemsToRemove.Add(i);
+                }
+                
+                GUILayout.EndHorizontal();
+            }
+            
+            // Remove items marked for deletion (in reverse to maintain indices)
+            itemsToRemove.Sort();
+            itemsToRemove.Reverse();
+            foreach (var index in itemsToRemove)
+            {
+                currentList.RemoveAt(index);
+            }
+            
+            // Add new item
+            GUILayout.Space(10);
+            GUILayout.Label("Add new item:", _configLabelStyle);
+            
+            // Use the same storage system as tables for simplicity
+            if (!_tableNewEntryValues.ContainsKey(key))
+            {
+                _tableNewEntryValues[key] = "";
+                _tableNewEntryTypes[key] = 0; // Default to string
+            }
+            
+            GUILayout.BeginHorizontal();
+            
+            // Type selector
+            GUILayout.Label("Type:", GUILayout.Width(40));
+            _tableNewEntryTypes[key] = GUILayout.SelectionGrid(_tableNewEntryTypes[key], 
+                                                             new string[] { "String", "Number", "Boolean" }, 
+                                                             3, GUILayout.Width(200));
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.BeginHorizontal();
+            
+            // Value field based on selected type
+            GUILayout.Label("Value:", GUILayout.Width(40));
+            
+            switch (_tableNewEntryTypes[key])
+            {
+                case 0: // String
+                    _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
+                    break;
+                case 1: // Number
+                    _tableNewEntryValues[key] = GUILayout.TextField(_tableNewEntryValues[key], _configValueStyle, GUILayout.Width(200));
+                    break;
+                case 2: // Boolean
+                    bool tempBool = _tableNewEntryValues[key] == "true";
+                    GUIStyle addBoolStyle = new GUIStyle(GUI.skin.toggle);
+                    tempBool = GUILayout.Toggle(tempBool, "True/False", addBoolStyle, GUILayout.Width(100));
+                    _tableNewEntryValues[key] = tempBool ? "true" : "false";
+                    break;
+            }
+            
+            // Add button
+            if (GUILayout.Button("Add", GUILayout.Width(50)))
+            {
+                object newValue;
+                
+                // Create value based on selected type
+                switch (_tableNewEntryTypes[key])
+                {
+                    case 0: // String
+                        newValue = _tableNewEntryValues[key];
+                        break;
+                    case 1: // Number
+                        if (double.TryParse(_tableNewEntryValues[key], out double valueNum))
+                            newValue = valueNum;
+                        else
+                            newValue = 0;
+                        break;
+                    case 2: // Boolean
+                        newValue = _tableNewEntryValues[key] == "true";
+                        break;
+                    default:
+                        newValue = "";
+                        break;
+                }
+                
+                // Add to list
+                currentList.Add(newValue);
+                
+                // Clear input fields
+                _tableNewEntryValues[key] = "";
+            }
+            
+            GUILayout.EndHorizontal();
+            
+            GUILayout.EndVertical(); // End of list entries
+            GUILayout.EndVertical(); // End of list editor
         }
 
         /// <summary>
@@ -1038,20 +1454,31 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
                         {
                             try
                             {
-                                Type valueType = kvp.Value.GetType();
-
-                                if (valueType == typeof(int))
+                                // Preserve type information, especially for tables
+                                if (kvp.Value is Table)
+                                {
+                                    config.SetValue(kvp.Key, (Table)kvp.Value);
+                                }
+                                else if (kvp.Value is int)
+                                {
                                     config.SetValue(kvp.Key, (int)kvp.Value);
-                                else if (valueType == typeof(float))
+                                }
+                                else if (kvp.Value is float)
+                                {
                                     config.SetValue(kvp.Key, (float)kvp.Value);
-                                else if (valueType == typeof(bool))
+                                }
+                                else if (kvp.Value is bool)
+                                {
                                     config.SetValue(kvp.Key, (bool)kvp.Value);
-                                else if (valueType == typeof(string))
+                                }
+                                else if (kvp.Value is string)
+                                {
                                     config.SetValue(kvp.Key, (string)kvp.Value);
-                                else if (kvp.Value is Table table)
-                                    config.SetValue(kvp.Key, table);
+                                }
                                 else
+                                {
                                     config.SetValue(kvp.Key, kvp.Value);
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -1065,7 +1492,12 @@ namespace ScheduleLua.Core.Framework.Mods.ManagerUI
 
                     LuaUtility.Log($"Configuration saved for mod: {_selectedMod.Manifest.Name}");
 
-                    // TODO: Add option to reload the mod if necessary
+                    // Reload the mod config to ensure all values are properly loaded
+                    // with correct type information
+                    config.LoadConfig();
+                    
+                    // Reinitialize temporary config values to get fresh references
+                    InitializeTempConfigValues();
                 }
             }
 
